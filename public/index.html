@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Who Woulda Won? - WCS Voting System Comparison</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Who Woulda Won?</h1>
+        <p class="subtitle">Compare voting systems on WCS Jack & Jill scoresheets</p>
+    </header>
+
+    <main>
+        <section class="input-section">
+            <h2>Analyze a Scoresheet</h2>
+
+            <div class="input-tabs">
+                <button class="tab-btn active" data-tab="url">Enter URL</button>
+                <button class="tab-btn" data-tab="file">Upload File</button>
+            </div>
+
+            <div class="tab-content active" id="url-tab">
+                <form id="url-form">
+                    <label for="url-input">Scoresheet URL:</label>
+                    <input type="url" id="url-input" name="url"
+                           placeholder="https://scoring.dance/..." required>
+                    <p class="hint">Supported: scoring.dance, eepro.com, danceconvention.net</p>
+                    <button type="submit" id="url-submit">Analyze</button>
+                </form>
+            </div>
+
+            <div class="tab-content" id="file-tab">
+                <form id="file-form">
+                    <label for="file-input">Upload scoresheet (HTML or PDF):</label>
+                    <input type="file" id="file-input" name="file"
+                           accept=".html,.htm,.pdf" required>
+                    <button type="submit" id="file-submit">Analyze</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="loading hidden" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing scoresheet...</p>
+        </section>
+
+        <section class="error hidden" id="error">
+            <h3>Error</h3>
+            <p id="error-message"></p>
+        </section>
+
+        <section class="results hidden" id="results">
+            <h2>Results: <span id="competition-name"></span></h2>
+            <p class="meta">
+                <span id="num-competitors"></span> competitors,
+                <span id="num-judges"></span> judges
+            </p>
+
+            <div class="results-table-wrapper">
+                <table class="results-table" id="results-table">
+                    <thead>
+                        <tr id="results-header"></tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+
+            <div class="legend">
+                <h3>Voting Systems</h3>
+                <dl>
+                    <dt>Relative Placement</dt>
+                    <dd>The official WCS system. A competitor places when a majority of judges rank them at that place or better.</dd>
+
+                    <dt>Borda Count</dt>
+                    <dd>Points-based: 1st place = n-1 points, 2nd = n-2, ..., last = 0. Sum across all judges.</dd>
+
+                    <dt>Schulze Method</dt>
+                    <dd>A Condorcet method using beatpath strengths. Handles cyclic preferences gracefully.</dd>
+
+                    <dt>Sequential IRV</dt>
+                    <dd>Run Instant Runoff Voting repeatedly: find winner, remove them, repeat for 2nd place, etc.</dd>
+                </dl>
+            </div>
+        </section>
+
+        <section class="privacy-notice">
+            <h3>Privacy</h3>
+            <p>This app does not store any data. Scoresheets are fetched, analyzed, and results are returned immediately. Nothing is saved on our servers.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>
+            <a href="https://github.com/czlee/who-woulda-won" target="_blank">Source on GitHub</a>
+        </p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

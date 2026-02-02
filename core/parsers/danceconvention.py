@@ -1,0 +1,230 @@
+"""Parser for danceconvention.net PDF scoresheets."""
+
+import re
+from io import BytesIO
+
+import pdfplumber
+
+from core.models import Scoresheet
+from core.parsers import register_parser
+from core.parsers.base import ScoresheetParser
+
+
+@register_parser
+class DanceConventionParser(ScoresheetParser):
+    """Parser for danceconvention.net PDF scoresheets.
+
+    These PDFs have:
+    - Title and event name at the top
+    - Judge key showing initials -> full names
+    - Table with columns: #, Name, [Judge initials], [cumulative counts], Result, Remarks
+    - Names show leader and follower on separate lines within the same cell
+    """
+
+    def can_parse(self, source: str) -> bool:
+        """Check if this looks like a danceconvention.net URL or PDF."""
+        source_lower = source.lower()
+        return "danceconvention" in source_lower or (
+            source_lower.endswith(".pdf") and "convention" in source_lower
+        )
+
+    def parse(self, source: str, content: bytes) -> Scoresheet:
+        """Parse danceconvention.net PDF content into a Scoresheet."""
+        pdf_file = BytesIO(content)
+
+        with pdfplumber.open(pdf_file) as pdf:
+            if not pdf.pages:
+                raise ValueError("PDF has no pages")
+
+            # Extract text and tables from all pages
+            all_text = ""
+            all_tables = []
+
+            for page in pdf.pages:
+                text = page.extract_text() or ""
+                all_text += text + "\n"
+
+                tables = page.extract_tables()
+                all_tables.extend(tables)
+
+        if not all_tables:
+            raise ValueError("No tables found in PDF")
+
+        # Parse competition info from text
+        competition_name = self._extract_competition_name(all_text)
+
+        # Parse judge key from text
+        judge_key = self._extract_judge_key(all_text)
+
+        # Find and parse the main results table
+        return self._parse_results_table(all_tables, competition_name, judge_key)
+
+    def _extract_competition_name(self, text: str) -> str:
+        """Extract competition name from PDF text."""
+        lines = text.strip().split("\n")
+
+        # Usually first two non-empty lines are title and event name
+        title_parts = []
+        for line in lines[:5]:
+            line = line.strip()
+            if line and not line.startswith("Score legend"):
+                title_parts.append(line)
+            if len(title_parts) >= 2:
+                break
+
+        if title_parts:
+            return " - ".join(title_parts)
+        return "Unknown Competition"
+
+    def _extract_judge_key(self, text: str) -> dict[str, str]:
+        """Extract judge initials -> full name mapping from text.
+
+        Looks for patterns like "AG Alexis Garrish" or "RB Ryan Boz"
+        """
+        judge_key = {}
+
+        # Pattern: 2-4 uppercase letters followed by a name
+        # Common patterns: "AG Alexis Garrish", "MMT Maxence Martin"
+        pattern = r"^([A-Z]{2,4})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)"
+
+        for line in text.split("\n"):
+            line = line.strip()
+            match = re.match(pattern, line)
+            if match:
+                initials = match.group(1)
+                full_name = match.group(2)
+                judge_key[initials] = full_name
+
+        return judge_key
+
+    def _parse_results_table(
+        self,
+        tables: list[list[list[str]]],
+        competition_name: str,
+        judge_key: dict[str, str],
+    ) -> Scoresheet:
+        """Parse the main results table."""
+        # Find the table with results (has # and Name columns)
+        results_table = None
+        for table in tables:
+            if not table or len(table) < 2:
+                continue
+            header = table[0]
+            if header and len(header) >= 2:
+                # Check if this looks like a results table
+                header_str = " ".join(str(h) for h in header if h)
+                if "#" in header_str and "Name" in header_str:
+                    results_table = table
+                    break
+
+        if not results_table:
+            raise ValueError("Could not find results table in PDF")
+
+        header = results_table[0]
+
+        # Find column indices
+        col_indices = self._find_column_indices(header)
+        name_idx = col_indices["name"]
+        result_idx = col_indices["result"]
+        judge_start = col_indices["judge_start"]
+        judge_end = col_indices["judge_end"]
+
+        # Extract judge initials from header
+        judge_initials = []
+        for i in range(judge_start, judge_end):
+            if i < len(header) and header[i]:
+                initials = str(header[i]).strip()
+                if initials and re.match(r"^[A-Z]{2,4}$", initials):
+                    judge_initials.append(initials)
+
+        if not judge_initials:
+            raise ValueError("Could not find judge columns in table header")
+
+        # Use full names if available, otherwise use initials
+        judges = [judge_key.get(init, init) for init in judge_initials]
+
+        # Parse data rows
+        competitors = []
+        rankings = {judge: {} for judge in judges}
+
+        for row in results_table[1:]:
+            if not row or len(row) <= name_idx:
+                continue
+
+            # Get competitor name (may have leader/follower on separate lines)
+            name_cell = row[name_idx] if name_idx < len(row) else None
+            if not name_cell:
+                continue
+
+            competitor = self._clean_competitor_name(str(name_cell))
+            if not competitor:
+                continue
+
+            competitors.append(competitor)
+
+            # Get judge placements
+            for i, initials in enumerate(judge_initials):
+                col_idx = judge_start + i
+                if col_idx < len(row) and row[col_idx]:
+                    placement_str = str(row[col_idx]).strip()
+                    try:
+                        placement = int(placement_str)
+                        judge_name = judge_key.get(initials, initials)
+                        rankings[judge_name][competitor] = placement
+                    except ValueError:
+                        pass  # Skip non-numeric placements
+
+        if not competitors:
+            raise ValueError("No competitors found in table")
+
+        # Validate that we have complete rankings
+        for judge in judges:
+            if len(rankings[judge]) != len(competitors):
+                # Fill in missing with 0 (will be flagged as incomplete)
+                for comp in competitors:
+                    if comp not in rankings[judge]:
+                        rankings[judge][comp] = 0
+
+        return Scoresheet(
+            competition_name=competition_name,
+            competitors=competitors,
+            judges=judges,
+            rankings=rankings,
+        )
+
+    def _find_column_indices(self, header: list) -> dict[str, int]:
+        """Find the indices of key columns in the header."""
+        indices = {
+            "number": 0,
+            "name": 1,
+            "judge_start": 2,
+            "judge_end": len(header),
+            "result": len(header) - 1,
+        }
+
+        for i, cell in enumerate(header):
+            if not cell:
+                continue
+            cell_str = str(cell).strip().lower()
+
+            if cell_str == "#":
+                indices["number"] = i
+            elif cell_str == "name":
+                indices["name"] = i
+                indices["judge_start"] = i + 1
+            elif cell_str == "result":
+                indices["result"] = i
+                indices["judge_end"] = i
+            elif cell_str.startswith("1-"):
+                # Found cumulative columns, judges end before this
+                indices["judge_end"] = min(indices["judge_end"], i)
+
+        return indices
+
+    def _clean_competitor_name(self, name: str) -> str:
+        """Clean up competitor name, combining leader/follower if on separate lines."""
+        # Replace newlines with " & " to combine leader/follower
+        name = name.replace("\n", " & ")
+        # Clean up extra whitespace
+        name = " ".join(name.split())
+        return name
