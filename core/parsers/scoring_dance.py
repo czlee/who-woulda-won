@@ -20,11 +20,15 @@ class ScoringDanceParser(ScoresheetParser):
     Expected URL format:
         https://scoring.dance/events/<number>/results/<number>.html
         https://scoring.dance/<lang>/events/<number>/results/<number>.html
+
+    where <lang> is a language code like "en", "enUS", "frFR", "zhCN",
+    or "en-US" (2-letter language, optionally followed by 2-letter country
+    code with or without a hyphen).
     """
 
     URL_PATTERN = re.compile(
         r"^https?://scoring\.dance"
-        r"(/[a-z]{2})?"           # optional language code, e.g. /en
+        r"(/[a-z]{2}(-?[A-Z]{2})?)?"  # optional language(+country), e.g. /en, /enUS, /en-US
         r"/events/\d+"
         r"/results/\d+\.html$"
     )
