@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from core.models import Scoresheet, VotingResult
-from core.parsers import detect_parser, get_all_parsers
+from core.parsers import detect_parser, get_supported_url_formats
 from core.voting import get_all_voting_systems
 
 
@@ -54,10 +54,9 @@ def analyze_scoresheet(source: str, content: bytes) -> AnalysisResult:
     # Find appropriate parser
     parser = detect_parser(source)
     if parser is None:
-        available = [p.__class__.__name__ for p in [p() for p in get_all_parsers()]]
         raise AnalysisError(
-            f"No parser found for source: {source}. "
-            f"Available parsers: {available or 'none registered'}"
+            f"We don't recognise this URL.\n\n"
+            f"{get_supported_url_formats()}"
         )
 
     # Parse the scoresheet

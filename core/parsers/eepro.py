@@ -19,11 +19,21 @@ class EeproParser(ScoresheetParser):
     - Data rows with placements
 
     Note: Pages may contain multiple divisions. By default, parses the first one.
+
+    Expected URL format:
+        https://eepro.com/results/<slug>/<slug>.html
     """
 
+    URL_PATTERN = re.compile(
+        r"^https?://eepro\.com"
+        r"/results/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+\.html$"
+    )
+
+    EXAMPLE_URL = "https://eepro.com/results/event-name/division-name.html"
+
     def can_parse(self, source: str) -> bool:
-        """Check if this looks like an eepro.com URL or file."""
-        return "eepro.com" in source.lower() or "eepro" in source.lower()
+        """Check if this is a valid eepro.com results URL."""
+        return bool(self.URL_PATTERN.match(source))
 
     def parse(self, source: str, content: bytes, division_index: int = 0) -> Scoresheet:
         """Parse eepro.com HTML content into a Scoresheet.

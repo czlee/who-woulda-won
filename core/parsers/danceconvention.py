@@ -19,14 +19,21 @@ class DanceConventionParser(ScoresheetParser):
     - Judge key showing initials -> full names
     - Table with columns: #, Name, [Judge initials], [cumulative counts], Result, Remarks
     - Names show leader and follower on separate lines within the same cell
+
+    Expected URL format:
+        https://danceconvention.net/eventdirector/en/roundscores/<number>.pdf
     """
 
+    URL_PATTERN = re.compile(
+        r"^https?://danceconvention\.net"
+        r"/eventdirector/en/roundscores/\d+\.pdf$"
+    )
+
+    EXAMPLE_URL = "https://danceconvention.net/eventdirector/en/roundscores/123.pdf"
+
     def can_parse(self, source: str) -> bool:
-        """Check if this looks like a danceconvention.net URL or PDF."""
-        source_lower = source.lower()
-        return "danceconvention" in source_lower or (
-            source_lower.endswith(".pdf") and "convention" in source_lower
-        )
+        """Check if this is a valid danceconvention.net scoresheet URL."""
+        return bool(self.URL_PATTERN.match(source))
 
     def parse(self, source: str, content: bytes) -> Scoresheet:
         """Parse danceconvention.net PDF content into a Scoresheet."""

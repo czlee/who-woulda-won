@@ -24,3 +24,13 @@ def detect_parser(source: str) -> ScoresheetParser | None:
         if parser.can_parse(source):
             return parser
     return None
+
+
+def get_supported_url_formats() -> str:
+    """Return a user-friendly description of supported URL formats."""
+    lines = ["We currently support scoresheets from:"]
+    for parser_class in _parsers:
+        example = getattr(parser_class, "EXAMPLE_URL", None)
+        if example:
+            lines.append(f"  - {example}")
+    return "\n".join(lines)

@@ -16,11 +16,24 @@ class ScoringDanceParser(ScoresheetParser):
     scoring.dance pages contain embedded JSON-LD with structured data,
     making parsing straightforward. We look for the DanceEvent JSON-LD
     block that contains judges_placements.
+
+    Expected URL format:
+        https://scoring.dance/events/<number>/results/<number>.html
+        https://scoring.dance/<lang>/events/<number>/results/<number>.html
     """
 
+    URL_PATTERN = re.compile(
+        r"^https?://scoring\.dance"
+        r"(/[a-z]{2})?"           # optional language code, e.g. /en
+        r"/events/\d+"
+        r"/results/\d+\.html$"
+    )
+
+    EXAMPLE_URL = "https://scoring.dance/events/123/results/456.html"
+
     def can_parse(self, source: str) -> bool:
-        """Check if this looks like a scoring.dance URL or file."""
-        return "scoring.dance" in source.lower()
+        """Check if this is a valid scoring.dance results URL."""
+        return bool(self.URL_PATTERN.match(source))
 
     def parse(self, source: str, content: bytes) -> Scoresheet:
         """Parse scoring.dance HTML content into a Scoresheet."""

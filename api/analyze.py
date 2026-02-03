@@ -22,6 +22,7 @@ from core.voting import schulze  # noqa: F401
 from core.voting import sequential_irv  # noqa: F401
 
 from core.analyze import analyze_scoresheet, AnalysisError
+from core.parsers import detect_parser, get_supported_url_formats
 
 app = Flask(__name__)
 
@@ -45,6 +46,14 @@ def analyze():
 
             if not url:
                 return jsonify({"error": "Missing 'url' in request body"}), 400
+
+            # Validate URL against known parsers before fetching
+            if detect_parser(url) is None:
+                msg = (
+                    f"We don't recognise this URL.\n\n"
+                    f"{get_supported_url_formats()}"
+                )
+                return jsonify({"error": msg}), 400
 
             source, content = fetch_url(url)
 
