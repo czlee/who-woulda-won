@@ -104,23 +104,24 @@ class DanceConventionParser(ScoresheetParser):
         judge_key: dict[str, str],
     ) -> Scoresheet:
         """Parse the main results table."""
-        # Find the table with results (has # and Name columns)
-        results_table = None
+        # Find all tables with results (has # and Name columns).
+        # Multi-page PDFs have a continuation table on each page with
+        # the same header row, so we merge data rows from all of them.
+        results_tables = []
         for table in tables:
             if not table or len(table) < 2:
                 continue
             header = table[0]
             if header and len(header) >= 2:
-                # Check if this looks like a results table
                 header_str = " ".join(str(h) for h in header if h)
                 if "#" in header_str and "Name" in header_str:
-                    results_table = table
-                    break
+                    results_tables.append(table)
 
-        if not results_table:
+        if not results_tables:
             raise ValueError("Could not find results table in PDF")
 
-        header = results_table[0]
+        # Use the header from the first table for column detection
+        header = results_tables[0][0]
 
         # Find column indices
         col_indices = self._find_column_indices(header)
@@ -143,36 +144,37 @@ class DanceConventionParser(ScoresheetParser):
         # Use full names if available, otherwise use initials
         judges = [judge_key.get(init, init) for init in judge_initials]
 
-        # Parse data rows
+        # Parse data rows from all matching tables
         competitors = []
         rankings = {judge: {} for judge in judges}
 
-        for row in results_table[1:]:
-            if not row or len(row) <= name_idx:
-                continue
+        for results_table in results_tables:
+            for row in results_table[1:]:
+                if not row or len(row) <= name_idx:
+                    continue
 
-            # Get competitor name (may have leader/follower on separate lines)
-            name_cell = row[name_idx] if name_idx < len(row) else None
-            if not name_cell:
-                continue
+                # Get competitor name (may have leader/follower on separate lines)
+                name_cell = row[name_idx] if name_idx < len(row) else None
+                if not name_cell:
+                    continue
 
-            competitor = self._clean_competitor_name(str(name_cell))
-            if not competitor:
-                continue
+                competitor = self._clean_competitor_name(str(name_cell))
+                if not competitor:
+                    continue
 
-            competitors.append(competitor)
+                competitors.append(competitor)
 
-            # Get judge placements
-            for i, initials in enumerate(judge_initials):
-                col_idx = judge_start + i
-                if col_idx < len(row) and row[col_idx]:
-                    placement_str = str(row[col_idx]).strip()
-                    try:
-                        placement = int(placement_str)
-                        judge_name = judge_key.get(initials, initials)
-                        rankings[judge_name][competitor] = placement
-                    except ValueError:
-                        pass  # Skip non-numeric placements
+                # Get judge placements
+                for i, initials in enumerate(judge_initials):
+                    col_idx = judge_start + i
+                    if col_idx < len(row) and row[col_idx]:
+                        placement_str = str(row[col_idx]).strip()
+                        try:
+                            placement = int(placement_str)
+                            judge_name = judge_key.get(initials, initials)
+                            rankings[judge_name][competitor] = placement
+                        except ValueError:
+                            pass  # Skip non-numeric placements
 
         if not competitors:
             raise ValueError("No competitors found in table")
