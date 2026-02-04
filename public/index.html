@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-NZ">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +14,7 @@
 
     <main>
         <section class="input-section">
-            <h2>Analyze a Scoresheet</h2>
+            <h2>Analyse a Scoresheet</h2>
 
             <div class="input-tabs">
                 <button class="tab-btn active" data-tab="url">Enter URL</button>
@@ -27,7 +27,7 @@
                     <input type="url" id="url-input" name="url"
                            placeholder="https://scoring.dance/..." required>
                     <p class="hint">Supported: scoring.dance, eepro.com, danceconvention.net</p>
-                    <button type="submit" id="url-submit">Analyze</button>
+                    <button type="submit" id="url-submit">Analyse</button>
                 </form>
             </div>
 
@@ -37,19 +37,19 @@
                     <input type="file" id="file-input" name="file"
                            accept=".html,.htm,.pdf" required>
                     <p class="hint">Supported formats: pages saved from scoring.dance, eepro.com, or danceconvention.net</p>
-                    <button type="submit" id="file-submit">Analyze</button>
+                    <button type="submit" id="file-submit">Analyse</button>
                 </form>
             </div>
         </section>
 
         <section class="loading hidden" id="loading">
             <div class="spinner"></div>
-            <p>Analyzing scoresheet...</p>
+            <p>Analysing scoresheet...</p>
         </section>
 
         <section class="error hidden" id="error">
             <h3>Error</h3>
-            <p id="error-message"></p>
+            <div id="error-message"></div>
         </section>
 
         <section class="results hidden" id="results">
@@ -88,7 +88,7 @@
 
         <section class="privacy-notice">
             <h3>Privacy</h3>
-            <p>This app does not store any data. Scoresheets are fetched, analyzed, and results are returned immediately. Nothing is saved on our servers.</p>
+            <p>This app does not store any data. Scoresheets are fetched, analysed, and results are returned immediately. Nothing is saved on our servers.</p>
         </section>
     </main>
 
