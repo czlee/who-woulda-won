@@ -22,6 +22,7 @@ class AnalysisResult:
             "judges": self.scoresheet.judges,
             "num_competitors": self.scoresheet.num_competitors,
             "num_judges": self.scoresheet.num_judges,
+            "rankings": self.scoresheet.rankings,
             "results": [
                 {
                     "system_name": r.system_name,

@@ -264,36 +264,158 @@ button[type="submit"]:disabled {
     font-weight: 600;
 }
 
-/* Legend */
-.legend {
+/* Voting system detail blocks */
+.voting-details {
+    margin-top: 1.5rem;
+}
+
+.voting-detail-block {
     background: #f9f9f9;
-    padding: 1rem;
     border-radius: 4px;
-    margin-top: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e0e0e0;
 }
 
-.legend h3 {
-    margin-bottom: 0.5rem;
-}
-
-.legend dl {
-    margin: 0;
-}
-
-.legend dt {
+.voting-detail-block summary {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
     font-weight: 600;
     color: #667eea;
-    margin-top: 0.75rem;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.legend dt:first-of-type {
-    margin-top: 0;
+.voting-detail-block summary::-webkit-details-marker {
+    display: none;
 }
 
-.legend dd {
-    margin: 0.25rem 0 0 0;
+.voting-detail-block summary::before {
+    content: '\25B6';
+    font-size: 0.7em;
+    transition: transform 0.2s;
+}
+
+.voting-detail-block[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.detail-content {
+    padding: 0 1rem 1rem;
+}
+
+.detail-description {
     color: #666;
     font-size: 0.9rem;
+    margin: 0 0 1rem 0;
+}
+
+/* Detail working tables (shared by RP, Borda, Schulze) */
+.detail-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.detail-table {
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.detail-table th,
+.detail-table td {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+.detail-table th {
+    background: #667eea;
+    color: white;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.detail-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+}
+
+.detail-table tbody tr:nth-child(even) {
+    background: #f4f4f4;
+}
+
+/* RP table: separator between judge and cumulative columns */
+.detail-table .rp-separator {
+    border-left: 3px solid #667eea;
+}
+
+/* RP table: result column */
+.detail-table .rp-result {
+    border-left: 3px solid #667eea;
+    font-weight: 600;
+}
+
+/* RP quality-of-majority tiebreak annotation */
+.rp-quality {
+    font-size: 0.85em;
+    color: #666;
+}
+
+/* Schulze matrix cell colours */
+.cell-wins {
+    background-color: #d4edda;
+}
+
+.cell-loses {
+    background-color: #f8d7da;
+}
+
+.cell-diagonal {
+    background-color: #e9ecef;
+}
+
+.schulze-wins-col {
+    font-weight: 600;
+    border-left: 3px solid #667eea;
+}
+
+/* Sequential IRV narrative */
+.irv-placement-round {
+    margin-bottom: 1rem;
+}
+
+.irv-placement-round strong {
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.irv-round-step {
+    margin: 0.25rem 0;
+    padding-left: 1rem;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.irv-eliminated {
+    color: #dc3545;
+}
+
+.irv-winner {
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* Detail section subheadings */
+.detail-content h4 {
+    color: #555;
+    margin: 1rem 0 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.detail-content h4:first-of-type {
+    margin-top: 0;
 }
 
 /* Privacy notice */
@@ -350,5 +472,14 @@ footer a {
     .results-table th,
     .results-table td {
         padding: 0.5rem;
+    }
+
+    .detail-table {
+        font-size: 0.75rem;
+    }
+
+    .detail-table th,
+    .detail-table td {
+        padding: 0.3rem 0.4rem;
     }
 }
