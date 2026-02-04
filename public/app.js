@@ -252,13 +252,22 @@ function buildJudgeInitials(judges) {
 
 /**
  * Generate a short form for a competitor name:
- * - "Kevin Rocher & Alexandra Pasti" → "K&A"
+ * - "Kevin Rocher & Alexandra Pasti" → "KR-AP"
+ * - "Alvaro Hilario Garcia & Charlie Fournier" → "AG-CF"
  * - "Kevin Rocher" → "KR"
+ *
+ * For pairs: first + last initial of each person, joined by hyphen.
+ * For singles: all initials.
  */
 function competitorInitial(name) {
     if (name.includes('&')) {
         const parts = name.split('&').map(s => s.trim());
-        return parts.map(p => (p.split(/\s+/)[0] || '')[0] || '').join('&').toUpperCase();
+        return parts.map(p => {
+            const words = p.split(/\s+/);
+            const first = (words[0] || '')[0] || '';
+            const last = words.length > 1 ? (words[words.length - 1] || '')[0] || '' : '';
+            return (first + last).toUpperCase();
+        }).join('-');
     }
     return name.split(/\s+/).map(w => (w[0] || '')).join('').toUpperCase();
 }
