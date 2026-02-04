@@ -39,6 +39,22 @@ class ScoringDanceParser(ScoresheetParser):
         """Check if this is a valid scoring.dance results URL."""
         return bool(self.URL_PATTERN.match(source))
 
+    def can_parse_content(self, content: bytes, filename: str) -> bool:
+        """Check if this looks like a scoring.dance HTML page.
+
+        Tell-tale sign: JSON-LD script block with @type DanceEvent
+        and judges_placements data.
+        """
+        try:
+            html = content.decode("utf-8", errors="replace")
+        except Exception:
+            return False
+        return (
+            "application/ld+json" in html
+            and '"DanceEvent"' in html
+            and "judges_placements" in html
+        )
+
     def parse(self, source: str, content: bytes) -> Scoresheet:
         """Parse scoring.dance HTML content into a Scoresheet."""
         html = content.decode("utf-8", errors="replace")

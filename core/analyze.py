@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from core.models import Scoresheet, VotingResult
-from core.parsers import detect_parser, get_supported_url_formats
+from core.parsers import detect_parser, detect_parser_by_content, get_supported_url_formats
 from core.voting import get_all_voting_systems
 
 
@@ -51,12 +51,15 @@ def analyze_scoresheet(source: str, content: bytes) -> AnalysisResult:
     Raises:
         AnalysisError: If no parser is found or parsing fails
     """
-    # Find appropriate parser
+    # Find appropriate parser: try URL matching first, then content detection
     parser = detect_parser(source)
     if parser is None:
+        parser = detect_parser_by_content(content, source)
+    if parser is None:
         raise AnalysisError(
-            f"We don't recognise this URL.\n\n"
-            f"{get_supported_url_formats()}"
+            f"We couldn't determine the scoresheet format.\n\n"
+            f"We currently support scoresheets from scoring.dance, "
+            f"eepro.com, and danceconvention.net."
         )
 
     # Parse the scoresheet

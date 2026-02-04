@@ -35,6 +35,21 @@ class EeproParser(ScoresheetParser):
         """Check if this is a valid eepro.com results URL."""
         return bool(self.URL_PATTERN.match(source))
 
+    def can_parse_content(self, content: bytes, filename: str) -> bool:
+        """Check if this looks like an eepro.com HTML page.
+
+        Tell-tale sign: HTML table with the distinctive orange (#ffae5e)
+        division header row that eepro uses.
+        """
+        try:
+            html = content.decode("utf-8", errors="replace")
+        except Exception:
+            return False
+        # The orange background colour on the division header row is
+        # distinctive to eepro.  Check for it as a fast string test
+        # before pulling in BeautifulSoup.
+        return 'bgcolor="#ffae5e"' in html.lower() or "bgcolor='#ffae5e'" in html.lower()
+
     def parse(self, source: str, content: bytes, division_index: int = 0) -> Scoresheet:
         """Parse eepro.com HTML content into a Scoresheet.
 

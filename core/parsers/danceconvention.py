@@ -35,6 +35,42 @@ class DanceConventionParser(ScoresheetParser):
         """Check if this is a valid danceconvention.net scoresheet URL."""
         return bool(self.URL_PATTERN.match(source))
 
+    def can_parse_content(self, content: bytes, filename: str) -> bool:
+        """Check if this looks like a danceconvention.net PDF scoresheet.
+
+        Tell-tale signs:
+        - File is a PDF (starts with %PDF magic bytes)
+        - Contains a judge key (uppercase initials followed by names)
+        - Contains a results table with # and Name headers
+        """
+        if not content.startswith(b"%PDF"):
+            return False
+
+        try:
+            pdf_file = BytesIO(content)
+            with pdfplumber.open(pdf_file) as pdf:
+                if not pdf.pages:
+                    return False
+
+                # Check first page text for judge key pattern
+                text = pdf.pages[0].extract_text() or ""
+                judge_pattern = r"^[A-Z]{2,4}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+"
+                has_judge_key = bool(re.search(judge_pattern, text, re.MULTILINE))
+
+                # Check tables for # and Name headers
+                tables = pdf.pages[0].extract_tables()
+                has_results_table = False
+                for table in (tables or []):
+                    if table and table[0]:
+                        header_str = " ".join(str(h) for h in table[0] if h)
+                        if "#" in header_str and "Name" in header_str:
+                            has_results_table = True
+                            break
+
+                return has_judge_key and has_results_table
+        except Exception:
+            return False
+
     def parse(self, source: str, content: bytes) -> Scoresheet:
         """Parse danceconvention.net PDF content into a Scoresheet."""
         pdf_file = BytesIO(content)
