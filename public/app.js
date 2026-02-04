@@ -215,6 +215,99 @@ function createTh(text) {
     return th;
 }
 
+// ─── Initials utilities ─────────────────────────────────────────────
+
+/**
+ * Generate initials for a judge name. If the name looks like it's
+ * already initials (2-4 uppercase letters), return as-is.
+ * Otherwise, take the first letter of each word.
+ */
+function judgeInitial(name) {
+    if (/^[A-Z]{2,4}$/.test(name.trim())) return name.trim();
+    return name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase();
+}
+
+/**
+ * Build a list of {name, initials} for judges, deduplicating with
+ * numeric suffixes when necessary.
+ */
+function buildJudgeInitials(judges) {
+    const raw = judges.map(judgeInitial);
+
+    // Count occurrences of each initial
+    const counts = {};
+    raw.forEach(init => { counts[init] = (counts[init] || 0) + 1; });
+
+    // Assign suffixes where needed
+    const used = {};
+    return judges.map((judge, i) => {
+        const init = raw[i];
+        if (counts[init] > 1) {
+            used[init] = (used[init] || 0) + 1;
+            return { name: judge, initials: init + used[init] };
+        }
+        return { name: judge, initials: init };
+    });
+}
+
+/**
+ * Generate a short form for a competitor name:
+ * - "Kevin Rocher & Alexandra Pasti" → "K&A"
+ * - "Kevin Rocher" → "KR"
+ */
+function competitorInitial(name) {
+    if (name.includes('&')) {
+        const parts = name.split('&').map(s => s.trim());
+        return parts.map(p => (p.split(/\s+/)[0] || '')[0] || '').join('&').toUpperCase();
+    }
+    return name.split(/\s+/).map(w => (w[0] || '')).join('').toUpperCase();
+}
+
+/**
+ * Build a list of {name, initials} for competitors, deduplicating with
+ * numeric suffixes when necessary.
+ */
+function buildCompetitorInitials(competitors) {
+    const raw = competitors.map(competitorInitial);
+
+    const counts = {};
+    raw.forEach(init => { counts[init] = (counts[init] || 0) + 1; });
+
+    const used = {};
+    return competitors.map((comp, i) => {
+        const init = raw[i];
+        if (counts[init] > 1) {
+            used[init] = (used[init] || 0) + 1;
+            return { name: comp, initials: init + used[init] };
+        }
+        return { name: comp, initials: init };
+    });
+}
+
+/**
+ * Create a <th> with initials text and an instant tooltip showing the
+ * full name on hover. Uses data-tooltip attribute styled via CSS.
+ */
+function createThWithTooltip(initials, fullName) {
+    const th = document.createElement('th');
+    th.textContent = initials;
+    th.setAttribute('data-tooltip', fullName);
+    th.className = 'has-tooltip';
+    return th;
+}
+
+/**
+ * Create a <td> with initials text and an instant tooltip showing the
+ * full name on hover.
+ */
+function createTdWithTooltip(initials, fullName) {
+    const td = document.createElement('td');
+    td.textContent = initials;
+    td.setAttribute('data-tooltip', fullName);
+    td.className = 'has-tooltip';
+    return td;
+}
+
 // ─── Voting system detail renderers ──────────────────────────────────
 
 const SYSTEM_DESCRIPTIONS = {
@@ -284,6 +377,7 @@ function renderRPDetails(container, result, data) {
     const rankings = data.rankings;
     const n = data.num_competitors;
     const majority = details.majority_threshold;
+    const judgeInfos = buildJudgeInitials(judges);
 
     // Determine which cumulative cells to display
     const cellDisplay = buildRPCellDisplay(details, n);
@@ -301,7 +395,7 @@ function renderRPDetails(container, result, data) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Competitor'));
-    judges.forEach(j => headerRow.appendChild(createTh(j)));
+    judgeInfos.forEach(j => headerRow.appendChild(createThWithTooltip(j.initials, j.name)));
     for (let p = 1; p <= n; p++) {
         const th = createTh('1\u2013' + p);
         if (p === 1) th.classList.add('rp-separator');
@@ -362,14 +456,15 @@ function renderRPDetails(container, result, data) {
 
             if (display !== undefined) {
                 if (typeof display === 'object' && display.quality !== undefined) {
-                    td.innerHTML = escapeHtml(String(display.count))
+                    const countStr = display.count === 0 ? '\u2013' : String(display.count);
+                    td.innerHTML = escapeHtml(countStr)
                         + ' <span class="rp-quality">('
                         + escapeHtml(String(display.quality)) + ')</span>';
                 } else {
-                    td.textContent = display;
+                    td.textContent = display === 0 ? '\u2013' : display;
                 }
             } else {
-                td.textContent = '\u2014';
+                td.textContent = '\u2013';
             }
             if (p === 1) td.classList.add('rp-separator');
             tr.appendChild(td);
@@ -440,6 +535,7 @@ function renderBordaDetails(container, result, data) {
     const details = result.details;
     const judges = data.judges;
     const sorted = [...result.final_ranking];
+    const judgeInfos = buildJudgeInitials(judges);
 
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
@@ -451,7 +547,7 @@ function renderBordaDetails(container, result, data) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Competitor'));
-    judges.forEach(j => headerRow.appendChild(createTh(j)));
+    judgeInfos.forEach(j => headerRow.appendChild(createThWithTooltip(j.initials, j.name)));
     headerRow.appendChild(createTh('Total'));
     thead.appendChild(headerRow);
     table.appendChild(thead);
@@ -494,6 +590,9 @@ function renderBordaDetails(container, result, data) {
 function renderSchulzeDetails(container, result, data) {
     const details = result.details;
     const competitors = result.final_ranking;
+    const compInfos = buildCompetitorInitials(competitors);
+    const compInitialsMap = {};
+    compInfos.forEach(c => { compInitialsMap[c.name] = c.initials; });
 
     // Pairwise Preferences
     const h4a = document.createElement('h4');
@@ -506,7 +605,7 @@ function renderSchulzeDetails(container, result, data) {
     container.appendChild(pDesc);
 
     container.appendChild(
-        buildSchulzeMatrix(competitors, details.pairwise_preferences, null)
+        buildSchulzeMatrix(competitors, compInitialsMap, details.pairwise_preferences, null)
     );
 
     // Strongest Path Strengths
@@ -520,7 +619,7 @@ function renderSchulzeDetails(container, result, data) {
     container.appendChild(sDesc);
 
     container.appendChild(
-        buildSchulzeMatrix(competitors, details.path_strengths, details.schulze_wins)
+        buildSchulzeMatrix(competitors, compInitialsMap, details.path_strengths, details.schulze_wins)
     );
 }
 
@@ -528,18 +627,19 @@ function renderSchulzeDetails(container, result, data) {
  * Build a Schulze matrix table (pairwise or path strengths).
  * Cells are coloured green (row beats column) or red (column beats row).
  */
-function buildSchulzeMatrix(competitors, matrix, winsCol) {
+function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
 
     const table = document.createElement('table');
     table.className = 'detail-table';
 
-    // Header
+    // Header: blank | blank (initials col) | competitor initials... | Wins?
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    headerRow.appendChild(createTh(''));
-    competitors.forEach(c => headerRow.appendChild(createTh(c)));
+    headerRow.appendChild(createTh(''));    // name column
+    headerRow.appendChild(createTh(''));    // initials column
+    competitors.forEach(c => headerRow.appendChild(createTh(compInitialsMap[c])));
     if (winsCol) {
         const winsTh = createTh('Wins');
         winsTh.classList.add('schulze-wins-col');
@@ -553,9 +653,16 @@ function buildSchulzeMatrix(competitors, matrix, winsCol) {
     competitors.forEach(rowComp => {
         const tr = document.createElement('tr');
 
+        // Name column
         const labelTd = document.createElement('td');
         labelTd.textContent = rowComp;
         tr.appendChild(labelTd);
+
+        // Initials column
+        const initialsTd = document.createElement('td');
+        initialsTd.textContent = compInitialsMap[rowComp];
+        initialsTd.style.fontWeight = '600';
+        tr.appendChild(initialsTd);
 
         competitors.forEach(colComp => {
             const td = document.createElement('td');
@@ -602,12 +709,24 @@ function renderIRVDetails(container, result, data) {
     const rankings = data.rankings;
     const competitors = data.competitors;
 
+    const compInfos = buildCompetitorInitials(competitors);
+    const compInitialsMap = {};
+    compInfos.forEach(c => { compInitialsMap[c.name] = c.initials; });
+    const judgeInfos = buildJudgeInitials(judges);
+
+    // Name-to-initials reference table
+    const refH4 = document.createElement('h4');
+    refH4.textContent = 'Competitor Key';
+    container.appendChild(refH4);
+
+    container.appendChild(buildInitialsRefTable(compInfos));
+
     // Ballot reference table
     const ballotH4 = document.createElement('h4');
     ballotH4.textContent = 'Judge Ballots';
     container.appendChild(ballotH4);
 
-    container.appendChild(buildBallotTable(judges, rankings, competitors));
+    container.appendChild(buildBallotTable(judgeInfos, rankings, competitors, compInitialsMap));
 
     // Placement rounds
     const roundsH4 = document.createElement('h4');
@@ -626,12 +745,13 @@ function renderIRVDetails(container, result, data) {
             const p = document.createElement('p');
             p.className = 'irv-round-step';
             const winner = placementRound.winner;
+            const winnerInit = compInitialsMap[winner] || winner;
             p.innerHTML = '<span class="irv-winner">'
-                + escapeHtml(winner)
+                + escapeHtml(winnerInit)
                 + '</span> \u2014 last remaining competitor.';
             roundDiv.appendChild(p);
         } else {
-            renderIRVRounds(roundDiv, placementRound);
+            renderIRVRounds(roundDiv, placementRound, compInitialsMap);
         }
 
         container.appendChild(roundDiv);
@@ -639,10 +759,46 @@ function renderIRVDetails(container, result, data) {
 }
 
 /**
- * Build the ballot reference table for IRV.
- * Rows = rank positions, Columns = judges, Cells = competitor at that rank.
+ * Build a compact name-to-initials reference table.
  */
-function buildBallotTable(judges, rankings, competitors) {
+function buildInitialsRefTable(compInfos) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'detail-table-wrapper';
+
+    const table = document.createElement('table');
+    table.className = 'detail-table';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(createTh('Initials'));
+    headerRow.appendChild(createTh('Competitor'));
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    compInfos.forEach(c => {
+        const tr = document.createElement('tr');
+        const initTd = document.createElement('td');
+        initTd.textContent = c.initials;
+        initTd.style.fontWeight = '600';
+        tr.appendChild(initTd);
+        const nameTd = document.createElement('td');
+        nameTd.textContent = c.name;
+        tr.appendChild(nameTd);
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    return wrapper;
+}
+
+/**
+ * Build the ballot reference table for IRV.
+ * Rows = rank positions, Columns = judges (initials with tooltips),
+ * Cells = competitor initials.
+ */
+function buildBallotTable(judgeInfos, rankings, competitors, compInitialsMap) {
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
 
@@ -653,11 +809,12 @@ function buildBallotTable(judges, rankings, competitors) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Rank'));
-    judges.forEach(j => headerRow.appendChild(createTh(j)));
+    judgeInfos.forEach(j => headerRow.appendChild(createThWithTooltip(j.initials, j.name)));
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
     // Invert rankings: for each judge, build position -> competitor
+    const judges = judgeInfos.map(j => j.name);
     const ballots = {};
     for (const judge of judges) {
         ballots[judge] = {};
@@ -677,7 +834,8 @@ function buildBallotTable(judges, rankings, competitors) {
 
         judges.forEach(judge => {
             const td = document.createElement('td');
-            td.textContent = ballots[judge][rank] || '\u2014';
+            const fullName = ballots[judge][rank] || '';
+            td.textContent = fullName ? (compInitialsMap[fullName] || fullName) : '\u2014';
             tr.appendChild(td);
         });
 
@@ -692,30 +850,46 @@ function buildBallotTable(judges, rankings, competitors) {
 /**
  * Render IRV elimination rounds for one placement position.
  */
-function renderIRVRounds(container, placementRound) {
+function renderIRVRounds(container, placementRound, compInitialsMap) {
+    // Show note about excluded zero-vote candidates if applicable
+    if (placementRound.irv_rounds.length > 0) {
+        const firstRound = placementRound.irv_rounds[0];
+        if (firstRound.excluded_zero_vote && firstRound.excluded_zero_vote.length > 0) {
+            const note = document.createElement('p');
+            note.className = 'irv-round-step irv-note';
+            const names = firstRound.excluded_zero_vote
+                .map(c => compInitialsMap[c] || c)
+                .join(', ');
+            note.textContent = 'Excluded (no first-choice votes): ' + names;
+            container.appendChild(note);
+        }
+    }
+
     for (const round of placementRound.irv_rounds) {
         const step = document.createElement('p');
         step.className = 'irv-round-step';
 
-        // Build vote count string sorted descending
+        // Build vote count string sorted descending, using initials
         const voteParts = Object.entries(round.votes)
             .sort((a, b) => b[1] - a[1])
-            .map(([comp, count]) => escapeHtml(comp) + ': ' + count);
+            .map(([comp, count]) => escapeHtml(compInitialsMap[comp] || comp) + ': ' + count);
         const voteStr = voteParts.join(', ');
 
         if (round.winner) {
-            const winnerStr = Array.isArray(round.winner)
-                ? round.winner.map(escapeHtml).join(', ')
-                : escapeHtml(round.winner);
+            const winnerNames = Array.isArray(round.winner) ? round.winner : [round.winner];
+            const winnerStr = winnerNames
+                .map(w => escapeHtml(compInitialsMap[w] || w))
+                .join(', ');
             step.innerHTML = 'Round ' + round.round + ' \u2014 '
                 + voteStr + ' \u2014 '
                 + '<span class="irv-winner">' + winnerStr
                 + ' wins</span> (majority: ' + round.majority_needed + ').';
         } else if (round.eliminated) {
+            const elimInit = compInitialsMap[round.eliminated] || round.eliminated;
             step.innerHTML = 'Round ' + round.round + ' \u2014 '
                 + voteStr + ' \u2014 '
                 + '<span class="irv-eliminated">'
-                + escapeHtml(round.eliminated)
+                + escapeHtml(elimInit)
                 + ' eliminated</span> (fewest votes).';
         }
 

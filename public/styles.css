@@ -407,6 +407,40 @@ button[type="submit"]:disabled {
     font-weight: 600;
 }
 
+/* Instant CSS tooltips (no delay) */
+.has-tooltip {
+    position: relative;
+    cursor: default;
+}
+
+.has-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.3rem 0.5rem;
+    background: #333;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 400;
+    white-space: nowrap;
+    border-radius: 3px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 10;
+}
+
+.has-tooltip:hover::after {
+    opacity: 1;
+}
+
+/* IRV note for excluded zero-vote candidates */
+.irv-note {
+    color: #888;
+    font-style: italic;
+}
+
 /* Detail section subheadings */
 .detail-content h4 {
     color: #555;
