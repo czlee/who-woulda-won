@@ -25,6 +25,22 @@ class ScoresheetParser(ABC):
         """
         pass
 
+    def can_parse_content(self, content: bytes, filename: str) -> bool:
+        """Check if this parser can handle the given file content.
+
+        Used for file uploads where there is no URL to match against.
+        Subclasses should override this to inspect file content for
+        tell-tale signs of their format.
+
+        Args:
+            content: Raw bytes of the uploaded file
+            filename: Original filename (may help with basic filtering)
+
+        Returns:
+            True if this parser can likely handle the content, False otherwise
+        """
+        return False
+
     @abstractmethod
     def parse(self, source: str, content: bytes) -> Scoresheet:
         """Parse the content into a Scoresheet.

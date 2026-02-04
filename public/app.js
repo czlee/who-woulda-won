@@ -94,9 +94,12 @@ function displayResults(data) {
     numCompetitors.textContent = data.num_competitors;
     numJudges.textContent = data.num_judges;
 
+    // Reorder results so Relative Placement is first
+    const results = reorderResults(data.results);
+
     // Build header row
     resultsHeader.innerHTML = '<th>Competitor</th>';
-    data.results.forEach(result => {
+    results.forEach(result => {
         const th = document.createElement('th');
         th.textContent = result.system_name;
         resultsHeader.appendChild(th);
@@ -104,7 +107,7 @@ function displayResults(data) {
 
     // Get all rankings by competitor
     const competitors = data.competitors;
-    const rankings = buildRankingsMap(data.results, competitors);
+    const rankings = buildRankingsMap(results, competitors);
 
     // Build data rows
     resultsBody.innerHTML = '';
@@ -118,15 +121,25 @@ function displayResults(data) {
 
         // Placement cells for each voting system
         const placements = rankings[competitor];
-        const allSame = placements.every(p => p === placements[0]);
+        const rpPlacement = placements[0]; // Relative Placement is first
 
         placements.forEach((placement, i) => {
             const td = document.createElement('td');
             td.textContent = formatPlacement(placement);
 
-            // Highlight differences
-            if (!allSame) {
-                td.classList.add('different');
+            // For non-RP columns, show triangle relative to RP placement
+            if (i > 0 && placement !== null && rpPlacement !== null) {
+                if (placement < rpPlacement) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'placement-up';
+                    arrow.textContent = ' \u25B2';
+                    td.appendChild(arrow);
+                } else if (placement > rpPlacement) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'placement-down';
+                    arrow.textContent = ' \u25BC';
+                    td.appendChild(arrow);
+                }
             }
 
             // Highlight winners
@@ -141,6 +154,16 @@ function displayResults(data) {
     });
 
     showResults();
+}
+
+/**
+ * Reorder results so Relative Placement comes first.
+ */
+function reorderResults(results) {
+    const rpIndex = results.findIndex(r => r.system_name === 'Relative Placement');
+    if (rpIndex <= 0) return results; // already first or not found
+    const reordered = [results[rpIndex], ...results.slice(0, rpIndex), ...results.slice(rpIndex + 1)];
+    return reordered;
 }
 
 /**
@@ -170,6 +193,15 @@ function formatPlacement(n) {
     return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
 }
 
+/**
+ * Escape HTML entities to prevent XSS.
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // UI helpers
 function showLoading() {
     loadingSection.classList.remove('hidden');
@@ -180,7 +212,34 @@ function hideLoading() {
 }
 
 function showError(message) {
-    errorMessage.textContent = message;
+    // Parse plain-text error into structured HTML.
+    // Lines starting with "  - " become list items; others become paragraphs.
+    const lines = message.split('\n').filter(l => l.trim() !== '');
+    let html = '';
+    let inList = false;
+
+    lines.forEach(line => {
+        const trimmed = line.replace(/^\s+-\s+/, '');
+        if (line.match(/^\s+-\s+/)) {
+            if (!inList) {
+                html += '<ul>';
+                inList = true;
+            }
+            html += '<li>' + escapeHtml(trimmed) + '</li>';
+        } else {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            html += '<p>' + escapeHtml(line) + '</p>';
+        }
+    });
+
+    if (inList) {
+        html += '</ul>';
+    }
+
+    errorMessage.innerHTML = html;
     errorSection.classList.remove('hidden');
 }
 

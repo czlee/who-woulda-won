@@ -19,14 +19,57 @@ class DanceConventionParser(ScoresheetParser):
     - Judge key showing initials -> full names
     - Table with columns: #, Name, [Judge initials], [cumulative counts], Result, Remarks
     - Names show leader and follower on separate lines within the same cell
+
+    Expected URL format:
+        https://danceconvention.net/eventdirector/en/roundscores/<number>.pdf
     """
 
+    URL_PATTERN = re.compile(
+        r"^https?://danceconvention\.net"
+        r"/eventdirector/en/roundscores/\d+\.pdf$"
+    )
+
+    EXAMPLE_URL = "https://danceconvention.net/eventdirector/en/roundscores/123.pdf"
+
     def can_parse(self, source: str) -> bool:
-        """Check if this looks like a danceconvention.net URL or PDF."""
-        source_lower = source.lower()
-        return "danceconvention" in source_lower or (
-            source_lower.endswith(".pdf") and "convention" in source_lower
-        )
+        """Check if this is a valid danceconvention.net scoresheet URL."""
+        return bool(self.URL_PATTERN.match(source))
+
+    def can_parse_content(self, content: bytes, filename: str) -> bool:
+        """Check if this looks like a danceconvention.net PDF scoresheet.
+
+        Tell-tale signs:
+        - File is a PDF (starts with %PDF magic bytes)
+        - Contains a judge key (uppercase initials followed by names)
+        - Contains a results table with # and Name headers
+        """
+        if not content.startswith(b"%PDF"):
+            return False
+
+        try:
+            pdf_file = BytesIO(content)
+            with pdfplumber.open(pdf_file) as pdf:
+                if not pdf.pages:
+                    return False
+
+                # Check first page text for judge key pattern
+                text = pdf.pages[0].extract_text() or ""
+                judge_pattern = r"^[A-Z]{2,4}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+"
+                has_judge_key = bool(re.search(judge_pattern, text, re.MULTILINE))
+
+                # Check tables for # and Name headers
+                tables = pdf.pages[0].extract_tables()
+                has_results_table = False
+                for table in (tables or []):
+                    if table and table[0]:
+                        header_str = " ".join(str(h) for h in table[0] if h)
+                        if "#" in header_str and "Name" in header_str:
+                            has_results_table = True
+                            break
+
+                return has_judge_key and has_results_table
+        except Exception:
+            return False
 
     def parse(self, source: str, content: bytes) -> Scoresheet:
         """Parse danceconvention.net PDF content into a Scoresheet."""
@@ -104,23 +147,24 @@ class DanceConventionParser(ScoresheetParser):
         judge_key: dict[str, str],
     ) -> Scoresheet:
         """Parse the main results table."""
-        # Find the table with results (has # and Name columns)
-        results_table = None
+        # Find all tables with results (has # and Name columns).
+        # Multi-page PDFs have a continuation table on each page with
+        # the same header row, so we merge data rows from all of them.
+        results_tables = []
         for table in tables:
             if not table or len(table) < 2:
                 continue
             header = table[0]
             if header and len(header) >= 2:
-                # Check if this looks like a results table
                 header_str = " ".join(str(h) for h in header if h)
                 if "#" in header_str and "Name" in header_str:
-                    results_table = table
-                    break
+                    results_tables.append(table)
 
-        if not results_table:
+        if not results_tables:
             raise ValueError("Could not find results table in PDF")
 
-        header = results_table[0]
+        # Use the header from the first table for column detection
+        header = results_tables[0][0]
 
         # Find column indices
         col_indices = self._find_column_indices(header)
@@ -143,36 +187,37 @@ class DanceConventionParser(ScoresheetParser):
         # Use full names if available, otherwise use initials
         judges = [judge_key.get(init, init) for init in judge_initials]
 
-        # Parse data rows
+        # Parse data rows from all matching tables
         competitors = []
         rankings = {judge: {} for judge in judges}
 
-        for row in results_table[1:]:
-            if not row or len(row) <= name_idx:
-                continue
+        for results_table in results_tables:
+            for row in results_table[1:]:
+                if not row or len(row) <= name_idx:
+                    continue
 
-            # Get competitor name (may have leader/follower on separate lines)
-            name_cell = row[name_idx] if name_idx < len(row) else None
-            if not name_cell:
-                continue
+                # Get competitor name (may have leader/follower on separate lines)
+                name_cell = row[name_idx] if name_idx < len(row) else None
+                if not name_cell:
+                    continue
 
-            competitor = self._clean_competitor_name(str(name_cell))
-            if not competitor:
-                continue
+                competitor = self._clean_competitor_name(str(name_cell))
+                if not competitor:
+                    continue
 
-            competitors.append(competitor)
+                competitors.append(competitor)
 
-            # Get judge placements
-            for i, initials in enumerate(judge_initials):
-                col_idx = judge_start + i
-                if col_idx < len(row) and row[col_idx]:
-                    placement_str = str(row[col_idx]).strip()
-                    try:
-                        placement = int(placement_str)
-                        judge_name = judge_key.get(initials, initials)
-                        rankings[judge_name][competitor] = placement
-                    except ValueError:
-                        pass  # Skip non-numeric placements
+                # Get judge placements
+                for i, initials in enumerate(judge_initials):
+                    col_idx = judge_start + i
+                    if col_idx < len(row) and row[col_idx]:
+                        placement_str = str(row[col_idx]).strip()
+                        try:
+                            placement = int(placement_str)
+                            judge_name = judge_key.get(initials, initials)
+                            rankings[judge_name][competitor] = placement
+                        except ValueError:
+                            pass  # Skip non-numeric placements
 
         if not competitors:
             raise ValueError("No competitors found in table")

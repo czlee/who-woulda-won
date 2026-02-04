@@ -24,3 +24,25 @@ def detect_parser(source: str) -> ScoresheetParser | None:
         if parser.can_parse(source):
             return parser
     return None
+
+
+def detect_parser_by_content(content: bytes, filename: str) -> ScoresheetParser | None:
+    """Auto-detect a parser by inspecting file content.
+
+    Used for file uploads where there is no URL to match against.
+    """
+    for parser_class in _parsers:
+        parser = parser_class()
+        if parser.can_parse_content(content, filename):
+            return parser
+    return None
+
+
+def get_supported_url_formats() -> str:
+    """Return a user-friendly description of supported URL formats."""
+    lines = ["We currently support scoresheets from:"]
+    for parser_class in _parsers:
+        example = getattr(parser_class, "EXAMPLE_URL", None)
+        if example:
+            lines.append(f"  - {example}")
+    return "\n".join(lines)

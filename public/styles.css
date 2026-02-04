@@ -183,6 +183,20 @@ button[type="submit"]:disabled {
     color: #c00;
 }
 
+#error-message p {
+    margin: 0.5rem 0;
+}
+
+#error-message ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+#error-message li {
+    margin: 0.25rem 0;
+    word-break: break-all;
+}
+
 /* Results */
 .results {
     overflow-x: auto;
@@ -234,9 +248,15 @@ button[type="submit"]:disabled {
     background: #f0f0ff;
 }
 
-/* Highlight differences */
-.results-table td.different {
-    background: #fff3cd;
+/* Placement change triangles */
+.placement-up {
+    color: #28a745;
+    font-size: 0.75em;
+}
+
+.placement-down {
+    color: #dc3545;
+    font-size: 0.75em;
 }
 
 .results-table td.winner {

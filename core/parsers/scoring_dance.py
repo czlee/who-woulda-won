@@ -16,11 +16,44 @@ class ScoringDanceParser(ScoresheetParser):
     scoring.dance pages contain embedded JSON-LD with structured data,
     making parsing straightforward. We look for the DanceEvent JSON-LD
     block that contains judges_placements.
+
+    Expected URL format:
+        https://scoring.dance/events/<number>/results/<number>.html
+        https://scoring.dance/<lang>/events/<number>/results/<number>.html
+
+    where <lang> is a language code like "en", "enUS", "frFR", "zhCN",
+    or "en-US" (2-letter language, optionally followed by 2-letter country
+    code with or without a hyphen).
     """
 
+    URL_PATTERN = re.compile(
+        r"^https?://scoring\.dance"
+        r"(/[a-z]{2}(-?[A-Z]{2})?)?"  # optional language(+country), e.g. /en, /enUS, /en-US
+        r"/events/\d+"
+        r"/results/\d+\.html$"
+    )
+
+    EXAMPLE_URL = "https://scoring.dance/events/123/results/456.html"
+
     def can_parse(self, source: str) -> bool:
-        """Check if this looks like a scoring.dance URL or file."""
-        return "scoring.dance" in source.lower()
+        """Check if this is a valid scoring.dance results URL."""
+        return bool(self.URL_PATTERN.match(source))
+
+    def can_parse_content(self, content: bytes, filename: str) -> bool:
+        """Check if this looks like a scoring.dance HTML page.
+
+        Tell-tale sign: JSON-LD script block with @type DanceEvent
+        and judges_placements data.
+        """
+        try:
+            html = content.decode("utf-8", errors="replace")
+        except Exception:
+            return False
+        return (
+            "application/ld+json" in html
+            and '"DanceEvent"' in html
+            and "judges_placements" in html
+        )
 
     def parse(self, source: str, content: bytes) -> Scoresheet:
         """Parse scoring.dance HTML content into a Scoresheet."""
