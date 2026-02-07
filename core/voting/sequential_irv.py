@@ -92,6 +92,7 @@ class SequentialIRVSystem(VotingSystem):
         m = scoresheet.num_judges
         majority_threshold = m // 2 + 1
         round_details = []
+        excluded_zero_vote: list[str] = []
 
         round_num = 0
         while len(active) > 1:
@@ -108,12 +109,41 @@ class SequentialIRVSystem(VotingSystem):
                         first_place_votes[comp] += 1
                         break
 
+            # In round 1, exclude candidates with zero first-choice votes.
+            # They would be eliminated one-by-one without affecting vote
+            # counts, so removing them all at once is equivalent.
+            if round_num == 1:
+                zero_vote = [c for c in active if first_place_votes[c] == 0]
+                if zero_vote and len(zero_vote) < len(active):
+                    excluded_zero_vote = sorted(zero_vote)
+                    for c in zero_vote:
+                        active.discard(c)
+                        del first_place_votes[c]
+
+                    # If only one remains after excluding zero-vote, they win
+                    if len(active) == 1:
+                        winner = list(active)[0]
+                        round_info = {
+                            "round": round_num,
+                            "active_candidates": list(active),
+                            "votes": dict(first_place_votes),
+                            "majority_needed": majority_threshold,
+                            "excluded_zero_vote": excluded_zero_vote,
+                            "winner": winner,
+                            "method": "majority",
+                        }
+                        round_details.append(round_info)
+                        return winner, round_details
+
             round_info = {
                 "round": round_num,
                 "active_candidates": list(active),
                 "votes": dict(first_place_votes),
                 "majority_needed": majority_threshold,
             }
+
+            if round_num == 1 and excluded_zero_vote:
+                round_info["excluded_zero_vote"] = excluded_zero_vote
 
             # Check for majority winner
             for comp in active:
