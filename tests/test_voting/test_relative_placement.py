@@ -98,8 +98,10 @@ class TestRelativePlacement:
 
         place1 = result.details["rounds"][0]
         resolution = place1["resolution"]
-        assert resolution["method"] == "greater_majority"
-        assert resolution["final_cutoff"] == 2
+        assert {
+            "method": "greater_majority",
+            "final_cutoff": 2
+        }.items() <= resolution.items()
 
         # Cutoff 1: no majority
         assert {
@@ -134,13 +136,17 @@ class TestRelativePlacement:
         """
         result = self.system.calculate(disagreement)
         place3 = result.details["rounds"][2]
-        assert place3["target_place"] == 3
-        assert place3["winner"] == "D"
-        assert place3["tied"] is False
+        assert {
+            "target_place": 3,
+            "winner": "D",
+            "tied": False,
+        }.items() <= place3.items()
 
         resolution = place3["resolution"]
-        assert resolution["method"] == "greater_majority"
-        assert resolution["final_cutoff"] == 3
+        assert {
+            "method": "greater_majority",
+            "final_cutoff": 3,
+        }.items() <= resolution.items()
 
         cutoff_step = resolution["cutoff_progression"][-1]
         assert {
@@ -165,8 +171,10 @@ class TestRelativePlacement:
 
         place1 = result.details["rounds"][0]
         resolution = place1["resolution"]
-        assert resolution["method"] == "quality_of_majority"
-        assert resolution["final_cutoff"] == 2
+        assert {
+            "method": "quality_of_majority",
+            "final_cutoff": 2,
+        }.items() <= resolution.items()
 
         cutoff_step = resolution["cutoff_progression"][-1]
         assert {
