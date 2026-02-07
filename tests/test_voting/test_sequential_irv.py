@@ -259,8 +259,8 @@ class TestSequentialIRV:
     def test_random_fallback_in_winner_tiebreak(self):
         """When h2h and sub-IRV can't resolve, random fallback is used.
 
-        Perfect 3-way cycle: all h2h are tied via sub-IRV, falls back to random.
-        The random step should have method='random' and a winner.
+        Perfect 3-way cycle: all h2h are tied via sub-IRV, falls back to
+        random once max recursion depth is reached.
         """
         scoresheet = make_scoresheet("Random Fallback", {
             "J1": {"A": 1, "B": 2, "C": 3},
@@ -274,18 +274,21 @@ class TestSequentialIRV:
         assert round1["method"] == "all_tied_tiebreak"
         tb = round1["tiebreak"]
 
-        # Should have a sub-IRV step, and within the sub-IRV's tiebreak,
-        # a random step
-        irv_step = tb["steps"][0]
-        assert irv_step["method"] == "irv"
+        # Walk down the recursive sub-IRV chain until we find a random step
+        def find_random_step(tiebreak):
+            for step in tiebreak.get("steps", []):
+                if step["method"] == "random":
+                    return step
+                if step["method"] == "irv":
+                    for rd in step.get("irv_rounds", []):
+                        if "tiebreak" in rd:
+                            found = find_random_step(rd["tiebreak"])
+                            if found:
+                                return found
+            return None
 
-        # The sub-IRV's all_tied_tiebreak should contain a random step
-        sub_round = irv_step["irv_rounds"][0]
-        assert sub_round["method"] == "all_tied_tiebreak"
-        sub_tb = sub_round["tiebreak"]
-        random_step = sub_tb["steps"][0]
-        assert random_step["method"] == "random"
-        assert "winner" in random_step
+        random_step = find_random_step(tb)
+        assert random_step is not None, "Expected a random step somewhere in tiebreak chain"
         assert random_step["winner"] in ["A", "B", "C"]
         assert set(random_step["remaining_tied"]) == {"A", "B", "C"}
 

@@ -7,6 +7,9 @@ from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
 
+MAX_TIEBREAK_DEPTH = 5
+
+
 @register_voting_system
 class SequentialIRVSystem(VotingSystem):
     """Sequential Instant Runoff Voting system.
@@ -233,8 +236,8 @@ class SequentialIRVSystem(VotingSystem):
             "steps": [],
         }
 
-        # Tiebreaker 1: Head-to-head / IRV among tied (only at depth 0)
-        if depth == 0:
+        # Tiebreaker 1: Head-to-head / IRV among tied
+        if depth < MAX_TIEBREAK_DEPTH:
             if len(tied) == 2:
                 # Head-to-head between the two
                 h2h = self._head_to_head(tied[0], tied[1], scoresheet)
@@ -330,8 +333,8 @@ class SequentialIRVSystem(VotingSystem):
             "steps": [],
         }
 
-        # Tiebreaker 1: Head-to-head / IRV among tied (only at depth 0)
-        if depth == 0:
+        # Tiebreaker 1: Head-to-head / IRV among tied
+        if depth < MAX_TIEBREAK_DEPTH:
             if len(tied) == 2:
                 h2h = self._head_to_head(tied[0], tied[1], scoresheet)
                 step = {
