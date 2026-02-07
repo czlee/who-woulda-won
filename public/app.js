@@ -964,18 +964,8 @@ function renderTiebreakStep(step, tiebreakType, compInitialsMap) {
         renderH2HStep(div, step, tiebreakType, compInitialsMap);
     } else if (step.method === 'irv') {
         renderSubIRVStep(div, step, tiebreakType, compInitialsMap);
-    } else if (step.method === 'rank_counts') {
-        renderRankCountsStep(div, step, compInitialsMap);
-    } else if (step.method === 'borda') {
-        renderBordaStep(div, step, tiebreakType, compInitialsMap);
-    } else if (step.method === 'head_to_head_wins') {
-        renderH2HWinsStep(div, step, compInitialsMap);
-    } else if (step.method === 'unresolved') {
-        const p = document.createElement('p');
-        p.className = 'irv-tiebreak-line irv-note';
-        const names = initialsFor(step.remaining_tied, compInitialsMap);
-        p.textContent = 'Tie could not be fully resolved among ' + names + '.';
-        div.appendChild(p);
+    } else if (step.method === 'random') {
+        renderRandomStep(div, step, tiebreakType, compInitialsMap);
     }
 
     return div;
@@ -1105,110 +1095,28 @@ function renderSubIRVStep(container, step, tiebreakType, compInitialsMap) {
 }
 
 /**
- * Render a rank-counts tiebreak step.
+ * Render a random-choice tiebreak step (boldface to flag randomness).
  */
-function renderRankCountsStep(container, step, compInitialsMap) {
+function renderRandomStep(container, step, tiebreakType, compInitialsMap) {
     const p = document.createElement('p');
     p.className = 'irv-tiebreak-line';
 
-    const ordinal = formatPlacement(step.rank);
-    const countParts = Object.entries(step.counts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([comp, count]) => escapeHtml(compInitialsMap[comp] || comp) + ':\u00a0' + count);
-    const countStr = countParts.join(', ');
+    const names = initialsFor(step.remaining_tied, compInitialsMap);
 
-    let text = ordinal + '-choice votes: ' + countStr + '.';
-
-    if (step.resolved) {
+    if (tiebreakType === 'elimination') {
         const elimInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
-        text += ' \u2192 <span class="irv-eliminated">'
-            + elimInit + ' eliminated</span> (fewest).';
+        p.innerHTML = '<strong>Tie among ' + names
+            + ' could not be resolved. '
+            + '<span class="irv-eliminated">' + elimInit
+            + ' eliminated</span> at random.</strong>';
     } else {
-        const tiedStr = initialsFor(step.remaining_tied, compInitialsMap);
-        text += ' Still tied: ' + tiedStr + '.';
-    }
-
-    p.innerHTML = text;
-    container.appendChild(p);
-}
-
-/**
- * Render a Borda-score tiebreak step.
- */
-function renderBordaStep(container, step, tiebreakType, compInitialsMap) {
-    const p = document.createElement('p');
-    p.className = 'irv-tiebreak-line';
-
-    const scoreParts = Object.entries(step.scores)
-        .sort((a, b) => b[1] - a[1])
-        .map(([comp, score]) => escapeHtml(compInitialsMap[comp] || comp) + ':\u00a0' + score);
-    const scoreStr = scoreParts.join(', ');
-
-    let text = 'Borda scores: ' + scoreStr + '.';
-
-    if (step.resolved) {
-        if (tiebreakType === 'elimination') {
-            const elimInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
-            text += ' \u2192 <span class="irv-eliminated">'
-                + elimInit + ' eliminated</span> (lowest).';
-        } else {
-            const winnerInit = escapeHtml(compInitialsMap[step.winner] || step.winner);
-            text += ' \u2192 <span class="irv-winner">'
-                + winnerInit + ' wins</span> (highest).';
-        }
-    } else {
-        const tiedStr = initialsFor(step.remaining_tied, compInitialsMap);
-        text += ' Still tied: ' + tiedStr + '.';
-    }
-
-    p.innerHTML = text;
-    container.appendChild(p);
-}
-
-/**
- * Render a head-to-head wins tiebreak step (used in winner tiebreak).
- */
-function renderH2HWinsStep(container, step, compInitialsMap) {
-    // Show each matchup
-    for (const h2h of step.matchups) {
-        const a = h2h.candidates[0];
-        const b = h2h.candidates[1];
-        const aInit = escapeHtml(compInitialsMap[a] || a);
-        const bInit = escapeHtml(compInitialsMap[b] || b);
-        const aCount = h2h.counts[a];
-        const bCount = h2h.counts[b];
-
-        const mp = document.createElement('p');
-        mp.className = 'irv-tiebreak-line irv-tiebreak-matchup';
-        let matchText = aInit + ' vs ' + bInit + ': ' + aCount + '\u2013' + bCount;
-        if (h2h.winner) {
-            const wInit = escapeHtml(compInitialsMap[h2h.winner] || h2h.winner);
-            matchText += ' (' + wInit + ' wins)';
-        } else {
-            matchText += ' (draw)';
-        }
-        mp.textContent = matchText;
-        container.appendChild(mp);
-    }
-
-    // Show totals
-    const p = document.createElement('p');
-    p.className = 'irv-tiebreak-line';
-    const winParts = Object.entries(step.wins)
-        .sort((a, b) => b[1] - a[1])
-        .map(([comp, w]) => escapeHtml(compInitialsMap[comp] || comp) + ':\u00a0' + w);
-    let text = 'H2H wins: ' + winParts.join(', ') + '.';
-
-    if (step.resolved) {
         const winnerInit = escapeHtml(compInitialsMap[step.winner] || step.winner);
-        text += ' \u2192 <span class="irv-winner">'
-            + winnerInit + ' wins</span>.';
-    } else {
-        const tiedStr = initialsFor(step.remaining_tied, compInitialsMap);
-        text += ' Still tied: ' + tiedStr + '.';
+        p.innerHTML = '<strong>Tie among ' + names
+            + ' could not be resolved. '
+            + '<span class="irv-winner">' + winnerInit
+            + ' wins</span> at random.</strong>';
     }
 
-    p.innerHTML = text;
     container.appendChild(p);
 }
 

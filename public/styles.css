@@ -468,12 +468,6 @@ button[type="submit"]:disabled {
     font-size: 0.85rem;
 }
 
-.irv-tiebreak-matchup {
-    padding-left: 1rem;
-    color: #777;
-    font-size: 0.82rem;
-}
-
 /* Sub-IRV rounds within tiebreak */
 .irv-sub-irv {
     margin: 0.2rem 0 0.2rem 0.5rem;

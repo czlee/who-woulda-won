@@ -1,5 +1,7 @@
 """Sequential Instant Runoff Voting (IRV) system."""
 
+import random
+
 from core.models import Scoresheet, VotingResult
 from core.voting import register_voting_system
 from core.voting.base import VotingSystem
@@ -23,8 +25,7 @@ class SequentialIRVSystem(VotingSystem):
 
     Tiebreakers (for both elimination and winner):
     1. Head-to-head (2 tied) or IRV among tied (3+)
-    2. Fewest votes at subsequent rank levels (elimination) / Highest Borda (winner)
-    3. Lowest Borda score (elimination) / Head-to-head wins (winner)
+    2. If still unresolved, choose at random
     """
 
     @property
@@ -173,7 +174,7 @@ class SequentialIRVSystem(VotingSystem):
             # Break elimination tie if needed
             if len(to_eliminate) > 1:
                 eliminated, tiebreak_info = self._elimination_tiebreak(
-                    to_eliminate, scoresheet, active, tiebreak_depth
+                    to_eliminate, scoresheet, tiebreak_depth
                 )
                 round_info["tiebreak"] = tiebreak_info
             else:
@@ -215,10 +216,14 @@ class SequentialIRVSystem(VotingSystem):
         return result
 
     def _elimination_tiebreak(
-        self, tied: list[str], scoresheet: Scoresheet, active: set[str],
+        self, tied: list[str], scoresheet: Scoresheet,
         depth: int = 0,
     ) -> tuple[str, dict]:
         """Determine who to eliminate when multiple have same lowest vote count.
+
+        Tiebreak order:
+        1. Head-to-head (2 tied) or sub-IRV (3+ tied)
+        2. Random choice
 
         Returns (candidate_to_eliminate, tiebreak_details).
         """
@@ -297,80 +302,25 @@ class SequentialIRVSystem(VotingSystem):
                 step["resolved"] = False
                 tiebreak_info["steps"].append(step)
 
-        # Tiebreaker 2: Fewest votes at each subsequent rank level
-        for rank in range(2, len(active) + 1):
-            rank_counts = {c: 0 for c in tied}
-
-            for judge in scoresheet.judges:
-                ranking = scoresheet.get_judge_ranking(judge)
-                # Find this judge's nth choice among active candidates
-                count = 0
-                for comp in ranking:
-                    if comp in active:
-                        count += 1
-                        if count == rank and comp in tied:
-                            rank_counts[comp] += 1
-                            break
-
-            min_count = min(rank_counts.values())
-            fewest = [c for c in tied if rank_counts[c] == min_count]
-
-            step = {
-                "method": "rank_counts",
-                "rank": rank,
-                "counts": dict(rank_counts),
-            }
-
-            if len(fewest) == 1:
-                step["resolved"] = True
-                step["eliminated"] = fewest[0]
-                tiebreak_info["steps"].append(step)
-                return fewest[0], tiebreak_info
-            else:
-                step["resolved"] = False
-                step["remaining_tied"] = list(fewest)
-                tiebreak_info["steps"].append(step)
-
-            tied = fewest
-
-        # Tiebreaker 3: Lowest Borda score
-        n = scoresheet.num_competitors
-        borda = {
-            c: sum(n - scoresheet.get_placement(j, c) for j in scoresheet.judges)
-            for c in tied
-        }
-        min_borda = min(borda.values())
-        fewest = [c for c in tied if borda[c] == min_borda]
-
+        # Fallback: choose at random
+        eliminated = random.choice(tied)
         step = {
-            "method": "borda",
-            "scores": dict(borda),
-        }
-
-        if len(fewest) == 1:
-            step["resolved"] = True
-            step["eliminated"] = fewest[0]
-            tiebreak_info["steps"].append(step)
-            return fewest[0], tiebreak_info
-        else:
-            step["resolved"] = False
-            step["remaining_tied"] = list(fewest)
-            tiebreak_info["steps"].append(step)
-
-        # Still tied - return first one (could randomize)
-        step = {
-            "method": "unresolved",
-            "remaining_tied": list(fewest),
-            "eliminated": fewest[0],
+            "method": "random",
+            "remaining_tied": list(tied),
+            "eliminated": eliminated,
         }
         tiebreak_info["steps"].append(step)
-        return fewest[0], tiebreak_info
+        return eliminated, tiebreak_info
 
     def _winner_tiebreak(
         self, tied: list[str], scoresheet: Scoresheet,
         depth: int = 0,
     ) -> tuple[str | list[str], dict]:
         """Break tie when determining winner (all candidates have equal votes).
+
+        Tiebreak order:
+        1. Head-to-head (2 tied) or sub-IRV (3+ tied)
+        2. Random choice
 
         Returns (winner_or_tied_list, tiebreak_details).
         """
@@ -417,65 +367,12 @@ class SequentialIRVSystem(VotingSystem):
                     tiebreak_info["steps"].append(step)
                     tied = list(sub_winner)
 
-        # Tiebreaker 2: Borda scoring
-        n = scoresheet.num_competitors
-        borda = {
-            c: sum(n - scoresheet.get_placement(j, c) for j in scoresheet.judges)
-            for c in tied
-        }
-        max_borda = max(borda.values())
-        best = [c for c in tied if borda[c] == max_borda]
-
+        # Fallback: choose at random
+        winner = random.choice(tied)
         step = {
-            "method": "borda",
-            "scores": dict(borda),
-        }
-
-        if len(best) == 1:
-            step["resolved"] = True
-            step["winner"] = best[0]
-            tiebreak_info["steps"].append(step)
-            return best[0], tiebreak_info
-        else:
-            step["resolved"] = False
-            step["remaining_tied"] = list(best)
-            tiebreak_info["steps"].append(step)
-
-        # Tiebreaker 3: Head-to-head wins among Borda-tied
-        wins = {c: 0 for c in best}
-        matchups = []
-        for i, a in enumerate(best):
-            for b in best[i + 1:]:
-                h2h = self._head_to_head(a, b, scoresheet)
-                matchups.append(h2h)
-                if h2h["winner"] == a:
-                    wins[a] += 1
-                elif h2h["winner"] == b:
-                    wins[b] += 1
-
-        max_wins = max(wins.values())
-        best = [c for c in best if wins[c] == max_wins]
-
-        step = {
-            "method": "head_to_head_wins",
-            "matchups": matchups,
-            "wins": dict(wins),
-        }
-
-        if len(best) == 1:
-            step["resolved"] = True
-            step["winner"] = best[0]
-            tiebreak_info["steps"].append(step)
-            return best[0], tiebreak_info
-        else:
-            step["resolved"] = False
-            step["remaining_tied"] = list(best)
-            tiebreak_info["steps"].append(step)
-
-        # Unresolvable tie
-        step = {
-            "method": "unresolved",
-            "remaining_tied": list(best),
+            "method": "random",
+            "remaining_tied": list(tied),
+            "winner": winner,
         }
         tiebreak_info["steps"].append(step)
-        return best, tiebreak_info
+        return winner, tiebreak_info

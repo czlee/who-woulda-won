@@ -207,7 +207,7 @@ class TestSequentialIRV:
         assert len(step["irv_rounds"]) > 0
 
     def test_winner_tiebreak_with_sub_irv(self):
-        """All candidates tied, sub-IRV resolves winner via Borda.
+        """All candidates tied, sub-IRV resolves winner (randomly if needed).
 
              J1  J2  J3  J4  J5  J6
         A     1   1   2   3   3   3
@@ -215,7 +215,7 @@ class TestSequentialIRV:
         C     3   2   3   2   1   1
 
         First-choice: A=2, B=2, C=2. All tied → winner tiebreak.
-        Sub-IRV also all tied. Borda: A=5, B=7, C=6 → B wins.
+        Sub-IRV also all tied → resolved at random.
         """
         scoresheet = make_scoresheet("Winner Tiebreak", {
             "J1": {"A": 1, "B": 2, "C": 3},
@@ -255,6 +255,39 @@ class TestSequentialIRV:
         tb = round1["tiebreak"]
         assert tb["type"] == "winner"
         assert len(tb["steps"]) > 0
+
+    def test_random_fallback_in_winner_tiebreak(self):
+        """When h2h and sub-IRV can't resolve, random fallback is used.
+
+        Perfect 3-way cycle: all h2h are tied via sub-IRV, falls back to random.
+        The random step should have method='random' and a winner.
+        """
+        scoresheet = make_scoresheet("Random Fallback", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 3, "B": 1, "C": 2},
+            "J3": {"A": 2, "B": 3, "C": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+
+        assert round1["method"] == "all_tied_tiebreak"
+        tb = round1["tiebreak"]
+
+        # Should have a sub-IRV step, and within the sub-IRV's tiebreak,
+        # a random step
+        irv_step = tb["steps"][0]
+        assert irv_step["method"] == "irv"
+
+        # The sub-IRV's all_tied_tiebreak should contain a random step
+        sub_round = irv_step["irv_rounds"][0]
+        assert sub_round["method"] == "all_tied_tiebreak"
+        sub_tb = sub_round["tiebreak"]
+        random_step = sub_tb["steps"][0]
+        assert random_step["method"] == "random"
+        assert "winner" in random_step
+        assert random_step["winner"] in ["A", "B", "C"]
+        assert set(random_step["remaining_tied"]) == {"A", "B", "C"}
 
     def test_no_tiebreak_when_clear(self, clear_winner):
         """When there's no tie, no tiebreak details should appear."""
