@@ -309,7 +309,7 @@ class TestSequentialIRV:
         assert step1["eliminated"] == "D"
         assert step1["head_to_head"]["winner"] == "C"
 
-    def test_winner_tiebreak_with_second_choice(self):
+    def test_second_choice_vote_count(self):
         """All candidates tied, go to second choice.
 
              J1  J2  J3  J4  J5  J6
@@ -317,10 +317,10 @@ class TestSequentialIRV:
         B     2   3   1   1   2   2
         C     3   2   3   2   1   1
 
-        First-choice: A=2, B=2, C=2. All tied → go to second choice.
-        Second-choice: A=1, B=3, C=2. Eliminate A.
+        First choice: A=2, B=2, C=2. All tied → go to second choice.
+        Second choice: A=1, B=3, C=2. Eliminate A.
         """
-        scoresheet = make_scoresheet("Winner Tiebreak", {
+        scoresheet = make_scoresheet("Second Choice", {
             "J1": {"A": 1, "B": 2, "C": 3},
             "J2": {"A": 1, "B": 3, "C": 2},
             "J3": {"A": 2, "B": 1, "C": 3},
@@ -335,6 +335,73 @@ class TestSequentialIRV:
         assert round1["method"] == "elimination"
         assert round1["tiebreak_choice"] == 2
         assert round1["eliminated"] == "A"
+
+    def test_third_choice_vote_count(self):
+        """All candidates tied, go to third choice.
+
+             J1  J2  J3  J4
+        A     1   3   3   2
+        B     2   1   4   3
+        C     3   2   1   4
+        D     4   4   2   1
+
+        First choice: A=1, B=1, C=1, D=1. All tied → go to second choice.
+        Second choice: A=1, B=1, C=1, D=1. All tied → go to third choice.
+        Third choice: A=2, B=1, C=1, D=0. D is eliminated.
+        """
+        scoresheet = make_scoresheet("Third Choice", {
+            "J1": {"A": 1, "B": 2, "C": 3, "D": 4},
+            "J2": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J3": {"A": 3, "B": 4, "C": 1, "D": 2},
+            "J4": {"A": 2, "B": 3, "C": 4, "D": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+
+        assert round1["method"] == "elimination"
+        assert round1["tiebreak_choice"] == 3
+        assert round1["eliminated"] == "D"
+        assert "tiebreak" not in round1
+
+    def test_third_choice_vote_count_head_to_head_random(self):
+        """All candidates tied, go to third choice, then head-to-head, then random.
+
+             J1  J2  J3  J4
+        A     1   2   4   4
+        B     2   1   3   3
+        C     4   4   1   2
+        D     3   3   2   1
+
+        First choice: A=1, B=1, C=1, D=1. All tied → go to second choice.
+        Second choice: A=1, B=1, C=1, D=1. All tied → go to third choice.
+        Third choice: A=0, B=2, C=0, D=2. A and C tied → head-to-head.
+        Head-to-head: A=2, C=2 → fall back to random.
+        """
+        scoresheet = make_scoresheet("Third Choice Head-to-Head Random", {
+            "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J2": {"A": 2, "B": 1, "C": 4, "D": 3},
+            "J3": {"A": 4, "B": 3, "C": 1, "D": 2},
+            "J4": {"A": 4, "B": 3, "C": 2, "D": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+
+        assert round1["method"] == "elimination"
+        assert round1["tiebreak_choice"] == 3
+        assert round1["eliminated"] in ["A", "C"]
+
+        tiebreak_info = round1["tiebreak"]
+        assert set(tiebreak_info["tied_candidates"]) == {"A", "C"}
+
+        assert len(tiebreak_info["steps"]) == 2
+
+        assert tiebreak_info["steps"][0]["method"] == "head_to_head"
+        assert tiebreak_info["steps"][0]["resolved"] == False
+
+        assert tiebreak_info["steps"][1]["method"] == "random"
+        assert set(tiebreak_info["steps"][1]["remaining_tied"]) == {"A", "C"}
 
     def test_perfect_cycle_has_all_tied_equal(self, perfect_cycle):
         """Perfect cycle has no way to run IRV, so just declare all tied equal."""

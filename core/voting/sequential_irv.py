@@ -29,7 +29,8 @@ class SequentialIRVSystem(VotingSystem):
     Tiebreakers:
     - Elimination: Head-to-head (2 tied), or restricted vote counting
       among tied candidates (3+), narrowing the tied set until resolved.
-    - Winner (all tied): Head-to-head (2) or sub-IRV (3+).
+    - If all candidates are tied, count second-choice votes, and so on,
+      until the candidates are not all tied.
     - If still unresolved, choose at random.
     """
 
@@ -186,7 +187,7 @@ class SequentialIRVSystem(VotingSystem):
                 else:
                     # Perfect tie - declare all equal
                     round_info["all_tied"] = True
-                    round_info["winner"] = active
+                    round_info["winner"] = list(active)
                     round_info["method"] = "all_tied_equal"
                     round_details.append(round_info)
                     return list(active), round_details
