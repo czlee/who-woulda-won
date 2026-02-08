@@ -441,6 +441,51 @@ button[type="submit"]:disabled {
     font-style: italic;
 }
 
+/* Tiebreak details block */
+.irv-tiebreak {
+    margin: 0.25rem 0 0.5rem 1rem;
+    padding: 0.4rem 0.6rem;
+    border-left: 2px solid #e0a040;
+    background: #fffbf0;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.irv-tiebreak-header {
+    font-weight: 600;
+    color: #b8860b;
+    margin-bottom: 0.2rem;
+    font-size: 0.85rem;
+}
+
+.irv-tiebreak-step {
+    margin: 0.15rem 0;
+}
+
+.irv-tiebreak-line {
+    margin: 0.15rem 0;
+    padding-left: 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Sub-IRV rounds within tiebreak */
+.irv-sub-irv {
+    margin: 0.2rem 0 0.2rem 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px dashed #ccc;
+}
+
+.irv-sub-irv .irv-round-step {
+    font-size: 0.83rem;
+    padding-left: 0.5rem;
+}
+
+/* Nested tiebreak within sub-IRV */
+.irv-sub-irv .irv-tiebreak {
+    margin-left: 0.5rem;
+    font-size: 0.82rem;
+}
+
 /* Detail section subheadings */
 .detail-content h4 {
     color: #555;

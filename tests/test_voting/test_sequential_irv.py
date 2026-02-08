@@ -87,3 +87,317 @@ class TestSequentialIRV:
         assert len(rounds) > 0
         assert "place" in rounds[0]
         assert "winner" in rounds[0]
+
+    def test_h2h_elimination_tiebreak(self):
+        """Two candidates tied for fewest votes, head-to-head resolves.
+
+             J1  J2  J3  J4  J5  J6  J7
+        A     1   1   1   2   2   3   3
+        B     2   3   2   1   3   1   2
+        C     3   2   3   3   1   2   1
+
+        Round 1: A=3, B=2, C=2. B and C tied.
+        H2H: B preferred by 4, C by 3 → C eliminated.
+        Round 2: A=4, B=3 → A wins.
+        """
+        scoresheet = make_scoresheet("H2H Elimination", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 1, "B": 3, "C": 2},
+            "J3": {"A": 1, "B": 2, "C": 3},
+            "J4": {"A": 2, "B": 1, "C": 3},
+            "J5": {"A": 2, "B": 3, "C": 1},
+            "J6": {"A": 3, "B": 1, "C": 2},
+            "J7": {"A": 3, "B": 2, "C": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        assert result.final_ranking[0] == "A"
+        assert result.final_ranking == ["A", "B", "C"]
+
+    def test_h2h_elimination_tiebreak_details(self):
+        """Verify tiebreak details structure for h2h elimination."""
+        scoresheet = make_scoresheet("H2H Elimination Details", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 1, "B": 3, "C": 2},
+            "J3": {"A": 1, "B": 2, "C": 3},
+            "J4": {"A": 2, "B": 1, "C": 3},
+            "J5": {"A": 2, "B": 3, "C": 1},
+            "J6": {"A": 3, "B": 1, "C": 2},
+            "J7": {"A": 3, "B": 2, "C": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        irv_rounds = first_placement["irv_rounds"]
+
+        # Round 1 should have elimination with tiebreak
+        round1 = irv_rounds[0]
+        assert round1["method"] == "elimination"
+        assert round1["eliminated"] == "C"
+        assert "tiebreak" in round1
+
+        tb = round1["tiebreak"]
+        assert tb["type"] == "elimination"
+        assert set(tb["tied_candidates"]) == {"B", "C"}
+        assert len(tb["steps"]) == 1
+
+        step = tb["steps"][0]
+        assert step["method"] == "head_to_head"
+        assert step["resolved"] is True
+        assert step["eliminated"] == "C"
+
+        h2h = step["head_to_head"]
+        assert h2h["winner"] == "B"
+        assert h2h["counts"]["B"] == 4
+        assert h2h["counts"]["C"] == 3
+
+    def test_restricted_vote_elimination_tiebreak(self):
+        """Three candidates tied for fewest, restricted vote resolves.
+
+             J1  J2  J3  J4  J5  J6  J7  J8  J9
+        A     1   1   1   2   3   4   2   4   3
+        B     2   2   3   1   1   3   4   4   4
+        C     4   3   2   2   2   1   1   3   3
+        D     3   4   4   4   4   2   3   1   1
+
+        Main round 1: A=3, B=2, C=2, D=2.
+        B, C, D tied → restricted vote among {B,C,D}.
+        Restricted: B=4, C=3, D=2 → D eliminated (fewest).
+        """
+        scoresheet = make_scoresheet("Restricted Vote Elimination", {
+            "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J2": {"A": 1, "B": 2, "C": 3, "D": 4},
+            "J3": {"A": 1, "B": 3, "C": 2, "D": 4},
+            "J4": {"A": 2, "B": 1, "C": 2, "D": 4},
+            "J5": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J6": {"A": 4, "B": 3, "C": 1, "D": 2},
+            "J7": {"A": 2, "B": 4, "C": 1, "D": 3},
+            "J8": {"A": 4, "B": 4, "C": 3, "D": 1},
+            "J9": {"A": 3, "B": 4, "C": 3, "D": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        assert result.final_ranking[0] == "A"
+
+    def test_restricted_vote_elimination_tiebreak_details(self):
+        """Verify tiebreak details for restricted vote elimination."""
+        scoresheet = make_scoresheet("Restricted Vote Details", {
+            "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J2": {"A": 1, "B": 2, "C": 3, "D": 4},
+            "J3": {"A": 1, "B": 3, "C": 2, "D": 4},
+            "J4": {"A": 2, "B": 1, "C": 2, "D": 4},
+            "J5": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J6": {"A": 4, "B": 3, "C": 1, "D": 2},
+            "J7": {"A": 2, "B": 4, "C": 1, "D": 3},
+            "J8": {"A": 4, "B": 4, "C": 3, "D": 1},
+            "J9": {"A": 3, "B": 4, "C": 3, "D": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+
+        assert round1["method"] == "elimination"
+        assert round1["eliminated"] == "D"
+        assert "tiebreak" in round1
+
+        tb = round1["tiebreak"]
+        assert tb["type"] == "elimination"
+        assert set(tb["tied_candidates"]) == {"B", "C", "D"}
+        assert len(tb["steps"]) == 1
+
+        step = tb["steps"][0]
+        assert step["method"] == "restricted_vote"
+        assert step["resolved"] is True
+        assert step["eliminated"] == "D"
+        assert step["votes"]["B"] == 4
+        assert step["votes"]["C"] == 3
+        assert step["votes"]["D"] == 2
+
+    def test_restricted_vote_all_equal_then_random(self):
+        """Restricted vote finds all equal → falls to random.
+
+             J1  J2  J3  J4  J5  J6  J7  J8  J9
+        A     1   1   1   2   3   4   4   4   4
+        B     2   4   4   1   1   2   3   3   3
+        C     3   2   3   4   4   1   1   2   2
+        D     4   3   2   3   2   3   2   1   1
+
+        Main round 1: A=3, B=2, C=2, D=2.
+        B, C, D tied → restricted vote among {B,C,D}: B=3, C=3, D=3.
+        All equal → random.
+        """
+        scoresheet = make_scoresheet("All Equal Random", {
+            "J1": {"A": 1, "B": 2, "C": 3, "D": 4},
+            "J2": {"A": 1, "B": 4, "C": 2, "D": 3},
+            "J3": {"A": 1, "B": 4, "C": 3, "D": 2},
+            "J4": {"A": 2, "B": 1, "C": 4, "D": 3},
+            "J5": {"A": 3, "B": 1, "C": 4, "D": 2},
+            "J6": {"A": 4, "B": 2, "C": 1, "D": 3},
+            "J7": {"A": 4, "B": 3, "C": 1, "D": 2},
+            "J8": {"A": 4, "B": 3, "C": 2, "D": 1},
+            "J9": {"A": 4, "B": 3, "C": 2, "D": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        assert set(result.final_ranking) == {"A", "B", "C", "D"}
+
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+        assert round1["method"] == "elimination"
+        tb = round1["tiebreak"]
+        assert set(tb["tied_candidates"]) == {"B", "C", "D"}
+
+        # First step: restricted_vote, all equal
+        step0 = tb["steps"][0]
+        assert step0["method"] == "restricted_vote"
+        assert step0["resolved"] is False
+        assert step0.get("all_equal") is True
+        assert step0["votes"]["B"] == 3
+        assert step0["votes"]["C"] == 3
+        assert step0["votes"]["D"] == 3
+
+        # Second step: random
+        step1 = tb["steps"][1]
+        assert step1["method"] == "random"
+        assert step1["eliminated"] in ["B", "C", "D"]
+
+    def test_restricted_vote_narrows_then_h2h(self):
+        """Restricted vote narrows 3-way to 2-way, then h2h resolves.
+
+             J1   J2   J3   J4   J5   J6   J7   J8   J9   J10
+        A     1    1    1    1    2    2    2    2    2    2
+        B     2    2    3    4    1    1    3    4    3    4
+        C     3    4    2    3    3    3    1    1    4    3
+        D     4    3    4    2    4    4    4    3    1    1
+
+        Main round 1: A=4, B=2, C=2, D=2.
+        B, C, D tied → restricted vote among {B,C,D}: B=4, C=3, D=3.
+        C, D tied for fewest → narrow to {C,D} → h2h.
+        H2H C vs D: C preferred by 6, D by 4 → D eliminated.
+        """
+        scoresheet = make_scoresheet("Narrows then H2H", {
+            "J1":  {"A": 1, "B": 2, "C": 3, "D": 4},
+            "J2":  {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J3":  {"A": 1, "B": 3, "C": 2, "D": 4},
+            "J4":  {"A": 1, "B": 4, "C": 3, "D": 2},
+            "J5":  {"A": 2, "B": 1, "C": 3, "D": 4},
+            "J6":  {"A": 2, "B": 1, "C": 3, "D": 4},
+            "J7":  {"A": 2, "C": 1, "B": 3, "D": 4},
+            "J8":  {"A": 2, "C": 1, "D": 3, "B": 4},
+            "J9":  {"A": 2, "D": 1, "B": 3, "C": 4},
+            "J10": {"A": 2, "D": 1, "C": 3, "B": 4},
+        })
+        result = self.system.calculate(scoresheet)
+        assert result.final_ranking[0] == "A"
+
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+        assert round1["method"] == "elimination"
+        assert round1["eliminated"] == "D"
+        tb = round1["tiebreak"]
+        assert set(tb["tied_candidates"]) == {"B", "C", "D"}
+
+        # Step 1: restricted_vote, narrows to C,D
+        step0 = tb["steps"][0]
+        assert step0["method"] == "restricted_vote"
+        assert step0["resolved"] is False
+        assert set(step0["remaining_tied"]) == {"C", "D"}
+        assert step0["votes"]["B"] == 4
+        assert step0["votes"]["C"] == 3
+        assert step0["votes"]["D"] == 3
+
+        # Step 2: h2h between C and D
+        step1 = tb["steps"][1]
+        assert step1["method"] == "head_to_head"
+        assert step1["resolved"] is True
+        assert step1["eliminated"] == "D"
+        assert step1["head_to_head"]["winner"] == "C"
+
+    def test_winner_tiebreak_with_sub_irv(self):
+        """All candidates tied, sub-IRV resolves winner (randomly if needed).
+
+             J1  J2  J3  J4  J5  J6
+        A     1   1   2   3   3   3
+        B     2   3   1   1   2   2
+        C     3   2   3   2   1   1
+
+        First-choice: A=2, B=2, C=2. All tied → winner tiebreak.
+        Sub-IRV also all tied → resolved at random.
+        """
+        scoresheet = make_scoresheet("Winner Tiebreak", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 1, "B": 3, "C": 2},
+            "J3": {"A": 2, "B": 1, "C": 3},
+            "J4": {"A": 3, "B": 1, "C": 2},
+            "J5": {"A": 3, "B": 2, "C": 1},
+            "J6": {"A": 3, "B": 2, "C": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+
+        assert round1["method"] == "all_tied_tiebreak"
+        assert "tiebreak" in round1
+
+        tb = round1["tiebreak"]
+        assert tb["type"] == "winner"
+
+        # First step should be sub-IRV
+        step = tb["steps"][0]
+        assert step["method"] == "irv"
+        assert "irv_rounds" in step
+
+    def test_perfect_cycle_has_tiebreak_details(self, perfect_cycle):
+        """Perfect cycle should produce tiebreak details at every level."""
+        result = self.system.calculate(perfect_cycle)
+        first_placement = result.details["placement_rounds"][0]
+        irv_rounds = first_placement["irv_rounds"]
+        assert len(irv_rounds) > 0
+
+        # Should hit the all_tied_tiebreak case
+        round1 = irv_rounds[0]
+        assert round1["method"] == "all_tied_tiebreak"
+        assert "tiebreak" in round1
+
+        tb = round1["tiebreak"]
+        assert tb["type"] == "winner"
+        assert len(tb["steps"]) > 0
+
+    def test_random_fallback_in_winner_tiebreak(self):
+        """When h2h and sub-IRV can't resolve, random fallback is used.
+
+        Perfect 3-way cycle: all h2h are tied via sub-IRV, falls back to
+        random once max recursion depth is reached.
+        """
+        scoresheet = make_scoresheet("Random Fallback", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 3, "B": 1, "C": 2},
+            "J3": {"A": 2, "B": 3, "C": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+
+        assert round1["method"] == "all_tied_tiebreak"
+        tb = round1["tiebreak"]
+
+        # Walk down the recursive sub-IRV chain until we find a random step
+        def find_random_step(tiebreak):
+            for step in tiebreak.get("steps", []):
+                if step["method"] == "random":
+                    return step
+                if step["method"] == "irv":
+                    for rd in step.get("irv_rounds", []):
+                        if "tiebreak" in rd:
+                            found = find_random_step(rd["tiebreak"])
+                            if found:
+                                return found
+            return None
+
+        random_step = find_random_step(tb)
+        assert random_step is not None, "Expected a random step somewhere in tiebreak chain"
+        assert random_step["winner"] in ["A", "B", "C"]
+        assert set(random_step["remaining_tied"]) == {"A", "B", "C"}
+
+    def test_no_tiebreak_when_clear(self, clear_winner):
+        """When there's no tie, no tiebreak details should appear."""
+        result = self.system.calculate(clear_winner)
+        first_placement = result.details["placement_rounds"][0]
+        for rd in first_placement["irv_rounds"]:
+            assert "tiebreak" not in rd
