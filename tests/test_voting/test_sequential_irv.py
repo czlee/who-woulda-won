@@ -309,16 +309,16 @@ class TestSequentialIRV:
         assert step1["eliminated"] == "D"
         assert step1["head_to_head"]["winner"] == "C"
 
-    def test_winner_tiebreak_with_sub_irv(self):
-        """All candidates tied, sub-IRV resolves winner (randomly if needed).
+    def test_winner_tiebreak_with_second_choice(self):
+        """All candidates tied, go to second choice.
 
              J1  J2  J3  J4  J5  J6
         A     1   1   2   3   3   3
         B     2   3   1   1   2   2
         C     3   2   3   2   1   1
 
-        First-choice: A=2, B=2, C=2. All tied → winner tiebreak.
-        Sub-IRV also all tied → resolved at random.
+        First-choice: A=2, B=2, C=2. All tied → go to second choice.
+        Second-choice: A=1, B=3, C=2. Eliminate A.
         """
         scoresheet = make_scoresheet("Winner Tiebreak", {
             "J1": {"A": 1, "B": 2, "C": 3},
@@ -332,68 +332,22 @@ class TestSequentialIRV:
         first_placement = result.details["placement_rounds"][0]
         round1 = first_placement["irv_rounds"][0]
 
-        assert round1["method"] == "all_tied_tiebreak"
-        assert "tiebreak" in round1
+        assert round1["method"] == "elimination"
+        assert round1["tiebreak_choice"] == 2
+        assert round1["eliminated"] == "A"
 
-        tb = round1["tiebreak"]
-        assert tb["type"] == "winner"
-
-        # First step should be sub-IRV
-        step = tb["steps"][0]
-        assert step["method"] == "irv"
-        assert "irv_rounds" in step
-
-    def test_perfect_cycle_has_tiebreak_details(self, perfect_cycle):
-        """Perfect cycle should produce tiebreak details at every level."""
+    def test_perfect_cycle_has_all_tied_equal(self, perfect_cycle):
+        """Perfect cycle has no way to run IRV, so just declare all tied equal."""
         result = self.system.calculate(perfect_cycle)
         first_placement = result.details["placement_rounds"][0]
         irv_rounds = first_placement["irv_rounds"]
-        assert len(irv_rounds) > 0
+        assert len(irv_rounds) == 1
 
         # Should hit the all_tied_tiebreak case
         round1 = irv_rounds[0]
-        assert round1["method"] == "all_tied_tiebreak"
-        assert "tiebreak" in round1
-
-        tb = round1["tiebreak"]
-        assert tb["type"] == "winner"
-        assert len(tb["steps"]) > 0
-
-    def test_random_fallback_in_winner_tiebreak(self):
-        """When h2h and sub-IRV can't resolve, random fallback is used.
-
-        Perfect 3-way cycle: all h2h are tied via sub-IRV, falls back to
-        random once max recursion depth is reached.
-        """
-        scoresheet = make_scoresheet("Random Fallback", {
-            "J1": {"A": 1, "B": 2, "C": 3},
-            "J2": {"A": 3, "B": 1, "C": 2},
-            "J3": {"A": 2, "B": 3, "C": 1},
-        })
-        result = self.system.calculate(scoresheet)
-        first_placement = result.details["placement_rounds"][0]
-        round1 = first_placement["irv_rounds"][0]
-
-        assert round1["method"] == "all_tied_tiebreak"
-        tb = round1["tiebreak"]
-
-        # Walk down the recursive sub-IRV chain until we find a random step
-        def find_random_step(tiebreak):
-            for step in tiebreak.get("steps", []):
-                if step["method"] == "random":
-                    return step
-                if step["method"] == "irv":
-                    for rd in step.get("irv_rounds", []):
-                        if "tiebreak" in rd:
-                            found = find_random_step(rd["tiebreak"])
-                            if found:
-                                return found
-            return None
-
-        random_step = find_random_step(tb)
-        assert random_step is not None, "Expected a random step somewhere in tiebreak chain"
-        assert random_step["winner"] in ["A", "B", "C"]
-        assert set(random_step["remaining_tied"]) == {"A", "B", "C"}
+        assert round1["method"] == "all_tied_equal"
+        assert round1["all_tied"] == True
+        assert set(round1["winner"]) == {"A", "B", "C"}
 
     def test_no_tiebreak_when_clear(self, clear_winner):
         """When there's no tie, no tiebreak details should appear."""
