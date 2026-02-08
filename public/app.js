@@ -513,18 +513,25 @@ function buildRPCellDisplay(details, n) {
         const resolution = round.resolution;
         if (!resolution) continue;
 
-        // Record quality-of-majority scores for ALL candidates in
-        // tiebreak progressions (winners and losers alike).
+        // Record cumulative counts and quality-of-majority scores for
+        // ALL candidates in tiebreak progressions (winners and losers
+        // alike), so that losers' values are visible when they are
+        // placed in a subsequent round.
         const progression = resolution.cutoff_progression;
         if (progression) {
             for (const step of progression) {
-                if (!step.quality_scores) continue;
-                for (const [competitor, quality] of Object.entries(step.quality_scores)) {
+                for (const [competitor, count] of Object.entries(step.counts || {})) {
                     const key = competitor + '|' + step.cutoff;
-                    display[key] = {
-                        count: cumCounts[competitor][step.cutoff],
-                        quality: quality,
-                    };
+                    if (display[key] !== undefined) continue;
+
+                    if (step.quality_scores && step.quality_scores[competitor] !== undefined) {
+                        display[key] = {
+                            count: count,
+                            quality: step.quality_scores[competitor],
+                        };
+                    } else {
+                        display[key] = count;
+                    }
                 }
             }
         }
