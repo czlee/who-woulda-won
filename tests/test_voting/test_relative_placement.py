@@ -103,22 +103,15 @@ class TestRelativePlacement:
             "final_cutoff": 2
         }.items() <= resolution.items()
 
-        # Cutoff 1: no majority
-        assert {
-            "cutoff": 1,
-            "result": "no_majority",
-            "counts": {"A": 2, "B": 2, "C": 1},
-        }.items() <= resolution["cutoff_progression"][0].items()
-
-        # Cutoff 2: both have majority, B has more
-        step2 = resolution["cutoff_progression"][1]
+        # Cutoff 2: A and B both have majority, B has more
+        step = resolution["cutoff_progression"][0]
         assert {
             "cutoff": 2,
             "result": "multiple_majority",
-            "counts": {"A": 3, "B": 5, "C": 2},
+            "counts": {"A": 3, "B": 5},
             "tiebreaker": "greater_majority",
-        }.items() <= step2.items()
-        assert set(step2["with_majority"]) == {"A", "B"}
+        }.items() <= step.items()
+        assert set(step["with_majority"]) == {"A", "B"}
 
     def test_details_has_expected_keys(self, clear_winner):
         result = self.system.calculate(clear_winner)
@@ -180,8 +173,132 @@ class TestRelativePlacement:
         assert {
             "cutoff": 2,
             "result": "multiple_majority",
-            "counts": {"A": 4, "B": 4, "C": 3, "D": 3},
+            "counts": {"A": 4, "B": 4},
             "quality_scores": {"A": 5, "B": 7},
             "tiebreaker": "quality_of_majority",
         }.items() <= cutoff_step.items()
         assert set(cutoff_step["with_majority"]) == {"A", "B"}
+
+    def test_quality_of_majority_tied_twice(self):
+        """A and B tie on quality of majority twice, then resolve on greater
+        majority on the next one.
+
+             J1  J2  J3  J4  J5
+        A     1   1   2   3   5
+        B     4   2   1   1   3
+        C     3   3   3   4   1
+        D     2   4   5   5   2
+        E     5   5   4   2   4
+
+        At cutoff 1: no majority.
+        At cutoff 2: A and B both have 3. Quality of majority both 4.
+        At cutoff 3: A and B both have 4. Quality of majority both 7.
+        At cutoff 4: A has 4, B has 5. B wins on greater majority.
+
+        Note that C has a majority at cutoff 3, but this shouldn't count,
+        because C is not in the tiebreak.
+        """
+        scoresheet = make_scoresheet("Quality of Majority Tied Twice", {
+            "J1": {"A": 1, "B": 4, "C": 3, "D": 2, "E": 5},
+            "J2": {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5},
+            "J3": {"A": 2, "B": 1, "C": 3, "D": 5, "E": 4},
+            "J4": {"A": 3, "B": 1, "C": 4, "D": 5, "E": 2},
+            "J5": {"A": 5, "B": 3, "C": 1, "D": 2, "E": 4},
+        })
+        result = self.system.calculate(scoresheet)
+        assert result.final_ranking == ["B", "A", "C", "D", "E"]
+
+        place1 = result.details["rounds"][0]
+        resolution = place1["resolution"]
+        assert {
+            "method": "greater_majority",
+            "final_cutoff": 4,
+        }.items() <= resolution.items()
+
+        assert len(resolution["cutoff_progression"]) == 3
+
+        cutoff_step1 = resolution["cutoff_progression"][0]
+        assert {
+            "cutoff": 2,
+            "result": "multiple_majority",
+            "counts": {"A": 3, "B": 3},
+            "quality_scores": {"A": 4, "B": 4},
+        }.items() <= cutoff_step1.items()
+        assert set(cutoff_step1["with_majority"]) == {"A", "B"}
+
+        cutoff_step2 = resolution["cutoff_progression"][1]
+        assert {
+            "cutoff": 3,
+            "result": "multiple_majority",
+            "counts": {"A": 4, "B": 4},
+            "quality_scores": {"A": 7, "B": 7},
+        }.items() <= cutoff_step2.items()
+        assert set(cutoff_step2["with_majority"]) == {"A", "B"}
+
+        # C should not be swept in just because it has a majority of 3
+        assert "C" not in cutoff_step2["quality_scores"]
+
+        cutoff_step3 = resolution["cutoff_progression"][2]
+        assert {
+            "cutoff": 4,
+            "result": "multiple_majority",
+            "counts": {"A": 4, "B": 5},
+            "tiebreaker": "greater_majority",
+        }.items() <= cutoff_step3.items()
+        assert set(cutoff_step3["with_majority"]) == {"A", "B"}
+
+
+class TestRelativePlacementRealData:
+    """Integration tests using real competition data to verify correctness."""
+
+    def setup_method(self):
+        self.system = RelativePlacementSystem()
+
+    def test_real_competition_7_judges_9_competitors(self):
+        """Real WCS competition: 7 judges, 9 competitors.
+
+        Regression test for tiebreak-loser placement bug. At cutoff 5, LC_HR
+        and MD_AH both have majority (4). LC_HR wins via quality of majority
+        (11 vs 14). MD_AH must be placed next (still at cutoff 5) before
+        advancing. Then at cutoff 6, TN_TS is the only one with majority and
+        should get 7th, before TL_LD who only reaches majority at cutoff 7.
+
+        The old bug started the cutoff search at target_place for each
+        placement, which allowed TL_LD to overtake TN_TS at cutoff 7.
+        """
+        scoresheet = make_scoresheet("Real Competition 1", {
+            "TK": {"SS_GW": 7, "CL_EA": 3, "JP_FF": 8, "AW_DP": 9, "LC_HR": 1, "MD_AH": 2, "TL_LD": 4, "TN_TS": 5, "TM_RP": 6},
+            "ZS": {"SS_GW": 2, "CL_EA": 3, "JP_FF": 1, "AW_DP": 4, "LC_HR": 6, "MD_AH": 5, "TL_LD": 8, "TN_TS": 9, "TM_RP": 7},
+            "RC": {"SS_GW": 3, "CL_EA": 1, "JP_FF": 4, "AW_DP": 5, "LC_HR": 9, "MD_AH": 2, "TL_LD": 7, "TN_TS": 6, "TM_RP": 8},
+            "CP": {"SS_GW": 1, "CL_EA": 5, "JP_FF": 2, "AW_DP": 4, "LC_HR": 8, "MD_AH": 6, "TL_LD": 7, "TN_TS": 3, "TM_RP": 9},
+            "KO": {"SS_GW": 2, "CL_EA": 1, "JP_FF": 4, "AW_DP": 8, "LC_HR": 3, "MD_AH": 5, "TL_LD": 7, "TN_TS": 6, "TM_RP": 9},
+            "JT": {"SS_GW": 2, "CL_EA": 4, "JP_FF": 3, "AW_DP": 1, "LC_HR": 5, "MD_AH": 6, "TL_LD": 7, "TN_TS": 8, "TM_RP": 9},
+            "MP": {"SS_GW": 4, "CL_EA": 1, "JP_FF": 5, "AW_DP": 3, "LC_HR": 2, "MD_AH": 8, "TL_LD": 6, "TN_TS": 7, "TM_RP": 9},
+        })
+        result = self.system.calculate(scoresheet)
+        assert result.final_ranking == [
+            "SS_GW", "CL_EA", "JP_FF", "AW_DP", "LC_HR",
+            "MD_AH", "TN_TS", "TL_LD", "TM_RP",
+        ]
+
+    def test_real_competition_5_judges_10_competitors(self):
+        """Real WCS competition: 5 judges, 10 competitors.
+
+        Regression test for tiebreak-loser placement bug. At cutoff 7, HC_CB
+        and TM both have majority (3). HC_CB wins via quality of majority
+        (13 vs 18). TM must be placed next (still at cutoff 7) before
+        advancing. The old bug let JP_SVH overtake TM at cutoff 8 via
+        greater majority (4 vs 3).
+        """
+        scoresheet = make_scoresheet("Real Competition 2", {
+            "AF": {"MD_FF": 4, "DR_CH": 7, "DS_JZ": 3, "CL_GW": 1, "NE_LJ": 2, "CJ_CH": 5, "HC_CB": 9, "JP_SVH": 6, "TL_AS": 8, "TM": 10},
+            "AM": {"MD_FF": 2, "DR_CH": 3, "DS_JZ": 8, "CL_GW": 1, "NE_LJ": 6, "CJ_CH": 10, "HC_CB": 7, "JP_SVH": 4, "TL_AS": 9, "TM": 5},
+            "SP": {"MD_FF": 2, "DR_CH": 6, "DS_JZ": 3, "CL_GW": 5, "NE_LJ": 10, "CJ_CH": 4, "HC_CB": 1, "JP_SVH": 8, "TL_AS": 7, "TM": 9},
+            "EG": {"MD_FF": 5, "DR_CH": 2, "DS_JZ": 1, "CL_GW": 4, "NE_LJ": 3, "CJ_CH": 6, "HC_CB": 10, "JP_SVH": 8, "TL_AS": 9, "TM": 7},
+            "AV": {"MD_FF": 2, "DR_CH": 1, "DS_JZ": 10, "CL_GW": 4, "NE_LJ": 8, "CJ_CH": 7, "HC_CB": 5, "JP_SVH": 9, "TL_AS": 3, "TM": 6},
+        })
+        result = self.system.calculate(scoresheet)
+        assert result.final_ranking == [
+            "MD_FF", "DR_CH", "DS_JZ", "CL_GW", "NE_LJ",
+            "CJ_CH", "HC_CB", "TM", "JP_SVH", "TL_AS",
+        ]
