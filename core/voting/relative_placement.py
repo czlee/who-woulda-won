@@ -228,11 +228,9 @@ class RelativePlacementSystem(VotingSystem):
             # Tiebreaker 2: Quality of majority (sum of best placements)
             quality = {}
             for c in candidates:
-                placements = sorted(
-                    scoresheet.get_placement(j, c) for j in scoresheet.judges
-                )
-                # Sum the best `majority` placements
-                quality[c] = sum(placements[:majority])
+                placements = [scoresheet.get_placement(j, c) for j in scoresheet.judges]
+                # Sum the placements that are part of the current majority
+                quality[c] = sum(p for p in placements if p <= current_cutoff)
 
             min_quality = min(quality.values())
             best_quality = [c for c in candidates if quality[c] == min_quality]

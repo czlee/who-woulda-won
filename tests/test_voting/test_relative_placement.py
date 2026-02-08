@@ -179,6 +179,74 @@ class TestRelativePlacement:
         }.items() <= cutoff_step.items()
         assert set(cutoff_step["with_majority"]) == {"A", "B"}
 
+    def test_quality_of_majority_tied_twice(self):
+        """A and B tie on quality of majority twice, then resolve on greater
+        majority on the next one.
+
+             J1  J2  J3  J4  J5
+        A     1   1   2   3   5
+        B     4   2   1   1   3
+        C     3   3   3   4   1
+        D     2   4   5   5   2
+        E     5   5   4   2   4
+
+        At cutoff 1: no majority.
+        At cutoff 2: A and B both have 3. Quality of majority both 4.
+        At cutoff 3: A and B both have 4. Quality of majority both 7.
+        At cutoff 4: A has 4, B has 5. B wins on greater majority.
+
+        Note that C has a majority at cutoff 3, but this shouldn't count,
+        because C is not in the tiebreak.
+        """
+        scoresheet = make_scoresheet("Quality of Majority Tied Twice", {
+            "J1": {"A": 1, "B": 4, "C": 3, "D": 2, "E": 5},
+            "J2": {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5},
+            "J3": {"A": 2, "B": 1, "C": 3, "D": 5, "E": 4},
+            "J4": {"A": 3, "B": 1, "C": 4, "D": 5, "E": 2},
+            "J5": {"A": 5, "B": 3, "C": 1, "D": 2, "E": 4},
+        })
+        result = self.system.calculate(scoresheet)
+        assert result.final_ranking == ["B", "A", "C", "D", "E"]
+
+        place1 = result.details["rounds"][0]
+        resolution = place1["resolution"]
+        assert {
+            "method": "greater_majority",
+            "final_cutoff": 4,
+        }.items() <= resolution.items()
+
+        assert len(resolution["cutoff_progression"]) == 3
+
+        cutoff_step1 = resolution["cutoff_progression"][0]
+        assert {
+            "cutoff": 2,
+            "result": "multiple_majority",
+            "counts": {"A": 3, "B": 3},
+            "quality_scores": {"A": 4, "B": 4},
+        }.items() <= cutoff_step1.items()
+        assert set(cutoff_step1["with_majority"]) == {"A", "B"}
+
+        cutoff_step2 = resolution["cutoff_progression"][1]
+        assert {
+            "cutoff": 3,
+            "result": "multiple_majority",
+            "counts": {"A": 4, "B": 4},
+            "quality_scores": {"A": 7, "B": 7},
+        }.items() <= cutoff_step2.items()
+        assert set(cutoff_step2["with_majority"]) == {"A", "B"}
+
+        # C should not be swept in just because it has a majority of 3
+        assert "C" not in cutoff_step2["quality_scores"]
+
+        cutoff_step3 = resolution["cutoff_progression"][2]
+        assert {
+            "cutoff": 4,
+            "result": "multiple_majority",
+            "counts": {"A": 4, "B": 5},
+            "tiebreaker": "greater_majority",
+        }.items() <= cutoff_step3.items()
+        assert set(cutoff_step3["with_majority"]) == {"A", "B"}
+
 
 class TestRelativePlacementRealData:
     """Integration tests using real competition data to verify correctness."""
