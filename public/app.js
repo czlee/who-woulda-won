@@ -874,6 +874,15 @@ function initialsFor(names, compInitialsMap) {
 }
 
 /**
+ * Return the ordinal suffix for a number (1st, 2nd, 3rd, 4th, ...).
+ */
+function ordinal(n) {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+/**
  * Render IRV elimination rounds for one placement position.
  */
 function renderIRVRounds(container, placementRound, compInitialsMap) {
@@ -897,24 +906,27 @@ function renderIRVRounds(container, placementRound, compInitialsMap) {
 
         const voteStr = buildVoteStr(round.votes, compInitialsMap);
 
-        if (round.winner) {
+        if (round.method === 'all_tied_equal') {
             const winnerNames = Array.isArray(round.winner) ? round.winner : [round.winner];
             const winnerStr = initialsFor(winnerNames, compInitialsMap);
-
-            if (round.method === 'all_tied_tiebreak') {
-                step.innerHTML = 'Round ' + round.round + ' \u2014 '
-                    + voteStr + ' \u2014 all tied. '
-                    + '<span class="irv-winner">' + winnerStr
-                    + ' wins</span> (tiebreak).';
-            } else {
-                step.innerHTML = 'Round ' + round.round + ' \u2014 '
-                    + voteStr + ' \u2014 '
-                    + '<span class="irv-winner">' + winnerStr
-                    + ' wins</span> (majority: ' + round.majority_needed + ').';
-            }
+            step.innerHTML = 'Round ' + round.round + ' \u2014 '
+                + voteStr + ' \u2014 all tied. '
+                + winnerStr + ' declared equal.';
+        } else if (round.winner) {
+            const winnerNames = Array.isArray(round.winner) ? round.winner : [round.winner];
+            const winnerStr = initialsFor(winnerNames, compInitialsMap);
+            step.innerHTML = 'Round ' + round.round + ' \u2014 '
+                + voteStr + ' \u2014 '
+                + '<span class="irv-winner">' + winnerStr
+                + ' wins</span> (majority: ' + round.majority_needed + ').';
         } else if (round.eliminated) {
             const elimInit = compInitialsMap[round.eliminated] || round.eliminated;
-            const reason = round.tiebreak ? 'tiebreak' : 'fewest votes';
+            let reason = 'fewest votes';
+            if (round.tiebreak_choice) {
+                reason = 'fewest ' + ordinal(round.tiebreak_choice) + '-choice votes';
+            } else if (round.tiebreak) {
+                reason = 'tiebreak';
+            }
             step.innerHTML = 'Round ' + round.round + ' \u2014 '
                 + voteStr + ' \u2014 '
                 + '<span class="irv-eliminated">'
@@ -946,7 +958,7 @@ function renderTiebreakDetails(tiebreak, compInitialsMap) {
     wrapper.appendChild(header);
 
     for (const step of tiebreak.steps) {
-        const stepEl = renderTiebreakStep(step, tiebreak.type, compInitialsMap);
+        const stepEl = renderTiebreakStep(step, compInitialsMap);
         wrapper.appendChild(stepEl);
     }
 
@@ -956,18 +968,16 @@ function renderTiebreakDetails(tiebreak, compInitialsMap) {
 /**
  * Render a single tiebreak step.
  */
-function renderTiebreakStep(step, tiebreakType, compInitialsMap) {
+function renderTiebreakStep(step, compInitialsMap) {
     const div = document.createElement('div');
     div.className = 'irv-tiebreak-step';
 
     if (step.method === 'head_to_head') {
-        renderH2HStep(div, step, tiebreakType, compInitialsMap);
-    } else if (step.method === 'irv') {
-        renderSubIRVStep(div, step, tiebreakType, compInitialsMap);
+        renderH2HStep(div, step, compInitialsMap);
     } else if (step.method === 'restricted_vote') {
         renderRestrictedVoteStep(div, step, compInitialsMap);
     } else if (step.method === 'random') {
-        renderRandomStep(div, step, tiebreakType, compInitialsMap);
+        renderRandomStep(div, step, compInitialsMap);
     }
 
     return div;
@@ -976,7 +986,7 @@ function renderTiebreakStep(step, tiebreakType, compInitialsMap) {
 /**
  * Render a head-to-head tiebreak step.
  */
-function renderH2HStep(container, step, tiebreakType, compInitialsMap) {
+function renderH2HStep(container, step, compInitialsMap) {
     const h2h = step.head_to_head;
     const a = h2h.candidates[0];
     const b = h2h.candidates[1];
@@ -993,107 +1003,16 @@ function renderH2HStep(container, step, tiebreakType, compInitialsMap) {
         + bInit + ' by ' + bCount + '.';
 
     if (step.resolved) {
+        const loserInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
         const winnerInit = escapeHtml(compInitialsMap[h2h.winner] || h2h.winner);
-        if (tiebreakType === 'elimination') {
-            const loserInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
-            text += ' ' + winnerInit + ' wins h2h \u2192 '
-                + '<span class="irv-eliminated">' + loserInit + ' eliminated</span>.';
-        } else {
-            text += ' \u2192 <span class="irv-winner">' + winnerInit + ' wins</span>.';
-        }
+        text += ' ' + winnerInit + ' wins h2h \u2192 '
+            + '<span class="irv-eliminated">' + loserInit + ' eliminated</span>.';
     } else {
         text += ' Still tied.';
     }
 
     p.innerHTML = text;
     container.appendChild(p);
-}
-
-/**
- * Render a sub-IRV tiebreak step.
- */
-function renderSubIRVStep(container, step, tiebreakType, compInitialsMap) {
-    const label = document.createElement('p');
-    label.className = 'irv-tiebreak-line';
-    label.textContent = 'IRV among tied:';
-    container.appendChild(label);
-
-    // Render sub-IRV rounds in a nested block
-    const subBlock = document.createElement('div');
-    subBlock.className = 'irv-sub-irv';
-
-    // Show excluded zero-vote if present in first sub-round
-    if (step.irv_rounds.length > 0) {
-        const firstRound = step.irv_rounds[0];
-        if (firstRound.excluded_zero_vote && firstRound.excluded_zero_vote.length > 0) {
-            const note = document.createElement('p');
-            note.className = 'irv-round-step irv-note';
-            const names = firstRound.excluded_zero_vote
-                .map(c => compInitialsMap[c] || c)
-                .join(', ');
-            note.textContent = 'Excluded (no first-choice votes): ' + names;
-            subBlock.appendChild(note);
-        }
-    }
-
-    for (const rd of step.irv_rounds) {
-        const rdEl = document.createElement('p');
-        rdEl.className = 'irv-round-step';
-
-        const voteStr = buildVoteStr(rd.votes, compInitialsMap);
-
-        if (rd.winner) {
-            const winnerNames = Array.isArray(rd.winner) ? rd.winner : [rd.winner];
-            const winnerStr = initialsFor(winnerNames, compInitialsMap);
-            if (rd.method === 'all_tied_tiebreak') {
-                rdEl.innerHTML = 'Round ' + rd.round + ' \u2014 '
-                    + voteStr + ' \u2014 all tied. '
-                    + '<span class="irv-winner">' + winnerStr
-                    + ' wins</span> (tiebreak).';
-            } else {
-                rdEl.innerHTML = 'Round ' + rd.round + ' \u2014 '
-                    + voteStr + ' \u2014 '
-                    + '<span class="irv-winner">' + winnerStr
-                    + ' wins</span> (majority: ' + rd.majority_needed + ').';
-            }
-        } else if (rd.eliminated) {
-            const elimInit = compInitialsMap[rd.eliminated] || rd.eliminated;
-            const reason = rd.tiebreak ? 'tiebreak' : 'fewest votes';
-            rdEl.innerHTML = 'Round ' + rd.round + ' \u2014 '
-                + voteStr + ' \u2014 '
-                + '<span class="irv-eliminated">'
-                + escapeHtml(elimInit)
-                + ' eliminated</span> (' + reason + ').';
-        }
-        subBlock.appendChild(rdEl);
-
-        // Render nested tiebreak details from sub-IRV rounds
-        if (rd.tiebreak) {
-            const nestedTb = renderTiebreakDetails(rd.tiebreak, compInitialsMap);
-            subBlock.appendChild(nestedTb);
-        }
-    }
-
-    container.appendChild(subBlock);
-
-    // Show result summary
-    const result = document.createElement('p');
-    result.className = 'irv-tiebreak-line';
-    if (step.resolved) {
-        if (tiebreakType === 'elimination') {
-            const elimInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
-            result.innerHTML = '\u2192 <span class="irv-eliminated">'
-                + elimInit + ' eliminated</span> (weakest in sub-IRV).';
-        } else {
-            const winnerNames = Array.isArray(step.winner) ? step.winner : [step.winner];
-            const winnerStr = initialsFor(winnerNames, compInitialsMap);
-            result.innerHTML = '\u2192 <span class="irv-winner">'
-                + winnerStr + ' wins</span> (sub-IRV winner).';
-        }
-    } else {
-        result.textContent = '\u2192 Sub-IRV did not fully resolve tie.';
-    }
-    container.appendChild(result);
 }
 
 /**
@@ -1124,25 +1043,16 @@ function renderRestrictedVoteStep(container, step, compInitialsMap) {
 /**
  * Render a random-choice tiebreak step (boldface to flag randomness).
  */
-function renderRandomStep(container, step, tiebreakType, compInitialsMap) {
+function renderRandomStep(container, step, compInitialsMap) {
     const p = document.createElement('p');
     p.className = 'irv-tiebreak-line';
 
     const names = initialsFor(step.remaining_tied, compInitialsMap);
-
-    if (tiebreakType === 'elimination') {
-        const elimInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
-        p.innerHTML = '<strong>Tie among ' + names
-            + ' could not be resolved. '
-            + '<span class="irv-eliminated">' + elimInit
-            + ' eliminated</span> at random.</strong>';
-    } else {
-        const winnerInit = escapeHtml(compInitialsMap[step.winner] || step.winner);
-        p.innerHTML = '<strong>Tie among ' + names
-            + ' could not be resolved. '
-            + '<span class="irv-winner">' + winnerInit
-            + ' wins</span> at random.</strong>';
-    }
+    const elimInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
+    p.innerHTML = '<strong>Tie among ' + names
+        + ' could not be resolved. '
+        + '<span class="irv-eliminated">' + elimInit
+        + ' eliminated</span> at random.</strong>';
 
     container.appendChild(p);
 }

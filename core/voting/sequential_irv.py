@@ -7,9 +7,6 @@ from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
 
-MAX_TIEBREAK_DEPTH = 5
-
-
 @register_voting_system
 class SequentialIRVSystem(VotingSystem):
     """Sequential Instant Runoff Voting system.
@@ -27,10 +24,10 @@ class SequentialIRVSystem(VotingSystem):
     4. Repeat until a majority winner emerges
 
     Tiebreakers:
+    - All tied: Look at 2nd-choice, 3rd-choice, etc. to find someone to
+      eliminate. If all choices are equal, declare all tied equal.
     - Elimination: Head-to-head (2 tied), or restricted vote counting
       among tied candidates (3+), narrowing the tied set until resolved.
-    - If all candidates are tied, count second-choice votes, and so on,
-      until the candidates are not all tied.
     - If still unresolved, choose at random.
     """
 
@@ -105,7 +102,6 @@ class SequentialIRVSystem(VotingSystem):
 
     def _run_irv(
         self, candidates: set[str], scoresheet: Scoresheet,
-        tiebreak_depth: int = 0,
     ) -> tuple[str | list[str], list[dict]]:
         """Run IRV to find a single winner among candidates.
 
