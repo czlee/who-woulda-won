@@ -42,35 +42,81 @@ class RelativePlacementSystem(VotingSystem):
         unplaced = set(scoresheet.competitors)
         round_details = []
 
-        for target_place in range(1, n + 1):
-            if not unplaced:
-                break
+        # Process cutoffs methodically: at each cutoff, resolve ALL competitors
+        # that have a majority before advancing. This ensures that a tiebreak
+        # loser (who already has majority at this cutoff) is placed before any
+        # new competitors who only gain majority at a higher cutoff.
+        current_cutoff = 1
 
-            round_info = {
-                "target_place": target_place,
-                "candidates": list(unplaced),
-                "majority_needed": majority,
-            }
+        while unplaced and current_cutoff <= n:
+            # Find all unplaced competitors with majority at this cutoff,
+            # preserving the original competitor order for determinism
+            with_majority = [
+                c for c in scoresheet.competitors
+                if c in unplaced and cum_counts[c][current_cutoff] >= majority
+            ]
 
-            winner, details = self._resolve_placement(
-                list(unplaced), target_place, majority, cum_counts, scoresheet
-            )
-            round_info["resolution"] = details
+            if not with_majority:
+                current_cutoff += 1
+                continue
 
-            if isinstance(winner, list):
-                # Unresolved tie
-                round_info["winners"] = winner
-                round_info["tied"] = True
-                for w in winner:
-                    final_ranking.append(w)
-                    unplaced.discard(w)
-            else:
-                round_info["winner"] = winner
-                round_info["tied"] = False
-                final_ranking.append(winner)
-                unplaced.discard(winner)
+            # Place all competitors with majority at this cutoff
+            while with_majority:
+                target_place = len(final_ranking) + 1
 
-            round_details.append(round_info)
+                round_info = {
+                    "target_place": target_place,
+                    "candidates": list(with_majority),
+                    "majority_needed": majority,
+                }
+
+                if len(with_majority) == 1:
+                    winner = with_majority[0]
+                    round_info["winner"] = winner
+                    round_info["tied"] = False
+                    round_info["resolution"] = {
+                        "method": "majority",
+                        "final_cutoff": current_cutoff,
+                        "cutoff_progression": [{
+                            "cutoff": current_cutoff,
+                            "counts": {
+                                winner: cum_counts[winner][current_cutoff],
+                            },
+                            "with_majority": [winner],
+                            "result": "single_majority",
+                        }],
+                    }
+                    final_ranking.append(winner)
+                    unplaced.discard(winner)
+                    with_majority = []
+                else:
+                    winner, details = self._resolve_placement(
+                        list(with_majority), current_cutoff, majority,
+                        cum_counts, scoresheet,
+                    )
+                    round_info["resolution"] = details
+
+                    if isinstance(winner, list):
+                        # Unresolved tie
+                        round_info["winners"] = winner
+                        round_info["tied"] = True
+                        placed = set(winner)
+                        for w in winner:
+                            final_ranking.append(w)
+                            unplaced.discard(w)
+                        with_majority = [
+                            c for c in with_majority if c not in placed
+                        ]
+                    else:
+                        round_info["winner"] = winner
+                        round_info["tied"] = False
+                        final_ranking.append(winner)
+                        unplaced.discard(winner)
+                        with_majority.remove(winner)
+
+                round_details.append(round_info)
+
+            current_cutoff += 1
 
         return VotingResult(
             system_name=self.name,
@@ -116,17 +162,18 @@ class RelativePlacementSystem(VotingSystem):
     def _resolve_placement(
         self,
         candidates: list[str],
-        target_place: int,
+        start_cutoff: int,
         majority: int,
         cum_counts: dict[str, list[int]],
         scoresheet: Scoresheet,
     ) -> tuple[str | list[str], dict]:
-        """Resolve who gets the target placement.
+        """Resolve who wins a placement among candidates.
 
+        Applies tiebreakers starting at start_cutoff and advancing if needed.
         Returns (winner, details) where winner may be a list if truly tied.
         """
         n = scoresheet.num_competitors
-        current_cutoff = target_place
+        current_cutoff = start_cutoff
         details = {"cutoff_progression": []}
 
         while len(candidates) > 1 and current_cutoff <= n:
