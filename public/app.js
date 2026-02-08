@@ -496,9 +496,12 @@ function renderRPDetails(container, result, data) {
 /**
  * Determine which RP cumulative cells to display.
  *
- * Walks cutoff_progression for each round. A cell is shown if that
- * competitor was examined at that cutoff. Quality-of-majority
- * tiebreaks show count (quality).
+ * For each placed competitor, shows cumulative counts from cutoff 1
+ * through the cutoff at which they were placed (final_cutoff). Zeros
+ * are rendered as dashes by the caller. Quality-of-majority scores
+ * are recorded for ALL tiebreak participants (not just the winner),
+ * so that the loser's quality is visible when they are placed in a
+ * subsequent round.
  *
  * @returns {Object} Map of "competitor|cutoff" -> number | {count, quality}
  */
@@ -507,25 +510,36 @@ function buildRPCellDisplay(details, n) {
     const cumCounts = details.cumulative_counts;
 
     for (const round of details.rounds) {
-        const progression = round.resolution.cutoff_progression;
-        if (!progression) continue;
+        const resolution = round.resolution;
+        if (!resolution) continue;
 
-        for (const step of progression) {
-            const cutoff = step.cutoff;
-            const candidates = Object.keys(step.counts);
-
-            for (const competitor of candidates) {
-                const key = competitor + '|' + cutoff;
-                const count = cumCounts[competitor][cutoff];
-
-                if (step.quality_scores && step.quality_scores[competitor] !== undefined) {
+        // Record quality-of-majority scores for ALL candidates in
+        // tiebreak progressions (winners and losers alike).
+        const progression = resolution.cutoff_progression;
+        if (progression) {
+            for (const step of progression) {
+                if (!step.quality_scores) continue;
+                for (const [competitor, quality] of Object.entries(step.quality_scores)) {
+                    const key = competitor + '|' + step.cutoff;
                     display[key] = {
-                        count: count,
-                        quality: step.quality_scores[competitor],
+                        count: cumCounts[competitor][step.cutoff],
+                        quality: quality,
                     };
-                } else {
-                    display[key] = count;
                 }
+            }
+        }
+
+        // Fill in cumulative counts from cutoff 1 through final_cutoff
+        // for the competitor(s) placed in this round.
+        const finalCutoff = resolution.final_cutoff;
+        if (finalCutoff === undefined) continue;
+
+        const winners = round.tied ? (round.winners || []) : [round.winner];
+        for (const competitor of winners) {
+            for (let cutoff = 1; cutoff <= finalCutoff; cutoff++) {
+                const key = competitor + '|' + cutoff;
+                if (display[key] !== undefined) continue;
+                display[key] = cumCounts[competitor][cutoff];
             }
         }
     }
