@@ -26,9 +26,11 @@ class SequentialIRVSystem(VotingSystem):
     3. Otherwise, eliminate the candidate with fewest votes and redistribute
     4. Repeat until a majority winner emerges
 
-    Tiebreakers (for both elimination and winner):
-    1. Head-to-head (2 tied) or IRV among tied (3+)
-    2. If still unresolved, choose at random
+    Tiebreakers:
+    - Elimination: Head-to-head (2 tied), or restricted vote counting
+      among tied candidates (3+), narrowing the tied set until resolved.
+    - Winner (all tied): Head-to-head (2) or sub-IRV (3+).
+    - If still unresolved, choose at random.
     """
 
     @property
@@ -177,7 +179,7 @@ class SequentialIRVSystem(VotingSystem):
             # Break elimination tie if needed
             if len(to_eliminate) > 1:
                 eliminated, tiebreak_info = self._elimination_tiebreak(
-                    to_eliminate, scoresheet, tiebreak_depth
+                    to_eliminate, scoresheet
                 )
                 round_info["tiebreak"] = tiebreak_info
             else:
@@ -220,13 +222,15 @@ class SequentialIRVSystem(VotingSystem):
 
     def _elimination_tiebreak(
         self, tied: list[str], scoresheet: Scoresheet,
-        depth: int = 0,
     ) -> tuple[str, dict]:
         """Determine who to eliminate when multiple have same lowest vote count.
 
-        Tiebreak order:
-        1. Head-to-head (2 tied) or sub-IRV (3+ tied)
-        2. Random choice
+        Tiebreak procedure:
+        1. Two tied → head-to-head comparison.
+        2. Three or more tied → count first-choice votes restricted to only
+           the tied candidates. If one has fewest, eliminate. If multiple
+           tied for fewest (but not all), narrow and repeat. If all equal,
+           fall back to random.
 
         Returns (candidate_to_eliminate, tiebreak_details).
         """
@@ -236,8 +240,7 @@ class SequentialIRVSystem(VotingSystem):
             "steps": [],
         }
 
-        # Tiebreaker 1: Head-to-head / IRV among tied
-        if depth < MAX_TIEBREAK_DEPTH:
+        while len(tied) > 1:
             if len(tied) == 2:
                 # Head-to-head between the two
                 h2h = self._head_to_head(tied[0], tied[1], scoresheet)
@@ -246,7 +249,6 @@ class SequentialIRVSystem(VotingSystem):
                     "head_to_head": h2h,
                 }
                 if h2h["winner"] is not None:
-                    # The loser of h2h is eliminated
                     loser = tied[1] if h2h["winner"] == tied[0] else tied[0]
                     step["resolved"] = True
                     step["eliminated"] = loser
@@ -255,55 +257,44 @@ class SequentialIRVSystem(VotingSystem):
                 else:
                     step["resolved"] = False
                     tiebreak_info["steps"].append(step)
-            else:
-                # 3+ tied: run sub-IRV among tied
-                sub_winner, sub_rounds = self._run_irv(
-                    set(tied), scoresheet, tiebreak_depth=depth + 1
-                )
-                step = {
-                    "method": "irv",
-                    "irv_rounds": sub_rounds,
-                    "irv_winner": sub_winner,
-                }
+                    break  # h2h tied → fall through to random
 
-                # Find the first eliminated candidate in sub-IRV rounds
-                first_eliminated = None
-                for rd in sub_rounds:
-                    if rd.get("eliminated"):
-                        first_eliminated = rd["eliminated"]
+            # 3+ tied: count first-choice votes restricted to tied candidates
+            tied_set = set(tied)
+            votes = {c: 0 for c in tied}
+            for judge in scoresheet.judges:
+                ranking = scoresheet.get_judge_ranking(judge)
+                for comp in ranking:
+                    if comp in tied_set:
+                        votes[comp] += 1
                         break
 
-                if first_eliminated is not None:
-                    step["resolved"] = True
-                    step["eliminated"] = first_eliminated
-                    tiebreak_info["steps"].append(step)
-                    return first_eliminated, tiebreak_info
+            min_votes = min(votes.values())
+            fewest = [c for c in tied if votes[c] == min_votes]
 
-                # No elimination round. Check single zero-vote exclusion.
-                for rd in sub_rounds:
-                    excluded = rd.get("excluded_zero_vote", [])
-                    if len(excluded) == 1:
-                        first_eliminated = excluded[0]
-                        break
+            step = {
+                "method": "restricted_vote",
+                "votes": dict(votes),
+            }
 
-                if first_eliminated is not None:
-                    step["resolved"] = True
-                    step["eliminated"] = first_eliminated
-                    tiebreak_info["steps"].append(step)
-                    return first_eliminated, tiebreak_info
-
-                # Sub-IRV didn't produce a clear weakest candidate.
-                # Remove the winner (strongest) from tied list.
-                if isinstance(sub_winner, str):
-                    tied = [c for c in tied if c != sub_winner]
-                    if len(tied) == 1:
-                        step["resolved"] = True
-                        step["eliminated"] = tied[0]
-                        tiebreak_info["steps"].append(step)
-                        return tied[0], tiebreak_info
-
+            if len(fewest) == len(tied):
+                # All have equal votes — can't narrow further
                 step["resolved"] = False
+                step["all_equal"] = True
                 tiebreak_info["steps"].append(step)
+                break  # fall through to random
+
+            if len(fewest) == 1:
+                step["resolved"] = True
+                step["eliminated"] = fewest[0]
+                tiebreak_info["steps"].append(step)
+                return fewest[0], tiebreak_info
+
+            # Multiple tied for fewest, but not all — narrow and continue
+            step["resolved"] = False
+            step["remaining_tied"] = list(fewest)
+            tiebreak_info["steps"].append(step)
+            tied = fewest
 
         # Fallback: choose at random
         eliminated = random.choice(tied)

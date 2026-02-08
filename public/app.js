@@ -964,6 +964,8 @@ function renderTiebreakStep(step, tiebreakType, compInitialsMap) {
         renderH2HStep(div, step, tiebreakType, compInitialsMap);
     } else if (step.method === 'irv') {
         renderSubIRVStep(div, step, tiebreakType, compInitialsMap);
+    } else if (step.method === 'restricted_vote') {
+        renderRestrictedVoteStep(div, step, compInitialsMap);
     } else if (step.method === 'random') {
         renderRandomStep(div, step, tiebreakType, compInitialsMap);
     }
@@ -1092,6 +1094,31 @@ function renderSubIRVStep(container, step, tiebreakType, compInitialsMap) {
         result.textContent = '\u2192 Sub-IRV did not fully resolve tie.';
     }
     container.appendChild(result);
+}
+
+/**
+ * Render a restricted-vote tiebreak step.
+ */
+function renderRestrictedVoteStep(container, step, compInitialsMap) {
+    const p = document.createElement('p');
+    p.className = 'irv-tiebreak-line';
+
+    const voteStr = buildVoteStr(step.votes, compInitialsMap);
+    let text = 'Restricted vote: ' + voteStr + '.';
+
+    if (step.resolved) {
+        const elimInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
+        text += ' \u2192 <span class="irv-eliminated">'
+            + elimInit + ' eliminated</span> (fewest).';
+    } else if (step.all_equal) {
+        text += ' All still tied.';
+    } else {
+        const tiedStr = initialsFor(step.remaining_tied, compInitialsMap);
+        text += ' Still tied for fewest: ' + tiedStr + '.';
+    }
+
+    p.innerHTML = text;
+    container.appendChild(p);
 }
 
 /**
