@@ -468,24 +468,6 @@ button[type="submit"]:disabled {
     font-size: 0.85rem;
 }
 
-/* Sub-IRV rounds within tiebreak */
-.irv-sub-irv {
-    margin: 0.2rem 0 0.2rem 0.5rem;
-    padding-left: 0.5rem;
-    border-left: 1px dashed #ccc;
-}
-
-.irv-sub-irv .irv-round-step {
-    font-size: 0.83rem;
-    padding-left: 0.5rem;
-}
-
-/* Nested tiebreak within sub-IRV */
-.irv-sub-irv .irv-tiebreak {
-    margin-left: 0.5rem;
-    font-size: 0.82rem;
-}
-
 /* Detail section subheadings */
 .detail-content h4 {
     color: #555;
