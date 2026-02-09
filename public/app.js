@@ -653,7 +653,7 @@ function renderSchulzeDetails(container, result, data) {
 
     const sDesc = document.createElement('p');
     sDesc.className = 'detail-description';
-    sDesc.textContent = 'Cell (row, column) = strength of strongest path from row to column. Rightmost column = number of Schulze wins.';
+    sDesc.textContent = 'Cell (row, column) = strength of strongest path from row to column. Rightmost column = number of Schulze wins (ties count as half).';
     container.appendChild(sDesc);
 
     container.appendChild(
@@ -715,6 +715,8 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
                     td.classList.add('cell-wins');
                 } else if (value < opposite) {
                     td.classList.add('cell-loses');
+                } else if (value == opposite) {
+                    td.classList.add('cell-ties');
                 }
             }
             tr.appendChild(td);

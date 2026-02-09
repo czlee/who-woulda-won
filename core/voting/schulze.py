@@ -75,8 +75,11 @@ class SchulzeSystem(VotingSystem):
         wins = [0] * n
         for i in range(n):
             for j in range(n):
-                if i != j and p[i][j] > p[j][i]:
-                    wins[i] += 1
+                if i != j:
+                    if p[i][j] > p[j][i]:
+                        wins[i] += 1
+                    if p[i][j] == p[j][i]:
+                        wins[i] += 0.5
 
         # Create ranking by sorting by wins (descending)
         indexed_results = [(competitors[i], wins[i]) for i in range(n)]
@@ -125,7 +128,8 @@ class SchulzeSystem(VotingSystem):
                 "explanation": (
                     "Each cell d[A][B] shows judges preferring A over B. "
                     "Path strengths use Floyd-Warshall to find strongest "
-                    "indirect paths. A beats B if path A→B > path B→A."
+                    "indirect paths. A beats B if path A→B > path B→A. "
+                    "Ties (equal path strengths) count as half a win for each side."
                 ),
             },
         )
