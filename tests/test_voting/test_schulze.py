@@ -193,3 +193,65 @@ class TestSchulze:
         }
         assert result.final_ranking == ["B", "C", "A"]
 
+    # --- tie handling tests ---
+
+    def test_half_integer_wins(self):
+        """Two competitors with a 1-1 split produce half-integer wins.
+
+             J1  J2
+        A     1   2
+        B     2   1
+
+        d[A][B]=1, d[B][A]=1 → p[A][B]=0, p[B][A]=0 (tie).
+        Each gets 0.5 wins.
+        """
+        scoresheet = make_scoresheet("Even Split", {
+            "J1": {"A": 1, "B": 2},
+            "J2": {"A": 2, "B": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        wins = result.details["schulze_wins"]
+        assert wins["A"] == 0.5
+        assert wins["B"] == 0.5
+
+    def test_ties_detail_content(self, perfect_cycle, clear_winner):
+        """Verify the ties detail lists groups of tied competitors."""
+        # Perfect cycle: all three competitors are tied
+        result = self.system.calculate(perfect_cycle)
+        ties = result.details["ties"]
+        assert len(ties) == 1
+        assert set(ties[0]) == {"A", "B", "C"}
+
+        # Clear winner: no ties
+        result = self.system.calculate(clear_winner)
+        assert result.details["ties"] == []
+
+    def test_asymmetric_ties(self):
+        """Competitors with different numbers of ties get different win counts.
+
+             J1  J2  J3  J4
+        A     1   3   2   2
+        B     2   1   3   1
+        C     3   2   1   3
+
+        Pairwise: A vs B: 2-2 (tie), A vs C: 2-2 (tie), B vs C: 3-1 (B wins).
+        Path strengths: p[B][C]=3, all others 0.
+        Wins: B=1.5 (1 win + 1 tie), A=1.0 (2 ties), C=0.5 (1 tie).
+        Without half-points A and C would both have 0 wins (tied);
+        half-points break that tie.
+        """
+        scoresheet = make_scoresheet("Asymmetric Ties", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 3, "B": 1, "C": 2},
+            "J3": {"A": 2, "B": 3, "C": 1},
+            "J4": {"A": 2, "B": 1, "C": 3},
+        })
+        result = self.system.calculate(scoresheet)
+        wins = result.details["schulze_wins"]
+        assert wins["B"] == 1.5
+        assert wins["A"] == 1.0
+        assert wins["C"] == 0.5
+        assert result.final_ranking == ["B", "A", "C"]
+        # No ties remain — half-points resolved them all
+        assert result.details["ties"] == []
+

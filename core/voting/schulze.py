@@ -128,7 +128,8 @@ class SchulzeSystem(VotingSystem):
                 "explanation": (
                     "Each cell d[A][B] shows judges preferring A over B. "
                     "Path strengths use Floyd-Warshall to find strongest "
-                    "indirect paths. A beats B if path A→B > path B→A."
+                    "indirect paths. A beats B if path A→B > path B→A. "
+                    "Ties (equal path strengths) count as half a win for each side."
                 ),
             },
         )
