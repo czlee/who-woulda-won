@@ -363,6 +363,11 @@ button[type="submit"]:disabled {
     color: #666;
 }
 
+/* RP table: first majority in progression */
+.rp-first-majority {
+    background: #d4edda;
+}
+
 /* Schulze matrix cell colours */
 .cell-wins {
     background-color: #d4edda;

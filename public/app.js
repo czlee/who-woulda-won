@@ -464,13 +464,17 @@ function renderRPDetails(container, result, data) {
             const display = cellDisplay[key];
 
             if (display !== undefined) {
-                if (typeof display === 'object' && display.quality !== undefined) {
+                if (display.quality !== undefined) {
                     const countStr = display.count === 0 ? '\u2013' : String(display.count);
                     td.innerHTML = escapeHtml(countStr)
                         + ' <span class="rp-quality">('
                         + escapeHtml(String(display.quality)) + ')</span>';
                 } else {
-                    td.textContent = display === 0 ? '\u2013' : display;
+                    td.textContent = String(display.count);
+                }
+
+                if (display.first_majority) {
+                    td.classList.add('rp-first-majority');
                 }
             } else {
                 td.textContent = '\u2013';
@@ -503,7 +507,7 @@ function renderRPDetails(container, result, data) {
  * so that the loser's quality is visible when they are placed in a
  * subsequent round.
  *
- * @returns {Object} Map of "competitor|cutoff" -> number | {count, quality}
+ * @returns {Object} Map of "competitor|cutoff" -> {count, quality?, first_majority?}
  */
 function buildRPCellDisplay(details, n) {
     const display = {};
@@ -519,7 +523,7 @@ function buildRPCellDisplay(details, n) {
         // placed in a subsequent round.
         const progression = resolution.cutoff_progression;
         if (progression) {
-            for (const step of progression) {
+            for (const [index, step] of progression.entries()) {
                 for (const [competitor, count] of Object.entries(step.counts || {})) {
                     const key = competitor + '|' + step.cutoff;
                     if (display[key] !== undefined) continue;
@@ -529,8 +533,12 @@ function buildRPCellDisplay(details, n) {
                             count: count,
                             quality: step.quality_scores[competitor],
                         };
-                    } else {
-                        display[key] = count;
+                    } else if (count !== 0) {
+                        display[key] = { count: count };
+                    }
+
+                    if (index === 0 && display[key] !== undefined) {
+                        display[key].first_majority = true;
                     }
                 }
             }
@@ -546,7 +554,7 @@ function buildRPCellDisplay(details, n) {
             for (let cutoff = 1; cutoff <= finalCutoff; cutoff++) {
                 const key = competitor + '|' + cutoff;
                 if (display[key] !== undefined) continue;
-                display[key] = cumCounts[competitor][cutoff];
+                display[key] = { count: cumCounts[competitor][cutoff] };
             }
         }
     }
