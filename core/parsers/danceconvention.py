@@ -54,7 +54,7 @@ class DanceConventionParser(ScoresheetParser):
 
                 # Check first page text for judge key pattern
                 text = pdf.pages[0].extract_text() or ""
-                judge_pattern = r"^[A-Z]{2,4}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+"
+                judge_pattern = r"^[A-Z0-9]{2,4}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+"
                 has_judge_key = bool(re.search(judge_pattern, text, re.MULTILINE))
 
                 # Check tables for # and Name headers
@@ -128,7 +128,7 @@ class DanceConventionParser(ScoresheetParser):
 
         # Pattern: 2-4 uppercase letters followed by a name
         # Common patterns: "AG Alexis Garrish", "MMT Maxence Martin"
-        pattern = r"^([A-Z]{2,4})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)"
+        pattern = r"^([A-Z0-9]{2,4})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)"
 
         for line in text.split("\n"):
             line = line.strip()
@@ -178,7 +178,7 @@ class DanceConventionParser(ScoresheetParser):
         for i in range(judge_start, judge_end):
             if i < len(header) and header[i]:
                 initials = str(header[i]).strip()
-                if initials and re.match(r"^[A-Z]{2,4}$", initials):
+                if initials and re.match(r"^[A-Z0-9]{2,4}$", initials):
                     judge_initials.append(initials)
 
         if not judge_initials:
