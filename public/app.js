@@ -507,7 +507,7 @@ function renderRPDetails(container, result, data) {
  * so that the loser's quality is visible when they are placed in a
  * subsequent round.
  *
- * @returns {Object} Map of "competitor|cutoff" -> number | {count, quality}
+ * @returns {Object} Map of "competitor|cutoff" -> {count, quality?, first_majority?}
  */
 function buildRPCellDisplay(details, n) {
     const display = {};
@@ -533,11 +533,11 @@ function buildRPCellDisplay(details, n) {
                             count: count,
                             quality: step.quality_scores[competitor],
                         };
-                    } else if (count != 0) {
+                    } else if (count !== 0) {
                         display[key] = { count: count };
                     }
 
-                    if (index === 0) {
+                    if (index === 0 && display[key] !== undefined) {
                         display[key].first_majority = true;
                     }
                 }
