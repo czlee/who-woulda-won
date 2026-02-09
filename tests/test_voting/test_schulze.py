@@ -52,7 +52,7 @@ class TestSchulze:
     def test_perfect_cycle(self, perfect_cycle):
         """All pairwise matchups are 2-1. All path strengths equal.
 
-        All Schulze wins should be 0 (no one definitively beats anyone).
+        All Schulze wins should be 2 ties * 0.5 = 1.
         """
         result = self.system.calculate(perfect_cycle)
         assert len(result.final_ranking) == 3
@@ -61,7 +61,7 @@ class TestSchulze:
         wins = result.details["schulze_wins"]
         # In a perfect cycle, after Floyd-Warshall, all path strengths
         # should be equal (2), so no one beats anyone → all wins = 0
-        assert all(w == 0 for w in wins.values())
+        assert all(w == 1 for w in wins.values())
 
     def test_condorcet_winner(self):
         """A beats everyone pairwise — should always be 1st.
