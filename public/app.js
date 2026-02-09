@@ -470,7 +470,7 @@ function renderRPDetails(container, result, data) {
                         + ' <span class="rp-quality">('
                         + escapeHtml(String(display.quality)) + ')</span>';
                 } else {
-                    td.textContent = String(display.count);
+                    td.textContent = display.count === 0 ? '\u2013' : String(display.count);
                 }
 
                 if (display.first_majority) {
@@ -533,7 +533,7 @@ function buildRPCellDisplay(details, n) {
                             count: count,
                             quality: step.quality_scores[competitor],
                         };
-                    } else if (count !== 0) {
+                    } else {
                         display[key] = { count: count };
                     }
 
