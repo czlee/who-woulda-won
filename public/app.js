@@ -707,6 +707,8 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
                     td.classList.add('cell-wins');
                 } else if (value < opposite) {
                     td.classList.add('cell-loses');
+                } else if (value == opposite) {
+                    td.classList.add('cell-ties');
                 }
             }
             tr.appendChild(td);

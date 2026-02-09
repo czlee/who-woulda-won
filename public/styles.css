@@ -372,6 +372,10 @@ button[type="submit"]:disabled {
     background-color: #f8d7da;
 }
 
+.cell-ties {
+    background-color: #fff3cd;
+}
+
 .cell-diagonal {
     background-color: #e9ecef;
 }
