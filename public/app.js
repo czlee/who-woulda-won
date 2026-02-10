@@ -454,6 +454,7 @@ function renderRPDetails(container, result, data) {
         judges.forEach(judge => {
             const td = document.createElement('td');
             td.textContent = rankings[judge][competitor];
+            td.classList.add('rp-judge-cell');
             tr.appendChild(td);
         });
 
@@ -467,7 +468,8 @@ function renderRPDetails(container, result, data) {
                 if (display.quality !== undefined) {
                     const countStr = display.count === 0 ? '\u2013' : String(display.count);
                     td.innerHTML = escapeHtml(countStr)
-                        + ' <span class="rp-quality">('
+                        + ' <span class="rp-quality has-tooltip" data-tooltip="quality of majority: sum of judge rankings \u2264 '
+                        + p + '">('
                         + escapeHtml(String(display.quality)) + ')</span>';
                 } else {
                     td.textContent = display.count === 0 ? '\u2013' : String(display.count);
@@ -480,6 +482,23 @@ function renderRPDetails(container, result, data) {
                 td.textContent = '\u2013';
             }
             if (p === 1) td.classList.add('rp-separator');
+
+            // Highlight relevant judge cells on hover
+            td.addEventListener('mouseenter', function() {
+                if (!isNaN(parseInt(this.textContent)) && parseInt(this.textContent) > 0) {
+                    this.parentElement.querySelectorAll('.rp-judge-cell').forEach(cell => {
+                        if (parseInt(cell.textContent) <= p) {
+                            cell.classList.add('rp-highlight');
+                        }
+                    });
+                }
+            });
+            td.addEventListener('mouseleave', function() {
+                this.parentElement.querySelectorAll('.rp-judge-cell').forEach(cell => {
+                    cell.classList.remove('rp-highlight');
+                });
+            });
+
             tr.appendChild(td);
         }
 

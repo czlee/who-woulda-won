@@ -368,6 +368,11 @@ button[type="submit"]:disabled {
     background: #d4edda;
 }
 
+/* RP table: highlight judge cells on count hover */
+.rp-highlight {
+    background: #d4edda !important;
+}
+
 /* Schulze matrix cell colours */
 .cell-wins {
     background-color: #d4edda;
@@ -442,6 +447,17 @@ button[type="submit"]:disabled {
 
 .has-tooltip:hover::after {
     opacity: 1;
+}
+
+/* Tooltips in thead: show below to avoid overflow clipping from wrapper */
+thead .has-tooltip::after {
+    bottom: auto;
+    top: 100%;
+    margin-top: 2px;
+}
+
+thead .has-tooltip:hover {
+    z-index: 100;
 }
 
 /* IRV note for excluded zero-vote candidates */
