@@ -24,3 +24,9 @@ def eepro_html():
 def danceconvention_pdf():
     path = EXAMPLES_DIR / "danceconvention.net-example.pdf"
     return path.read_bytes()
+
+
+@pytest.fixture
+def danceconvention_ru_pdf():
+    path = EXAMPLES_DIR / "danceconvention.net-example-ru.pdf"
+    return path.read_bytes()
