@@ -26,8 +26,8 @@ class SequentialIRVSystem(VotingSystem):
     Tiebreakers:
     - All tied: Look at 2nd-choice, 3rd-choice, etc. to find someone to
       eliminate. If all choices are equal, declare all tied equal.
-    - Elimination: Head-to-head (2 tied), or restricted vote counting
-      among tied candidates (3+), narrowing the tied set until resolved.
+    - Elimination: Restricted vote counting among tied candidates,
+      narrowing the tied set until resolved.
     - If still unresolved, choose at random.
     """
 
@@ -207,42 +207,15 @@ class SequentialIRVSystem(VotingSystem):
         winner = list(active)[0]
         return winner, round_details
 
-    def _head_to_head(
-        self, a: str, b: str, scoresheet: Scoresheet
-    ) -> dict:
-        """Compute head-to-head result between two candidates.
-
-        Returns dict with candidates, counts, and winner (None if tied).
-        """
-        a_pref = sum(
-            1 for j in scoresheet.judges
-            if scoresheet.get_placement(j, a) < scoresheet.get_placement(j, b)
-        )
-        b_pref = scoresheet.num_judges - a_pref
-
-        result = {
-            "candidates": [a, b],
-            "counts": {a: a_pref, b: b_pref},
-        }
-        if a_pref > b_pref:
-            result["winner"] = a
-        elif b_pref > a_pref:
-            result["winner"] = b
-        else:
-            result["winner"] = None
-        return result
-
     def _elimination_tiebreak(
         self, tied: list[str], scoresheet: Scoresheet,
     ) -> tuple[str, dict]:
         """Determine who to eliminate when multiple have same lowest vote count.
 
-        Tiebreak procedure:
-        1. Two tied → head-to-head comparison.
-        2. Three or more tied → count first-choice votes restricted to only
-           the tied candidates. If one has fewest, eliminate. If multiple
-           tied for fewest (but not all), narrow and repeat. If all equal,
-           fall back to random.
+        Tiebreak procedure: count first-choice votes restricted to only the
+        tied candidates. If one has fewest, eliminate. If multiple tied for
+        fewest (but not all), narrow and repeat. If all equal, fall back to
+        random.
 
         Returns (candidate_to_eliminate, tiebreak_details).
         """
@@ -253,25 +226,7 @@ class SequentialIRVSystem(VotingSystem):
         }
 
         while len(tied) > 1:
-            if len(tied) == 2:
-                # Head-to-head between the two
-                h2h = self._head_to_head(tied[0], tied[1], scoresheet)
-                step = {
-                    "method": "head_to_head",
-                    "head_to_head": h2h,
-                }
-                if h2h["winner"] is not None:
-                    loser = tied[1] if h2h["winner"] == tied[0] else tied[0]
-                    step["resolved"] = True
-                    step["eliminated"] = loser
-                    tiebreak_info["steps"].append(step)
-                    return loser, tiebreak_info
-                else:
-                    step["resolved"] = False
-                    tiebreak_info["steps"].append(step)
-                    break  # h2h tied → fall through to random
-
-            # 3+ tied: count first-choice votes restricted to tied candidates
+            # Count first-choice votes restricted to tied candidates
             votes = self._count_votes(scoresheet, set(tied))
 
             min_votes = min(votes.values())

@@ -88,8 +88,8 @@ class TestSequentialIRV:
         assert "place" in rounds[0]
         assert "winner" in rounds[0]
 
-    def test_h2h_elimination_tiebreak(self):
-        """Two candidates tied for fewest votes, head-to-head resolves.
+    def test_two_way_elimination_tiebreak(self):
+        """Two candidates tied for fewest votes, restricted vote resolves.
 
              J1  J2  J3  J4  J5  J6  J7
         A     1   1   1   2   2   3   3
@@ -97,10 +97,10 @@ class TestSequentialIRV:
         C     3   2   3   3   1   2   1
 
         Round 1: A=3, B=2, C=2. B and C tied.
-        H2H: B preferred by 4, C by 3 → C eliminated.
+        Restricted vote among {B,C}: B=4, C=3 → C eliminated.
         Round 2: A=4, B=3 → A wins.
         """
-        scoresheet = make_scoresheet("H2H Elimination", {
+        scoresheet = make_scoresheet("Two-Way Elimination", {
             "J1": {"A": 1, "B": 2, "C": 3},
             "J2": {"A": 1, "B": 3, "C": 2},
             "J3": {"A": 1, "B": 2, "C": 3},
@@ -113,9 +113,9 @@ class TestSequentialIRV:
         assert result.final_ranking[0] == "A"
         assert result.final_ranking == ["A", "B", "C"]
 
-    def test_h2h_elimination_tiebreak_details(self):
-        """Verify tiebreak details structure for h2h elimination."""
-        scoresheet = make_scoresheet("H2H Elimination Details", {
+    def test_two_way_elimination_tiebreak_details(self):
+        """Verify tiebreak details structure for 2-way elimination."""
+        scoresheet = make_scoresheet("Two-Way Elimination Details", {
             "J1": {"A": 1, "B": 2, "C": 3},
             "J2": {"A": 1, "B": 3, "C": 2},
             "J3": {"A": 1, "B": 2, "C": 3},
@@ -140,14 +140,11 @@ class TestSequentialIRV:
         assert len(tb["steps"]) == 1
 
         step = tb["steps"][0]
-        assert step["method"] == "head_to_head"
+        assert step["method"] == "restricted_vote"
         assert step["resolved"] is True
         assert step["eliminated"] == "C"
-
-        h2h = step["head_to_head"]
-        assert h2h["winner"] == "B"
-        assert h2h["counts"]["B"] == 4
-        assert h2h["counts"]["C"] == 3
+        assert step["votes"]["B"] == 4
+        assert step["votes"]["C"] == 3
 
     def test_restricted_vote_elimination_tiebreak(self):
         """Three candidates tied for fewest, restricted vote resolves.
@@ -257,8 +254,8 @@ class TestSequentialIRV:
         assert step1["method"] == "random"
         assert step1["eliminated"] in ["B", "C", "D"]
 
-    def test_restricted_vote_narrows_then_h2h(self):
-        """Restricted vote narrows 3-way to 2-way, then h2h resolves.
+    def test_restricted_vote_narrows_then_resolves(self):
+        """Restricted vote narrows 3-way to 2-way, then resolves.
 
              J1   J2   J3   J4   J5   J6   J7   J8   J9   J10
         A     1    1    1    1    2    2    2    2    2    2
@@ -268,10 +265,10 @@ class TestSequentialIRV:
 
         Main round 1: A=4, B=2, C=2, D=2.
         B, C, D tied → restricted vote among {B,C,D}: B=4, C=3, D=3.
-        C, D tied for fewest → narrow to {C,D} → h2h.
-        H2H C vs D: C preferred by 6, D by 4 → D eliminated.
+        C, D tied for fewest → narrow to {C,D} → restricted vote: C=6, D=4.
+        D eliminated (fewest).
         """
-        scoresheet = make_scoresheet("Narrows then H2H", {
+        scoresheet = make_scoresheet("Narrows then Resolves", {
             "J1":  {"A": 1, "B": 2, "C": 3, "D": 4},
             "J2":  {"A": 1, "B": 2, "C": 4, "D": 3},
             "J3":  {"A": 1, "B": 3, "C": 2, "D": 4},
@@ -302,12 +299,13 @@ class TestSequentialIRV:
         assert step0["votes"]["C"] == 3
         assert step0["votes"]["D"] == 3
 
-        # Step 2: h2h between C and D
+        # Step 2: restricted_vote between C and D
         step1 = tb["steps"][1]
-        assert step1["method"] == "head_to_head"
+        assert step1["method"] == "restricted_vote"
         assert step1["resolved"] is True
         assert step1["eliminated"] == "D"
-        assert step1["head_to_head"]["winner"] == "C"
+        assert step1["votes"]["C"] == 6
+        assert step1["votes"]["D"] == 4
 
     def test_second_choice_vote_count(self):
         """All candidates tied, go to second choice.
@@ -364,8 +362,8 @@ class TestSequentialIRV:
         assert round1["eliminated"] == "D"
         assert "tiebreak" not in round1
 
-    def test_third_choice_vote_count_head_to_head_random(self):
-        """All candidates tied, go to third choice, then head-to-head, then random.
+    def test_third_choice_vote_count_restricted_vote_random(self):
+        """All candidates tied, go to third choice, then restricted vote, then random.
 
              J1  J2  J3  J4
         A     1   2   4   4
@@ -375,8 +373,8 @@ class TestSequentialIRV:
 
         First choice: A=1, B=1, C=1, D=1. All tied → go to second choice.
         Second choice: A=1, B=1, C=1, D=1. All tied → go to third choice.
-        Third choice: A=0, B=2, C=0, D=2. A and C tied → head-to-head.
-        Head-to-head: A=2, C=2 → fall back to random.
+        Third choice: A=0, B=2, C=0, D=2. A and C tied → restricted vote.
+        Restricted vote: A=2, C=2 → all equal → fall back to random.
         """
         scoresheet = make_scoresheet("Third Choice Head-to-Head Random", {
             "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
@@ -397,8 +395,9 @@ class TestSequentialIRV:
 
         assert len(tiebreak_info["steps"]) == 2
 
-        assert tiebreak_info["steps"][0]["method"] == "head_to_head"
+        assert tiebreak_info["steps"][0]["method"] == "restricted_vote"
         assert tiebreak_info["steps"][0]["resolved"] == False
+        assert tiebreak_info["steps"][0]["all_equal"] == True
 
         assert tiebreak_info["steps"][1]["method"] == "random"
         assert set(tiebreak_info["steps"][1]["remaining_tied"]) == {"A", "C"}
