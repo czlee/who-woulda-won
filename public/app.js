@@ -1022,9 +1022,7 @@ function renderTiebreakStep(step, compInitialsMap) {
     const div = document.createElement('div');
     div.className = 'irv-tiebreak-step';
 
-    if (step.method === 'head_to_head') {
-        renderH2HStep(div, step, compInitialsMap);
-    } else if (step.method === 'restricted_vote') {
+    if (step.method === 'restricted_vote') {
         renderRestrictedVoteStep(div, step, compInitialsMap);
     } else if (step.method === 'random') {
         renderRandomStep(div, step, compInitialsMap);
@@ -1033,37 +1031,6 @@ function renderTiebreakStep(step, compInitialsMap) {
     return div;
 }
 
-/**
- * Render a head-to-head tiebreak step.
- */
-function renderH2HStep(container, step, compInitialsMap) {
-    const h2h = step.head_to_head;
-    const a = h2h.candidates[0];
-    const b = h2h.candidates[1];
-    const aInit = escapeHtml(compInitialsMap[a] || a);
-    const bInit = escapeHtml(compInitialsMap[b] || b);
-    const aCount = h2h.counts[a];
-    const bCount = h2h.counts[b];
-
-    const p = document.createElement('p');
-    p.className = 'irv-tiebreak-line';
-
-    let text = 'Head-to-head: ' + aInit + ' preferred by ' + aCount
-        + (aCount === 1 ? ' judge' : ' judges') + ', '
-        + bInit + ' by ' + bCount + '.';
-
-    if (step.resolved) {
-        const loserInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);
-        const winnerInit = escapeHtml(compInitialsMap[h2h.winner] || h2h.winner);
-        text += ' ' + winnerInit + ' wins h2h \u2192 '
-            + '<span class="irv-eliminated">' + loserInit + ' eliminated</span>.';
-    } else {
-        text += ' Still tied.';
-    }
-
-    p.innerHTML = text;
-    container.appendChild(p);
-}
 
 /**
  * Render a restricted-vote tiebreak step.
