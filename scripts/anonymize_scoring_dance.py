@@ -106,6 +106,90 @@ def generate_fake_wsdc_ids(wsdc_ids: set[str], seed: int) -> dict[str, str]:
     return mapping
 
 
+def _derive_initials(name: str) -> str:
+    """Derive initials from a name, taking first letter of each word.
+
+    For names with hyphens, takes first letter of each hyphenated part.
+    E.g. "Tyler Garcia" -> "TG", "Agathe-Luce Potier" -> "ALP".
+    """
+    parts = re.split(r"[\s-]+", name)
+    return "".join(p[0] for p in parts if p)
+
+
+def _unique_initials(name: str, used: set[str]) -> str:
+    """Derive unique initials from a name, adding letters if needed."""
+    base = _derive_initials(name)
+    if base not in used:
+        return base
+    # Try adding letters from the last word
+    words = name.split()
+    if words:
+        last = words[-1]
+        for i in range(1, len(last)):
+            candidate = base + last[i]
+            if candidate not in used:
+                return candidate
+    # Fallback: append digits
+    for n in range(2, 100):
+        candidate = f"{base}{n}"
+        if candidate not in used:
+            return candidate
+    return base
+
+
+def update_judge_initials(html: str, name_mapping: dict[str, str]) -> str:
+    """Update judge initials in <th> elements to match fake names.
+
+    Finds <th> elements with TITLE attributes containing judge names,
+    derives new initials from the fake name, and replaces the old initials.
+    """
+    soup = BeautifulSoup(html, "lxml")
+
+    # Collect all judge <th> elements (those with TITLE and short text content)
+    judge_ths = []
+    for th in soup.find_all("th"):
+        title = th.get("title", "").strip()
+        if not title:
+            continue
+        # Clean the title (remove "(Chiefjudge)" suffix)
+        cleaned_title = re.sub(r"\s*\(Chiefjudge\)\s*$", "", title)
+        if not cleaned_title:
+            continue
+        # Only header cells with short text (initials), not data cells with numbers
+        text = th.get_text().strip()
+        if text and not text.isdigit() and len(text) <= 5:
+            judge_ths.append((th, cleaned_title, text))
+
+    if not judge_ths:
+        return html
+
+    # Deduplicate by title to handle repeated TITLE attributes in data rows
+    # We only want the unique judge name -> initials pairs
+    seen_titles: dict[str, str] = {}
+    unique_judge_ths = []
+    for th, title, text in judge_ths:
+        if title not in seen_titles:
+            seen_titles[title] = text
+            unique_judge_ths.append((title, text))
+
+    # Generate new initials for each judge
+    used_initials: set[str] = set()
+    initials_mapping: dict[str, str] = {}  # old_initials -> new_initials
+    for title, old_initials in unique_judge_ths:
+        new_initials = _unique_initials(title, used_initials)
+        used_initials.add(new_initials)
+        initials_mapping[old_initials] = new_initials
+
+    # Apply replacements as string operations (preserves exact HTML formatting)
+    for old_init, new_init in initials_mapping.items():
+        # Replace in <th> header cells: >OLD_INIT</th>
+        html = html.replace(f">{old_init}</th>", f">{new_init}</th>")
+        # Also handle chief judge case with icon: </i>OLD_INIT</th>
+        html = html.replace(f"</i>{old_init}</th>", f"</i>{new_init}</th>")
+
+    return html
+
+
 def apply_replacements(html: str, name_mapping: dict[str, str],
                        wsdc_mapping: dict[str, str]) -> str:
     """Apply all replacements to the HTML string.
@@ -133,6 +217,9 @@ def apply_replacements(html: str, name_mapping: dict[str, str],
         # In data attributes: data-wsdc="12345"
         html = html.replace(f'data-wsdc="{original_id}"',
                             f'data-wsdc="{fake_id}"')
+
+    # Update judge initials to match fake names
+    html = update_judge_initials(html, name_mapping)
 
     return html
 

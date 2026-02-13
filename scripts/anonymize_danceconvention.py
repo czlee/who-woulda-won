@@ -140,22 +140,65 @@ def _simple_fake_name(fake: Faker) -> str:
     return f"{fake.first_name()} {fake.last_name()}"  # fallback
 
 
+def _derive_initials(name: str) -> str:
+    """Derive initials from a full name.
+
+    Takes the first letter of each word in the name, e.g.:
+    "Marlis West" -> "MW", "Claire Newman" -> "CN".
+    """
+    return "".join(w[0] for w in name.split() if w)
+
+
+def _unique_initials(name: str, used: set[str]) -> str:
+    """Derive unique initials from a name, adding letters if needed."""
+    base = _derive_initials(name)
+    if base not in used:
+        return base
+    # Try adding more letters from the last name
+    words = name.split()
+    if len(words) >= 2:
+        last = words[-1]
+        for i in range(1, len(last)):
+            candidate = base + last[i]
+            if candidate not in used:
+                return candidate
+    # Fallback: append digits
+    for n in range(2, 100):
+        candidate = f"{base}{n}"
+        if candidate not in used:
+            return candidate
+    return base
+
+
 def generate_fake_judge_names(judge_key: dict[str, str], fake: Faker
-                              ) -> dict[str, str]:
-    """Generate fake names for judges. Returns {real_name: fake_name}."""
-    mapping: dict[str, str] = {}
+                              ) -> tuple[dict[str, str], dict[str, str]]:
+    """Generate fake names for judges.
+
+    Returns (name_mapping, initials_mapping) where name_mapping is
+    {real_name: fake_name} and initials_mapping is
+    {old_initials: new_initials}.
+    """
+    name_mapping: dict[str, str] = {}
+    initials_mapping: dict[str, str] = {}
     all_real = set(judge_key.values())
+    used_initials: set[str] = set()
 
-    for initials in sorted(judge_key.keys()):
-        real_name = judge_key[initials]
-        if real_name in mapping:
-            continue
-        fake_name = _simple_fake_name(fake)
-        while fake_name in all_real or fake_name in mapping.values():
+    for old_initials in sorted(judge_key.keys()):
+        real_name = judge_key[old_initials]
+        if real_name in name_mapping:
+            # Same person with different initials (unlikely but handle it)
+            fake_name = name_mapping[real_name]
+        else:
             fake_name = _simple_fake_name(fake)
-        mapping[real_name] = fake_name
+            while fake_name in all_real or fake_name in name_mapping.values():
+                fake_name = _simple_fake_name(fake)
+            name_mapping[real_name] = fake_name
 
-    return mapping
+        new_initials = _unique_initials(fake_name, used_initials)
+        used_initials.add(new_initials)
+        initials_mapping[old_initials] = new_initials
+
+    return name_mapping, initials_mapping
 
 
 def generate_fake_competitor_names(competitor_names: list[str], fake: Faker
@@ -196,37 +239,63 @@ def generate_fake_competitor_names(competitor_names: list[str], fake: Faker
 
 
 def apply_replacements(pages_data: list[dict],
+                       judge_key: dict[str, str],
                        judge_mapping: dict[str, str],
-                       competitor_mapping: dict[str, str]) -> list[dict]:
-    """Apply name replacements to the extracted PDF data."""
-    # Build combined mapping, longest first
-    all_mappings: dict[str, str] = {}
-    all_mappings.update(judge_mapping)
-    all_mappings.update(competitor_mapping)
+                       competitor_mapping: dict[str, str],
+                       initials_mapping: dict[str, str]) -> list[dict]:
+    """Apply name and initials replacements to the extracted PDF data."""
+    # Build combined name mapping, longest first
+    all_name_mappings: dict[str, str] = {}
+    all_name_mappings.update(judge_mapping)
+    all_name_mappings.update(competitor_mapping)
 
-    sorted_replacements = sorted(all_mappings.items(), key=lambda x: len(x[0]),
-                                 reverse=True)
+    sorted_name_replacements = sorted(all_name_mappings.items(),
+                                      key=lambda x: len(x[0]), reverse=True)
+
+    # Build text-level initials replacements: "OLD_INIT FAKE_NAME" -> "NEW_INIT FAKE_NAME"
+    # After name replacement, judge key lines become "OLD_INIT FAKE_NAME".
+    initials_text_replacements: list[tuple[str, str]] = []
+    for old_init, real_name in judge_key.items():
+        fake_name = judge_mapping[real_name]
+        new_init = initials_mapping[old_init]
+        initials_text_replacements.append(
+            (f"{old_init} {fake_name}", f"{new_init} {fake_name}")
+        )
 
     result = []
     for page in pages_data:
-        # Replace in text
+        # Replace names in text
         text = page["text"]
-        for original, replacement in sorted_replacements:
+        for original, replacement in sorted_name_replacements:
             text = text.replace(original, replacement)
+
+        # Replace initials in judge key lines (e.g., "AG Marlis West" -> "MW Marlis West")
+        for old_text, new_text in initials_text_replacements:
+            text = text.replace(old_text, new_text)
+
+        # Replace remaining old initials as standalone words in text
+        # (e.g., in the header line "# Name AG RB CM ...")
+        for old_init, new_init in initials_mapping.items():
+            text = re.sub(r'(?<!\w)' + re.escape(old_init) + r'(?!\w)',
+                          new_init, text)
 
         # Replace in tables
         new_tables = []
         for table in page["tables"]:
             new_table = []
-            for row in table:
+            for row_idx, row in enumerate(table):
                 new_row = []
                 for cell in row:
                     if cell is None:
                         new_row.append(None)
                     else:
                         cell_str = str(cell)
-                        for original, replacement in sorted_replacements:
+                        # Replace names
+                        for original, replacement in sorted_name_replacements:
                             cell_str = cell_str.replace(original, replacement)
+                        # Replace initials in header cells (exact match only)
+                        if row_idx == 0 and cell_str.strip() in initials_mapping:
+                            cell_str = initials_mapping[cell_str.strip()]
                         new_row.append(cell_str)
                 new_table.append(new_row)
             new_tables.append(new_table)
@@ -264,18 +333,22 @@ def main():
     fake = Faker(locales)
     Faker.seed(SEED)
 
-    judge_mapping = generate_fake_judge_names(judge_key, fake)
+    judge_mapping, initials_mapping = generate_fake_judge_names(judge_key, fake)
     competitor_mapping = generate_fake_competitor_names(competitor_names, fake)
 
     print("Judge replacements:")
-    for original, replacement in sorted(judge_mapping.items()):
-        print(f"  {original} -> {replacement}")
+    for old_init in sorted(judge_key.keys()):
+        real_name = judge_key[old_init]
+        fake_name = judge_mapping[real_name]
+        new_init = initials_mapping[old_init]
+        print(f"  {old_init} {real_name} -> {new_init} {fake_name}")
     print("Competitor replacements (individuals):")
     for original, replacement in sorted(competitor_mapping.items()):
         if "\n" not in original:
             print(f"  {original} -> {replacement}")
 
-    result = apply_replacements(pages_data, judge_mapping, competitor_mapping)
+    result = apply_replacements(pages_data, judge_key, judge_mapping,
+                                competitor_mapping, initials_mapping)
 
     # Verify no original names remain in text
     all_originals = set(judge_mapping.keys()) | set(competitor_mapping.keys())

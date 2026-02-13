@@ -1,18 +1,18 @@
 [
   {
-    "text": "Jack'n'Jill Advanced - Final\nSwing & Snow 2026\nAB Vanessa Morrow\nOM Allison Phelps\nEI Mandy Neuschäfer\nNA Агата Щербакова\nIPz Maria Knappe\nIG Алексей Bates\nКП Émilie Галкин\nОбозначения: места от 1 до 10\n# Имя AB OM EI NA IPz IG КП 1-1 1-2 1-3 1-4 1-5 1-6 1-7 1-8 1-9 1-10 Результ. Отметки\nRené Samson-Fontaine\n217 1 1 6 3 1 1 2 4 - - - - - - - - - 1\nAstrid Fouquet\nTilo Hoffmann\n319 2 3 3 1 6 2 1 2 4 - - - - - - - - 2\nAlfred de la Devaux\nJudith Alexander-Hall\n245 9 2 4 2 3 4 3 - 2 4 - - - - - - - 3\nЛобанова Евфросиния Архиповна\nRobert Benton\n343 5 4 2 4 5 9 9 - 1 1 3 5 - - - - - 4\nJohn Alexander\nJames Santiago\n115 4 9 1 5 7 3 6 1 1 2 3 4 - - - - - 5\nGeorge White\nRémy Hubert\n135 3 7 8 8 4 6 4 - - 1 3 3 4 - - - - 6\nAshley Newman\nЕвфросиния Рубеновна Игнатова\n227 10 6 7 7 9 7 5 - - - - 1 2 5 - - - 7\nShannon Greer\nIsabelle Étienne\n207 6 10 5 9 8 5 8 - - - - 2 3 3 5 - - 8\nÉmile Legros\nAugustin-Gérard Renault\n175 8 8 9 6 2 10 10 - 1 1 1 1 2 2 4 (24) - - 9\nThéodore Moreau de Buisson\nBrandi Yang\n189 7 5 10 10 10 8 7 - - - - 1 1 3 4 (27) - - 10\nNoah Williams\ndanceConvention.net",
+    "text": "Jack'n'Jill Advanced - Final\nSwing & Snow 2026\nVM Vanessa Morrow\nAP Allison Phelps\nMN Mandy Neuschäfer\nАЩ Агата Щербакова\nMK Maria Knappe\nАB Алексей Bates\nÉГ Émilie Галкин\nОбозначения: места от 1 до 10\n# Имя VM AP MN АЩ MK АB ÉГ 1-1 1-2 1-3 1-4 1-5 1-6 1-7 1-8 1-9 1-10 Результ. Отметки\nRené Samson-Fontaine\n217 1 1 6 3 1 1 2 4 - - - - - - - - - 1\nAstrid Fouquet\nTilo Hoffmann\n319 2 3 3 1 6 2 1 2 4 - - - - - - - - 2\nAlfred de la Devaux\nJudith Alexander-Hall\n245 9 2 4 2 3 4 3 - 2 4 - - - - - - - 3\nЛобанова Евфросиния Архиповна\nRobert Benton\n343 5 4 2 4 5 9 9 - 1 1 3 5 - - - - - 4\nJohn Alexander\nJames Santiago\n115 4 9 1 5 7 3 6 1 1 2 3 4 - - - - - 5\nGeorge White\nRémy Hubert\n135 3 7 8 8 4 6 4 - - 1 3 3 4 - - - - 6\nAshley Newman\nЕвфросиния Рубеновна Игнатова\n227 10 6 7 7 9 7 5 - - - - 1 2 5 - - - 7\nShannon Greer\nIsabelle Étienne\n207 6 10 5 9 8 5 8 - - - - 2 3 3 5 - - 8\nÉmile Legros\nAugustin-Gérard Renault\n175 8 8 9 6 2 10 10 - 1 1 1 1 2 2 4 (24) - - 9\nThéodore Moreau de Buisson\nBrandi Yang\n189 7 5 10 10 10 8 7 - - - - 1 1 3 4 (27) - - 10\nNoah Williams\ndanceConvention.net",
     "tables": [
       [
         [
           "#",
           "Имя",
-          "AB",
-          "OM",
-          "EI",
-          "NA",
-          "IPz",
-          "IG",
-          "КП",
+          "VM",
+          "AP",
+          "MN",
+          "АЩ",
+          "MK",
+          "АB",
+          "ÉГ",
           "1-1",
           "1-2",
           "1-3",
