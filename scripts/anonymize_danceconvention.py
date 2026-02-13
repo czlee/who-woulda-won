@@ -314,8 +314,8 @@ def main():
     parser.add_argument("input", help="Path to the input PDF file")
     parser.add_argument("-o", "--output", default=str(DEFAULT_OUTPUT),
                         help=f"Output path (default: {DEFAULT_OUTPUT})")
-    parser.add_argument("--locale", default="en_US",
-                        help="Faker locale for generating names (default: en_US)")
+    parser.add_argument("--locales", default=["en_US", "en_GB", "de_DE", "fr_FR"], nargs="+",
+                        help="Faker locales for generating names (default: en_US en_GB de_DE fr_FR)")
     args = parser.parse_args()
 
     pdf_bytes = Path(args.input).read_bytes()
@@ -327,10 +327,7 @@ def main():
     print(f"Found {len(judge_key)} judges and {len(competitor_names)} "
           f"competitor entries")
 
-    locales = ["en_US", "en_GB", "de_DE", "fr_FR"]
-    if args.locale not in locales:
-        locales.insert(0, args.locale)
-    fake = Faker(locales)
+    fake = Faker(args.locales)
     Faker.seed(SEED)
 
     judge_mapping, initials_mapping = generate_fake_judge_names(judge_key, fake)
