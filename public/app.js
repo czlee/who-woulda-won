@@ -584,16 +584,15 @@ function buildRPCellDisplay(details, n) {
 // ─── Borda Count ─────────────────────────────────────────────────────
 
 /**
- * Render the Borda Count working table.
+ * Build a Borda-style table (used for both main table and tiebreak tables).
  *
- * Columns: Competitor | J1 pts | J2 pts | \u2026 | Total
+ * @param {string[]} competitors - Competitors in display order
+ * @param {Object} breakdowns - Map of competitor -> {judges, points}
+ * @param {Object} scores - Map of competitor -> total score
+ * @param {Array} judgeInfos - Array of {initials, name} for column headers
+ * @returns {HTMLElement} wrapper div containing the table
  */
-function renderBordaDetails(container, result, data) {
-    const details = result.details;
-    const judges = data.judges;
-    const sorted = [...result.final_ranking];
-    const judgeInfos = buildJudgeInitials(judges);
-
+function buildBordaTable(competitors, breakdowns, scores, judgeInfos) {
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
 
@@ -611,14 +610,14 @@ function renderBordaDetails(container, result, data) {
 
     // Body
     const tbody = document.createElement('tbody');
-    sorted.forEach(competitor => {
+    competitors.forEach(competitor => {
         const tr = document.createElement('tr');
 
         const nameTd = document.createElement('td');
         nameTd.textContent = competitor;
         tr.appendChild(nameTd);
 
-        const breakdown = details.breakdowns[competitor];
+        const breakdown = breakdowns[competitor];
         breakdown.points.forEach(pts => {
             const td = document.createElement('td');
             td.textContent = pts;
@@ -626,7 +625,7 @@ function renderBordaDetails(container, result, data) {
         });
 
         const totalTd = document.createElement('td');
-        totalTd.textContent = details.scores[competitor];
+        totalTd.textContent = scores[competitor];
         totalTd.style.fontWeight = '600';
         tr.appendChild(totalTd);
 
@@ -635,7 +634,55 @@ function renderBordaDetails(container, result, data) {
 
     table.appendChild(tbody);
     wrapper.appendChild(table);
-    container.appendChild(wrapper);
+    return wrapper;
+}
+
+/**
+ * Render the Borda Count working table and any tiebreak tables.
+ *
+ * Columns: Competitor | J1 pts | J2 pts | \u2026 | Total
+ */
+function renderBordaDetails(container, result, data) {
+    const details = result.details;
+    const judges = data.judges;
+    const sorted = [...result.final_ranking];
+    const judgeInfos = buildJudgeInitials(judges);
+
+    // Main table
+    container.appendChild(buildBordaTable(sorted, details.breakdowns, details.scores, judgeInfos));
+
+    // Tiebreak tables
+    if (details.tiebreakers && details.tiebreakers.length > 0) {
+        details.tiebreakers.forEach(tb => {
+            const level = tb.level || 1;
+            const h4 = document.createElement('h4');
+            if (level === 1) {
+                h4.textContent = `Tiebreak at ${tb.score} points`;
+            } else {
+                const ordinal = level === 2 ? '2nd' : level === 3 ? '3rd' : `${level}th`;
+                h4.textContent = `Tiebreak (${ordinal} level) at ${tb.score} points`;
+            }
+            container.appendChild(h4);
+
+            if (tb.resolution.method === 'recursive-borda') {
+                const tbDetails = tb.resolution.details;
+                const tbJudgeInfos = buildJudgeInitials(tbDetails.breakdowns[tb.tied_competitors[0]].judges);
+                // Sort tied competitors by their relative score (highest first)
+                const tbSorted = [...tb.tied_competitors].sort(
+                    (a, b) => tbDetails.relative_scores[b] - tbDetails.relative_scores[a]
+                );
+                container.appendChild(buildBordaTable(
+                    tbSorted, tbDetails.breakdowns, tbDetails.relative_scores, tbJudgeInfos
+                ));
+            } else if (tb.resolution.method === 'unresolved') {
+                const p = document.createElement('p');
+                p.className = 'detail-description';
+                p.style.fontStyle = 'italic';
+                p.textContent = 'Tie could not be resolved';
+                container.appendChild(p);
+            }
+        });
+    }
 }
 
 // ─── Schulze Method ──────────────────────────────────────────────────
