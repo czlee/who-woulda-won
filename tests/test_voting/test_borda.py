@@ -40,6 +40,25 @@ class TestBordaCount:
         assert scores["A"] == scores["B"] == 9
         assert scores["C"] == scores["D"] == 6
 
+    def test_disagreement_tiebreaker_info(self, disagreement):
+        """Verify tiebreaker entries have breakdowns for both tie groups."""
+        result = self.system.calculate(disagreement)
+        tbs = result.details["tiebreakers"]
+        assert len(tbs) == 2
+        # First tiebreak: A and B tied at 9
+        tb1 = tbs[0]
+        assert set(tb1["tied_competitors"]) == {"A", "B"}
+        assert tb1["score"] == 9
+        assert tb1["level"] == 1
+        assert tb1["resolution"]["method"] == "recursive-borda"
+        assert "breakdowns" in tb1["resolution"]["details"]
+        # Second tiebreak: C and D tied at 6
+        tb2 = tbs[1]
+        assert set(tb2["tied_competitors"]) == {"C", "D"}
+        assert tb2["score"] == 6
+        assert tb2["level"] == 1
+        assert "breakdowns" in tb2["resolution"]["details"]
+
     def test_unanimous(self, unanimous):
         result = self.system.calculate(unanimous)
         assert result.final_ranking == ["A", "B", "C"]
@@ -89,5 +108,15 @@ class TestBordaCount:
         # Verify tiebreaker info reports recursive-borda
         assert len(result.details["tiebreakers"]) == 1
         tb = result.details["tiebreakers"][0]
+        assert tb["tied_competitors"] == ["A", "B", "C"]
+        assert tb["score"] == 9
+        assert tb["level"] == 1
         assert tb["resolution"]["method"] == "recursive-borda"
         assert tb["resolution"]["details"]["relative_scores"] == {"A": 5, "B": 6, "C": 4}
+        assert "breakdowns" in tb["resolution"]["details"]
+        for c in ["A", "B", "C"]:
+            bd = tb["resolution"]["details"]["breakdowns"][c]
+            assert "judges" in bd
+            assert "points" in bd
+            assert len(bd["points"]) == 5
+            assert sum(bd["points"]) == tb["resolution"]["details"]["relative_scores"][c]
