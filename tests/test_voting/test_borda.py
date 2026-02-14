@@ -1,5 +1,7 @@
 """Tests for Borda count voting system."""
 
+from tests.conftest import make_scoresheet
+
 from core.voting.borda import BordaCountSystem
 
 
@@ -27,7 +29,7 @@ class TestBordaCount:
         assert scores["D"] == 0
 
     def test_disagreement(self, disagreement):
-        """Dataset 2: A=9, B=9, C=6, D=6. H2H: A>B(3-2), C>D(3-2) → A, B, C, D."""
+        """Dataset 2: A=9, B=9, C=6, D=6. Recursive Borda: A>B(3-2), C>D(3-2)."""
         result = self.system.calculate(disagreement)
         assert result.final_ranking == ["A", "B", "C", "D"]
 
@@ -57,3 +59,35 @@ class TestBordaCount:
         assert "scores" in result.details
         assert "breakdowns" in result.details
         assert "max_possible" in result.details
+
+    def test_three_way_tie_recursive_borda(self):
+        """Three-way Borda tie resolved by recursive relative Borda.
+
+        Full Borda scores (n=4): A=9, B=9, C=9, D=3.
+        Relative Borda among {A,B,C} (k=3): B=6, A=5, C=4.
+        Expected: B, A, C, D.
+
+             J1  J2  J3  J4  J5
+        A     1   1   2   4   3
+        B     2   4   1   3   1
+        C     3   2   3   1   2
+        D     4   3   4   2   4
+        """
+        scoresheet = make_scoresheet("Three-Way Tie", {
+            "J1": {"A": 1, "B": 2, "C": 3, "D": 4},
+            "J2": {"A": 1, "B": 4, "C": 2, "D": 3},
+            "J3": {"A": 2, "B": 1, "C": 3, "D": 4},
+            "J4": {"A": 4, "B": 3, "C": 1, "D": 2},
+            "J5": {"A": 3, "B": 1, "C": 2, "D": 4},
+        })
+        result = self.system.calculate(scoresheet)
+        scores = result.details["scores"]
+        assert scores["A"] == scores["B"] == scores["C"] == 9
+        assert scores["D"] == 3
+        assert result.final_ranking == ["B", "A", "C", "D"]
+
+        # Verify tiebreaker info reports recursive-borda
+        assert len(result.details["tiebreakers"]) == 1
+        tb = result.details["tiebreakers"][0]
+        assert tb["resolution"]["method"] == "recursive-borda"
+        assert tb["resolution"]["details"]["relative_scores"] == {"A": 5, "B": 6, "C": 4}
