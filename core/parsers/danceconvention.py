@@ -21,12 +21,12 @@ class DanceConventionParser(ScoresheetParser):
     - Names show leader and follower on separate lines within the same cell
 
     Expected URL format:
-        https://danceconvention.net/eventdirector/en/roundscores/<number>.pdf
+        https://danceconvention.net/eventdirector/<lang>/roundscores/<number>.pdf
     """
 
     URL_PATTERN = re.compile(
         r"^https?://danceconvention\.net"
-        r"/eventdirector/en/roundscores/\d+\.pdf$"
+        r"/eventdirector/[a-z]{2}/roundscores/\d+\.pdf$"
     )
 
     EXAMPLE_URL = "https://danceconvention.net/eventdirector/en/roundscores/123.pdf"
@@ -41,7 +41,7 @@ class DanceConventionParser(ScoresheetParser):
         Tell-tale signs:
         - File is a PDF (starts with %PDF magic bytes)
         - Contains a judge key (uppercase initials followed by names)
-        - Contains a results table with # and Name headers
+        - Contains a results table with a # column
         """
         if not content.startswith(b"%PDF"):
             return False
@@ -54,18 +54,15 @@ class DanceConventionParser(ScoresheetParser):
 
                 # Check first page text for judge key pattern
                 text = pdf.pages[0].extract_text() or ""
-                judge_pattern = r"^[A-Z0-9]{2,4}\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+"
-                has_judge_key = bool(re.search(judge_pattern, text, re.MULTILINE))
+                has_judge_key = bool(self._extract_judge_key(text))
 
-                # Check tables for # and Name headers
+                # Check tables for a # column header
                 tables = pdf.pages[0].extract_tables()
                 has_results_table = False
                 for table in (tables or []):
-                    if table and table[0]:
-                        header_str = " ".join(str(h) for h in table[0] if h)
-                        if "#" in header_str and "Name" in header_str:
-                            has_results_table = True
-                            break
+                    if table and table[0] and self._is_results_header(table[0]):
+                        has_results_table = True
+                        break
 
                 return has_judge_key and has_results_table
         except Exception:
@@ -119,24 +116,47 @@ class DanceConventionParser(ScoresheetParser):
             return " - ".join(title_parts)
         return "Unknown Competition"
 
+    @staticmethod
+    def _is_results_header(header: list) -> bool:
+        """Check if a table header row looks like a results table.
+
+        Checks that "#" appears in one of the first two columns, which is
+        a language-independent marker for the competitor number column.
+        """
+        for cell in header[:2]:
+            if cell and str(cell).strip() == "#":
+                return True
+        return False
+
+    @staticmethod
+    def _is_judge_initials(s: str) -> bool:
+        """Check if a string looks like judge initials (2-4 alphanumeric chars).
+
+        Initials can be mixed case (e.g. "IPz") and any script (e.g. "КП").
+        """
+        return 2 <= len(s) <= 4 and s.isalnum()
+
     def _extract_judge_key(self, text: str) -> dict[str, str]:
         """Extract judge initials -> full name mapping from text.
 
-        Looks for patterns like "AG Alexis Garrish" or "RB Ryan Boz"
+        Looks for lines like "AG Alexis Garrish" or "КП Павел Катунин":
+        2-4 uppercase initials followed by at least two alphabetic name words.
+        Uses Unicode-aware checks so this works for any script.
         """
         judge_key = {}
 
-        # Pattern: 2-4 uppercase letters followed by a name
-        # Common patterns: "AG Alexis Garrish", "MMT Maxence Martin"
-        pattern = r"^([A-Z0-9]{2,4})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)"
-
         for line in text.split("\n"):
-            line = line.strip()
-            match = re.match(pattern, line)
-            if match:
-                initials = match.group(1)
-                full_name = match.group(2)
-                judge_key[initials] = full_name
+            words = line.strip().split()
+            if len(words) < 3:
+                continue
+            initials = words[0]
+            if not self._is_judge_initials(initials):
+                continue
+            # All remaining words should be alphabetic (any script), which
+            # excludes lines with numbers or punctuation.
+            name_parts = words[1:]
+            if all(w.isalpha() for w in name_parts):
+                judge_key[initials] = " ".join(name_parts)
 
         return judge_key
 
@@ -147,18 +167,16 @@ class DanceConventionParser(ScoresheetParser):
         judge_key: dict[str, str],
     ) -> Scoresheet:
         """Parse the main results table."""
-        # Find all tables with results (has # and Name columns).
-        # Multi-page PDFs have a continuation table on each page with
-        # the same header row, so we merge data rows from all of them.
+        # Find all tables with results (identified by a # column in the
+        # header). Multi-page PDFs have a continuation table on each page
+        # with the same header row, so we merge data rows from all of them.
         results_tables = []
         for table in tables:
             if not table or len(table) < 2:
                 continue
             header = table[0]
-            if header and len(header) >= 2:
-                header_str = " ".join(str(h) for h in header if h)
-                if "#" in header_str and "Name" in header_str:
-                    results_tables.append(table)
+            if header and self._is_results_header(header):
+                results_tables.append(table)
 
         if not results_tables:
             raise ValueError("Could not find results table in PDF")
@@ -169,17 +187,15 @@ class DanceConventionParser(ScoresheetParser):
         # Find column indices
         col_indices = self._find_column_indices(header)
         name_idx = col_indices["name"]
-        result_idx = col_indices["result"]
         judge_start = col_indices["judge_start"]
         judge_end = col_indices["judge_end"]
 
-        # Extract judge initials from header
+        # Extract judge initials from header (position determines which
+        # columns are judges, so we just need non-empty cells)
         judge_initials = []
         for i in range(judge_start, judge_end):
             if i < len(header) and header[i]:
-                initials = str(header[i]).strip()
-                if initials and re.match(r"^[A-Z0-9]{2,4}$", initials):
-                    judge_initials.append(initials)
+                judge_initials.append(str(header[i]).strip())
 
         if not judge_initials:
             raise ValueError("Could not find judge columns in table header")
@@ -238,28 +254,30 @@ class DanceConventionParser(ScoresheetParser):
         )
 
     def _find_column_indices(self, header: list) -> dict[str, int]:
-        """Find the indices of key columns in the header."""
+        """Find the indices of key columns in the header.
+
+        Uses structural detection rather than language-specific header names:
+        - The "#" column is identified by its literal text
+        - The name column is the one immediately after "#"
+        - Judge columns follow the name column and end before the "1-N"
+          cumulative tally columns
+        """
         indices = {
             "number": 0,
             "name": 1,
             "judge_start": 2,
             "judge_end": len(header),
-            "result": len(header) - 1,
         }
 
         for i, cell in enumerate(header):
             if not cell:
                 continue
-            cell_str = str(cell).strip().lower()
+            cell_str = str(cell).strip()
 
             if cell_str == "#":
                 indices["number"] = i
-            elif cell_str == "name":
-                indices["name"] = i
-                indices["judge_start"] = i + 1
-            elif cell_str == "result":
-                indices["result"] = i
-                indices["judge_end"] = i
+                indices["name"] = i + 1
+                indices["judge_start"] = i + 2
             elif cell_str.startswith("1-"):
                 # Found cumulative columns, judges end before this
                 indices["judge_end"] = min(indices["judge_end"], i)

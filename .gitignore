@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+.claude/
+
+# Example files with real personal data (anonymized fixtures are in tests/)
+examples/*.pdf
+examples/*.html
