@@ -40,8 +40,7 @@ class SequentialIRVSystem(VotingSystem):
         return "Run Instant Runoff Voting repeatedly: find winner, remove, repeat"
 
     def calculate(self, scoresheet: Scoresheet) -> VotingResult:
-        final_ranking = []
-        tied_groups = []
+        final_ranking: list[str | list[str]] = []
         remaining = set(scoresheet.competitors)
         placement_rounds = []
 
@@ -68,9 +67,8 @@ class SequentialIRVSystem(VotingSystem):
 
             if isinstance(winner, list):
                 # Tie - add all tied competitors
-                tied_groups.append(list(winner))
+                final_ranking.append(list(winner))
                 for w in winner:
-                    final_ranking.append(w)
                     remaining.discard(w)
                 place += len(winner)
             else:
@@ -80,7 +78,7 @@ class SequentialIRVSystem(VotingSystem):
 
         return VotingResult(
             system_name=self.name,
-            final_ranking=Placement.build_ranking(final_ranking, tied_groups),
+            final_ranking=Placement.build_ranking(final_ranking),
             details={
                 "placement_rounds": placement_rounds,
             },

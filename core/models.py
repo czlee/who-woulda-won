@@ -71,38 +71,27 @@ class Placement:
 
     @classmethod
     def build_ranking(
-        cls, ordered: list[str], tied_groups: list[list[str]]
+        cls, ordered: list[str | list[str]]
     ) -> list[Self]:
-        """Build a list of Placements from an ordered list and tie groups.
+        """Build a list of Placements from an ordered list.
 
         Args:
             ordered: Competitors in order from 1st to last place.
-            tied_groups: Lists of competitors who are tied with each other.
-                Each group must contain 2+ competitors that appear
-                consecutively in `ordered`.
+                Each element is either a single name (str) or a list of
+                names (list[str]) for tied competitors.
 
         Returns:
             List of Placement objects with correct ranks and tied flags.
         """
-        tied_set = {}  # maps competitor -> their tied group
-        for group in tied_groups:
-            for name in group:
-                tied_set[name] = group
-
         placements = []
         rank = 1
-        i = 0
-        while i < len(ordered):
-            name = ordered[i]
-            if name in tied_set:
-                group = tied_set[name]
-                for member in group:
-                    placements.append(cls(name=member, rank=rank, tied=True))
-                i += len(group)
-                rank += len(group)
+        for entry in ordered:
+            if isinstance(entry, list):
+                for name in entry:
+                    placements.append(cls(name=name, rank=rank, tied=True))
+                rank += len(entry)
             else:
-                placements.append(cls(name=name, rank=rank, tied=False))
-                i += 1
+                placements.append(cls(name=entry, rank=rank, tied=False))
                 rank += 1
 
         return placements

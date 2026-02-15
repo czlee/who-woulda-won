@@ -85,9 +85,8 @@ class SchulzeSystem(VotingSystem):
         indexed_results = [(competitors[i], wins[i]) for i in range(n)]
         indexed_results.sort(key=lambda x: x[1], reverse=True)
 
-        ordered = [c for c, _ in indexed_results]
-
-        # Detect ties (same number of wins)
+        # Build ranking, grouping ties (same number of wins)
+        ordered: list[str | list[str]] = []
         ties = []
         i = 0
         while i < n:
@@ -97,10 +96,13 @@ class SchulzeSystem(VotingSystem):
                 tie_group.append(indexed_results[j][0])
                 j += 1
             if len(tie_group) > 1:
+                ordered.append(tie_group)
                 ties.append(tie_group)
+            else:
+                ordered.append(tie_group[0])
             i = j
 
-        final_ranking = Placement.build_ranking(ordered, ties)
+        final_ranking = Placement.build_ranking(ordered)
 
         # Build readable matrices for details
         pairwise_matrix = {

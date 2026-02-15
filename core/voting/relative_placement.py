@@ -38,8 +38,7 @@ class RelativePlacementSystem(VotingSystem):
         # cum_counts[competitor][place] = # of judges ranking at place or better
         cum_counts = self._compute_cumulative_counts(scoresheet)
 
-        final_ranking = []
-        tied_groups = []
+        final_ranking: list[str | list[str]] = []
         unplaced = set(scoresheet.competitors)
         round_details = []
 
@@ -63,7 +62,10 @@ class RelativePlacementSystem(VotingSystem):
 
             # Place all competitors with majority at this cutoff
             while with_majority:
-                target_place = len(final_ranking) + 1
+                target_place = sum(
+                    len(e) if isinstance(e, list) else 1
+                    for e in final_ranking
+                ) + 1
 
                 round_info = {
                     "target_place": target_place,
@@ -101,10 +103,9 @@ class RelativePlacementSystem(VotingSystem):
                         # Unresolved tie
                         round_info["winners"] = winner
                         round_info["tied"] = True
-                        tied_groups.append(list(winner))
+                        final_ranking.append(list(winner))
                         placed = set(winner)
                         for w in winner:
-                            final_ranking.append(w)
                             unplaced.discard(w)
                         with_majority = [
                             c for c in with_majority if c not in placed
@@ -122,7 +123,7 @@ class RelativePlacementSystem(VotingSystem):
 
         return VotingResult(
             system_name=self.name,
-            final_ranking=Placement.build_ranking(final_ranking, tied_groups),
+            final_ranking=Placement.build_ranking(final_ranking),
             details={
                 "majority_threshold": majority,
                 "cumulative_counts": {
