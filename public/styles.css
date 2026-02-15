@@ -226,7 +226,6 @@ button[type="submit"]:disabled {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
-    table-layout: fixed;
 }
 
 .results-table th,
@@ -361,7 +360,9 @@ button[type="submit"]:disabled {
     background: var(--color-primary-bg);
 }
 
-/* Special cell colours override row hover */
+/* Special cell colours override row hover and striping */
+.detail-table tbody tr:hover .borda-section-header { background: var(--color-primary); }
+.detail-table tbody tr:nth-child(even) .borda-section-header { background: var(--color-primary); }
 .detail-table tbody tr:hover .cell-wins   { background-color: #d4edda; }
 .detail-table tbody tr:hover .cell-loses  { background-color: #f8d7da; }
 .detail-table tbody tr:hover .cell-ties   { background-color: #fff3cd; }
@@ -394,6 +395,15 @@ button[type="submit"]:disabled {
 /* RP table: highlight judge cells on count hover */
 .rp-highlight {
     background: #d4edda !important;
+}
+
+/* Borda tiebreak section header within unified table */
+.borda-section-header {
+    background: var(--color-primary);
+    color: white;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-align: left;
 }
 
 /* Schulze matrix cell colours */

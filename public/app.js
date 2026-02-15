@@ -106,15 +106,20 @@ function displayResults(data) {
         resultsHeader.appendChild(th);
     });
 
-    // Add colgroup so ranking columns share space equally (table-layout: fixed)
+    // Add colgroup so ranking columns share space equally.
+    // Name column auto-sizes to content; ranking columns each get an equal
+    // share of the remaining width (capped so they don't dominate).
     const table = document.getElementById('results-table');
     const existingCg = table.querySelector('colgroup');
     if (existingCg) existingCg.remove();
     const colgroup = document.createElement('colgroup');
-    const nameCol = document.createElement('col');
-    nameCol.style.width = '50%';
-    colgroup.appendChild(nameCol);
-    results.forEach(() => colgroup.appendChild(document.createElement('col')));
+    colgroup.appendChild(document.createElement('col')); // name col: auto
+    const pct = Math.floor(60 / results.length) + '%';   // 60% shared equally
+    results.forEach(() => {
+        const col = document.createElement('col');
+        col.style.width = pct;
+        colgroup.appendChild(col);
+    });
     table.prepend(colgroup);
 
     // Get all rankings by competitor
@@ -629,36 +634,25 @@ function buildRPCellDisplay(details, n) {
 // ─── Borda Count ─────────────────────────────────────────────────────
 
 /**
- * Build a Borda-style table (used for both main table and tiebreak tables).
- *
- * @param {string[]} competitors - Competitors in display order
- * @param {Object} breakdowns - Map of competitor -> {judges, points}
- * @param {Object} scores - Map of competitor -> total score
- * @param {Array} judgeInfos - Array of {initials, name} for column headers
- * @returns {HTMLElement} wrapper div containing the table
+ * Append a Borda header row (Competitor | J1 | J2 | … | Total) to a tbody.
  */
-function buildBordaTable(competitors, breakdowns, scores, judgeInfos) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'detail-table-wrapper';
-
-    const table = document.createElement('table');
-    table.className = 'detail-table';
-
-    // Header
-    const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    headerRow.appendChild(createTh('Competitor'));
+function appendBordaHeaderRow(tbody, judgeInfos, numCols) {
+    const tr = document.createElement('tr');
+    const compTh = createTh('Competitor');
+    tr.appendChild(compTh);
     judgeInfos.forEach(j => {
         const th = createThWithTooltip(j.initials, j.name);
         th.classList.add('col-judge');
-        headerRow.appendChild(th);
+        tr.appendChild(th);
     });
-    headerRow.appendChild(createTh('Total'));
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
+    tr.appendChild(createTh('Total'));
+    tbody.appendChild(tr);
+}
 
-    // Body
-    const tbody = document.createElement('tbody');
+/**
+ * Append Borda data rows to a tbody.
+ */
+function appendBordaDataRows(tbody, competitors, breakdowns, scores) {
     competitors.forEach(competitor => {
         const tr = document.createElement('tr');
 
@@ -681,14 +675,12 @@ function buildBordaTable(competitors, breakdowns, scores, judgeInfos) {
 
         tbody.appendChild(tr);
     });
-
-    table.appendChild(tbody);
-    wrapper.appendChild(table);
-    return wrapper;
 }
 
 /**
- * Render the Borda Count working table and any tiebreak tables.
+ * Render the Borda Count as a single unified table.
+ * Tiebreak sections appear as spanning header rows within the same table,
+ * so all columns share the same widths.
  *
  * Columns: Competitor | J1 pts | J2 pts | \u2026 | Total
  */
@@ -697,42 +689,81 @@ function renderBordaDetails(container, result, data) {
     const judges = data.judges;
     const sorted = result.final_ranking.map(e => e.name);
     const judgeInfos = buildJudgeInitials(judges);
+    const numCols = 1 + judges.length + 1; // Competitor + judges + Total
 
-    // Main table
-    container.appendChild(buildBordaTable(sorted, details.breakdowns, details.scores, judgeInfos));
+    const wrapper = document.createElement('div');
+    wrapper.className = 'detail-table-wrapper';
 
-    // Tiebreak tables
+    const table = document.createElement('table');
+    table.className = 'detail-table';
+
+    // thead with main header row
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(createTh('Competitor'));
+    judgeInfos.forEach(j => {
+        const th = createThWithTooltip(j.initials, j.name);
+        th.classList.add('col-judge');
+        headerRow.appendChild(th);
+    });
+    headerRow.appendChild(createTh('Total'));
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // tbody: main data rows
+    const tbody = document.createElement('tbody');
+    appendBordaDataRows(tbody, sorted, details.breakdowns, details.scores);
+
+    // Tiebreak sections within the same tbody
     if (details.tiebreakers && details.tiebreakers.length > 0) {
         details.tiebreakers.forEach(tb => {
             const level = tb.level || 1;
-            const h4 = document.createElement('h4');
+            let label;
             if (level === 1) {
-                h4.textContent = `Tiebreak at ${tb.score} points`;
+                label = `Tiebreak at ${tb.score} points`;
             } else {
-                const ordinal = level === 2 ? '2nd' : level === 3 ? '3rd' : `${level}th`;
-                h4.textContent = `Tiebreak (${ordinal} level) at ${tb.score} points`;
+                const ord = level === 2 ? '2nd' : level === 3 ? '3rd' : `${level}th`;
+                label = `Tiebreak (${ord} level) at ${tb.score} points`;
             }
-            container.appendChild(h4);
+
+            // Spanning section header row
+            const sectionRow = document.createElement('tr');
+            const sectionTd = document.createElement('td');
+            sectionTd.colSpan = numCols;
+            sectionTd.textContent = label;
+            sectionTd.className = 'borda-section-header';
+            sectionRow.appendChild(sectionTd);
+            tbody.appendChild(sectionRow);
 
             if (tb.resolution.method === 'recursive-borda') {
                 const tbDetails = tb.resolution.details;
                 const tbJudgeInfos = buildJudgeInitials(tbDetails.breakdowns[tb.tied_competitors[0]].judges);
-                // Sort tied competitors by their relative score (highest first)
+
+                // Repeat column headers for the tiebreak section
+                appendBordaHeaderRow(tbody, tbJudgeInfos, numCols);
+
+                // Tiebreak data rows
                 const tbSorted = [...tb.tied_competitors].sort(
                     (a, b) => tbDetails.relative_scores[b] - tbDetails.relative_scores[a]
                 );
-                container.appendChild(buildBordaTable(
-                    tbSorted, tbDetails.breakdowns, tbDetails.relative_scores, tbJudgeInfos
-                ));
+                appendBordaDataRows(tbody, tbSorted, tbDetails.breakdowns, tbDetails.relative_scores);
             } else if (tb.resolution.method === 'unresolved') {
-                const p = document.createElement('p');
-                p.className = 'detail-description';
-                p.style.fontStyle = 'italic';
-                p.textContent = 'Tie could not be resolved';
-                container.appendChild(p);
+                const msgRow = document.createElement('tr');
+                const msgTd = document.createElement('td');
+                msgTd.colSpan = numCols;
+                msgTd.textContent = 'Tie could not be resolved';
+                msgTd.style.fontStyle = 'italic';
+                msgTd.style.color = '#666';
+                msgTd.style.textAlign = 'center';
+                msgRow.appendChild(msgTd);
+                tbody.appendChild(msgRow);
             }
         });
     }
+
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    container.appendChild(wrapper);
 }
 
 // ─── Schulze Method ──────────────────────────────────────────────────
