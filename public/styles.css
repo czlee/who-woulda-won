@@ -361,8 +361,6 @@ button[type="submit"]:disabled {
 }
 
 /* Special cell colours override row hover and striping */
-.detail-table tbody tr:hover .borda-section-header { background: var(--color-primary); }
-.detail-table tbody tr:nth-child(even) .borda-section-header { background: var(--color-primary); }
 .detail-table tbody tr:hover .cell-wins   { background-color: #d4edda; }
 .detail-table tbody tr:hover .cell-loses  { background-color: #f8d7da; }
 .detail-table tbody tr:hover .cell-ties   { background-color: #fff3cd; }
@@ -399,10 +397,9 @@ button[type="submit"]:disabled {
 
 /* Borda tiebreak section header within unified table */
 .borda-section-header {
-    background: var(--color-primary);
-    color: white;
+    color: var(--color-primary);
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.95rem;
     text-align: left;
 }
 
