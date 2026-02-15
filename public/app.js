@@ -106,6 +106,17 @@ function displayResults(data) {
         resultsHeader.appendChild(th);
     });
 
+    // Add colgroup so ranking columns share space equally (table-layout: fixed)
+    const table = document.getElementById('results-table');
+    const existingCg = table.querySelector('colgroup');
+    if (existingCg) existingCg.remove();
+    const colgroup = document.createElement('colgroup');
+    const nameCol = document.createElement('col');
+    nameCol.style.width = '25%';
+    colgroup.appendChild(nameCol);
+    results.forEach(() => colgroup.appendChild(document.createElement('col')));
+    table.prepend(colgroup);
+
     // Get all rankings by competitor
     const competitors = data.competitors;
     const rankings = buildRankingsMap(results, competitors);
@@ -329,6 +340,22 @@ function createTdWithTooltip(initials, fullName) {
     return td;
 }
 
+/**
+ * Equalize column widths within groups for a table.
+ * For each group class, finds the max header width and applies it to all
+ * headers in that group, making like columns the same width.
+ */
+function equalizeColumnWidths(table, groupClasses) {
+    for (const cls of groupClasses) {
+        const headers = table.querySelectorAll('thead .' + cls);
+        if (headers.length === 0) continue;
+        headers.forEach(th => { th.style.minWidth = ''; });
+        let maxW = 0;
+        headers.forEach(th => { maxW = Math.max(maxW, th.offsetWidth); });
+        headers.forEach(th => { th.style.minWidth = maxW + 'px'; });
+    }
+}
+
 // ─── Voting system detail renderers ──────────────────────────────────
 
 const SYSTEM_DESCRIPTIONS = {
@@ -379,6 +406,16 @@ function renderVotingDetails(results, data) {
         }
 
         block.appendChild(content);
+
+        // Equalize like-column widths when the detail block is opened
+        block.addEventListener('toggle', () => {
+            if (block.open) {
+                block.querySelectorAll('.detail-table').forEach(t =>
+                    equalizeColumnWidths(t, ['col-judge', 'col-cumulative', 'col-matrix'])
+                );
+            }
+        });
+
         wrapper.appendChild(block);
     }
 
@@ -397,11 +434,11 @@ function renderRPDetails(container, result, data) {
     const judges = data.judges;
     const rankings = data.rankings;
     const n = data.num_competitors;
-    const majority = details.majority_threshold;
     const judgeInfos = buildJudgeInitials(judges);
 
     // Determine which cumulative cells to display
     const cellDisplay = buildRPCellDisplay(details, n);
+    const hasQuality = Object.values(cellDisplay).some(d => d.quality !== undefined);
 
     // Sort competitors by final ranking
     const sorted = result.final_ranking.map(e => e.name);
@@ -416,9 +453,14 @@ function renderRPDetails(container, result, data) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Competitor'));
-    judgeInfos.forEach(j => headerRow.appendChild(createThWithTooltip(j.initials, j.name)));
+    judgeInfos.forEach(j => {
+        const th = createThWithTooltip(j.initials, j.name);
+        th.classList.add('col-judge');
+        headerRow.appendChild(th);
+    });
     for (let p = 1; p <= n; p++) {
         const th = createTh('1\u2013' + p);
+        th.classList.add('col-cumulative');
         if (p === 1) th.classList.add('rp-separator');
         headerRow.appendChild(th);
     }
@@ -430,28 +472,6 @@ function renderRPDetails(container, result, data) {
 
     // Body
     const tbody = document.createElement('tbody');
-
-    // Majority threshold row
-    const majRow = document.createElement('tr');
-    const majLabel = document.createElement('td');
-    majLabel.colSpan = 1 + judges.length;
-    majLabel.style.textAlign = 'right';
-    majLabel.style.fontStyle = 'italic';
-    majLabel.style.color = '#888';
-    majLabel.textContent = 'Majority';
-    majRow.appendChild(majLabel);
-    for (let p = 1; p <= n; p++) {
-        const td = document.createElement('td');
-        td.textContent = majority;
-        td.style.fontStyle = 'italic';
-        td.style.color = '#888';
-        if (p === 1) td.classList.add('rp-separator');
-        majRow.appendChild(td);
-    }
-    const majEmpty = document.createElement('td');
-    majEmpty.classList.add('rp-result');
-    majRow.appendChild(majEmpty);
-    tbody.appendChild(majRow);
 
     // Competitor rows
     const rpPlacements = result.final_ranking;
@@ -467,13 +487,14 @@ function renderRPDetails(container, result, data) {
         judges.forEach(judge => {
             const td = document.createElement('td');
             td.textContent = rankings[judge][competitor];
-            td.classList.add('rp-judge-cell');
+            td.classList.add('rp-judge-cell', 'col-judge');
             tr.appendChild(td);
         });
 
         // Cumulative count columns
         for (let p = 1; p <= n; p++) {
             const td = document.createElement('td');
+            td.classList.add('col-cumulative');
             const key = competitor + '|' + p;
             const display = cellDisplay[key];
 
@@ -481,8 +502,7 @@ function renderRPDetails(container, result, data) {
                 if (display.quality !== undefined) {
                     const countStr = display.count === 0 ? '\u2013' : String(display.count);
                     td.innerHTML = escapeHtml(countStr)
-                        + ' <span class="rp-quality has-tooltip" data-tooltip="quality of majority: sum of judge rankings \u2264 '
-                        + p + '">('
+                        + ' <span class="rp-quality">('
                         + escapeHtml(String(display.quality)) + ')</span>';
                 } else {
                     td.textContent = display.count === 0 ? '\u2013' : String(display.count);
@@ -526,6 +546,15 @@ function renderRPDetails(container, result, data) {
 
     table.appendChild(tbody);
     wrapper.appendChild(table);
+
+    // Add quality-of-majority explanatory note if any quality scores are shown
+    if (hasQuality) {
+        const note = document.createElement('p');
+        note.className = 'detail-description';
+        note.textContent = 'Numbers in parentheses are the sum of the individual judge rankings counted for that cell (highlighted when you roll over the cell).';
+        container.appendChild(note);
+    }
+
     container.appendChild(wrapper);
 }
 
@@ -616,7 +645,11 @@ function buildBordaTable(competitors, breakdowns, scores, judgeInfos) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Competitor'));
-    judgeInfos.forEach(j => headerRow.appendChild(createThWithTooltip(j.initials, j.name)));
+    judgeInfos.forEach(j => {
+        const th = createThWithTooltip(j.initials, j.name);
+        th.classList.add('col-judge');
+        headerRow.appendChild(th);
+    });
     headerRow.appendChild(createTh('Total'));
     thead.appendChild(headerRow);
     table.appendChild(thead);
@@ -634,6 +667,7 @@ function buildBordaTable(competitors, breakdowns, scores, judgeInfos) {
         breakdown.points.forEach(pts => {
             const td = document.createElement('td');
             td.textContent = pts;
+            td.classList.add('col-judge');
             tr.appendChild(td);
         });
 
@@ -756,7 +790,11 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh(''));    // name column
     headerRow.appendChild(createTh(''));    // initials column
-    competitors.forEach(c => headerRow.appendChild(createTh(compInitialsMap[c])));
+    competitors.forEach(c => {
+        const th = createTh(compInitialsMap[c]);
+        th.classList.add('col-matrix');
+        headerRow.appendChild(th);
+    });
     if (winsCol) {
         const winsTh = createTh('Wins');
         winsTh.classList.add('schulze-wins-col');
@@ -783,6 +821,7 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
 
         competitors.forEach(colComp => {
             const td = document.createElement('td');
+            td.classList.add('col-matrix');
             if (rowComp === colComp) {
                 td.textContent = '\u2014';
                 td.classList.add('cell-diagonal');
@@ -928,7 +967,11 @@ function buildBallotTable(judgeInfos, rankings, competitors, compInitialsMap) {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     headerRow.appendChild(createTh('Rank'));
-    judgeInfos.forEach(j => headerRow.appendChild(createThWithTooltip(j.initials, j.name)));
+    judgeInfos.forEach(j => {
+        const th = createThWithTooltip(j.initials, j.name);
+        th.classList.add('col-judge');
+        headerRow.appendChild(th);
+    });
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -953,6 +996,7 @@ function buildBallotTable(judgeInfos, rankings, competitors, compInitialsMap) {
 
         judges.forEach(judge => {
             const td = document.createElement('td');
+            td.classList.add('col-judge');
             const fullName = ballots[judge][rank] || '';
             td.textContent = fullName ? (compInitialsMap[fullName] || fullName) : '\u2014';
             tr.appendChild(td);
