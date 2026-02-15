@@ -226,6 +226,7 @@ button[type="submit"]:disabled {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
+    table-layout: fixed;
 }
 
 .results-table th,
@@ -360,7 +361,7 @@ button[type="submit"]:disabled {
     background: var(--color-primary-bg);
 }
 
-/* Special cell colours override row hover and striping */
+/* Special cell colours override row hover */
 .detail-table tbody tr:hover .cell-wins   { background-color: #d4edda; }
 .detail-table tbody tr:hover .cell-loses  { background-color: #f8d7da; }
 .detail-table tbody tr:hover .cell-ties   { background-color: #fff3cd; }

@@ -106,20 +106,15 @@ function displayResults(data) {
         resultsHeader.appendChild(th);
     });
 
-    // Add colgroup so ranking columns share space equally.
-    // Name column auto-sizes to content; ranking columns each get an equal
-    // share of the remaining width (capped so they don't dominate).
+    // Add colgroup so ranking columns share space equally (table-layout: fixed)
     const table = document.getElementById('results-table');
     const existingCg = table.querySelector('colgroup');
     if (existingCg) existingCg.remove();
     const colgroup = document.createElement('colgroup');
-    colgroup.appendChild(document.createElement('col')); // name col: auto
-    const pct = Math.floor(60 / results.length) + '%';   // 60% shared equally
-    results.forEach(() => {
-        const col = document.createElement('col');
-        col.style.width = pct;
-        colgroup.appendChild(col);
-    });
+    const nameCol = document.createElement('col');
+    nameCol.style.width = '40%';
+    colgroup.appendChild(nameCol);
+    results.forEach(() => colgroup.appendChild(document.createElement('col')));
     table.prepend(colgroup);
 
     // Get all rankings by competitor
