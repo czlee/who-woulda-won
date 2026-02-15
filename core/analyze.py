@@ -26,7 +26,7 @@ class AnalysisResult:
             "results": [
                 {
                     "system_name": r.system_name,
-                    "final_ranking": r.final_ranking,
+                    "final_ranking": [p.to_dict() for p in r.final_ranking],
                     "details": r.details,
                 }
                 for r in self.results

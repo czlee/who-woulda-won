@@ -1,6 +1,6 @@
 """Tests for Schulze method voting system."""
 
-from tests.conftest import make_scoresheet
+from tests.conftest import make_scoresheet, ranking_names
 from core.voting.schulze import SchulzeSystem
 
 
@@ -14,7 +14,7 @@ class TestSchulze:
     def test_clear_winner(self, clear_winner):
         """Dataset 1: A beats all, B beats C and D, C beats D → A, B, C, D."""
         result = self.system.calculate(clear_winner)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
     def test_clear_winner_schulze_wins(self, clear_winner):
         """Verify Schulze win counts."""
@@ -28,7 +28,7 @@ class TestSchulze:
     def test_disagreement(self, disagreement):
         """Dataset 2: A beats all 3-2, B beats C(4-1) and D(3-2), C beats D(3-2)."""
         result = self.system.calculate(disagreement)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
     def test_disagreement_pairwise(self, disagreement):
         """Verify pairwise preference counts for dataset 2."""
@@ -43,11 +43,11 @@ class TestSchulze:
 
     def test_unanimous(self, unanimous):
         result = self.system.calculate(unanimous)
-        assert result.final_ranking == ["A", "B", "C"]
+        assert ranking_names(result) == ["A", "B", "C"]
 
     def test_two_competitors(self, two_competitors):
         result = self.system.calculate(two_competitors)
-        assert result.final_ranking == ["A", "B"]
+        assert ranking_names(result) == ["A", "B"]
 
     def test_perfect_cycle(self, perfect_cycle):
         """All pairwise matchups are 2-1. All path strengths equal.
@@ -56,7 +56,7 @@ class TestSchulze:
         """
         result = self.system.calculate(perfect_cycle)
         assert len(result.final_ranking) == 3
-        assert set(result.final_ranking) == {"A", "B", "C"}
+        assert set(ranking_names(result)) == {"A", "B", "C"}
 
         wins = result.details["schulze_wins"]
         # In a perfect cycle, after Floyd-Warshall, all path strengths
@@ -77,7 +77,7 @@ class TestSchulze:
             "J3": {"A": 1, "B": 2, "C": 3},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking[0] == "A"
+        assert ranking_names(result)[0] == "A"
         assert result.details["schulze_wins"]["A"] == 2
 
     def test_details_has_expected_keys(self, clear_winner):
@@ -191,7 +191,7 @@ class TestSchulze:
             "B": {"A": 6, "B": 0, "C": 6},
             "C": {"A": 6, "B": 5, "C": 0},
         }
-        assert result.final_ranking == ["B", "C", "A"]
+        assert ranking_names(result) == ["B", "C", "A"]
 
     # --- tie handling tests ---
 
@@ -251,7 +251,7 @@ class TestSchulze:
         assert wins["B"] == 1.5
         assert wins["A"] == 1.0
         assert wins["C"] == 0.5
-        assert result.final_ranking == ["B", "A", "C"]
+        assert ranking_names(result) == ["B", "A", "C"]
         # No ties remain — half-points resolved them all
         assert result.details["ties"] == []
 
