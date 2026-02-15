@@ -362,12 +362,12 @@ button[type="submit"]:disabled {
 }
 
 /* Special cell colours override row hover (slightly darker than non-hover) */
-.detail-table tbody tr:hover .cell-wins   { background-color: #c3e6cb; }
-.detail-table tbody tr:hover .cell-loses  { background-color: #f1c1c6; }
-.detail-table tbody tr:hover .cell-ties   { background-color: #ffe9a6; }
-.detail-table tbody tr:hover .cell-diagonal { background-color: #dde1e5; }
-.detail-table tbody tr:hover .rp-first-majority { background: #c3e6cb; }
-.detail-table tbody tr:hover .rp-highlight { background: #c3e6cb; }
+.detail-table tbody tr:hover .cell-wins   { background-color: #cbe9d2; }
+.detail-table tbody tr:hover .cell-loses  { background-color: #f4ccd0; }
+.detail-table tbody tr:hover .cell-ties   { background-color: #ffeeb9; }
+.detail-table tbody tr:hover .cell-diagonal { background-color: #e3e6ea; }
+.detail-table tbody tr:hover .rp-first-majority { background: #cbe9d2; }
+.detail-table tbody tr:hover .rp-highlight { background: #cbe9d2; }
 
 /* RP table: separator between judge and cumulative columns */
 .detail-table .rp-separator {
@@ -397,11 +397,17 @@ button[type="submit"]:disabled {
 }
 
 /* Borda tiebreak section header within unified table */
+/* Need specificity to override .detail-table td and .detail-table td:first-child */
+.detail-table td.borda-section-header:first-child,
+.detail-table td.borda-section-header,
 .borda-section-header {
     color: var(--color-primary);
+    background: #f9f9f9;
     font-weight: 600;
     font-size: 0.95rem;
     text-align: left;
+    border-left: none;
+    border-right: none;
 }
 
 /* Schulze matrix cell colours */
