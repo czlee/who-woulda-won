@@ -361,13 +361,13 @@ button[type="submit"]:disabled {
     background: var(--color-primary-bg);
 }
 
-/* Special cell colours override row hover */
-.detail-table tbody tr:hover .cell-wins   { background-color: #d4edda; }
-.detail-table tbody tr:hover .cell-loses  { background-color: #f8d7da; }
-.detail-table tbody tr:hover .cell-ties   { background-color: #fff3cd; }
-.detail-table tbody tr:hover .cell-diagonal { background-color: #e9ecef; }
-.detail-table tbody tr:hover .rp-first-majority { background: #d4edda; }
-.detail-table tbody tr:hover .rp-highlight { background: #d4edda; }
+/* Special cell colours override row hover (slightly darker than non-hover) */
+.detail-table tbody tr:hover .cell-wins   { background-color: #c3e6cb; }
+.detail-table tbody tr:hover .cell-loses  { background-color: #f1c1c6; }
+.detail-table tbody tr:hover .cell-ties   { background-color: #ffe9a6; }
+.detail-table tbody tr:hover .cell-diagonal { background-color: #dde1e5; }
+.detail-table tbody tr:hover .rp-first-majority { background: #c3e6cb; }
+.detail-table tbody tr:hover .rp-highlight { background: #c3e6cb; }
 
 /* RP table: separator between judge and cumulative columns */
 .detail-table .rp-separator {
