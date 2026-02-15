@@ -357,6 +357,18 @@ button[type="submit"]:disabled {
     background: #f4f4f4;
 }
 
+.detail-table tbody tr:hover {
+    background: var(--color-primary-bg);
+}
+
+/* Special cell colours override row hover */
+.detail-table tbody tr:hover .cell-wins   { background-color: #d4edda; }
+.detail-table tbody tr:hover .cell-loses  { background-color: #f8d7da; }
+.detail-table tbody tr:hover .cell-ties   { background-color: #fff3cd; }
+.detail-table tbody tr:hover .cell-diagonal { background-color: #e9ecef; }
+.detail-table tbody tr:hover .rp-first-majority { background: #d4edda; }
+.detail-table tbody tr:hover .rp-highlight { background: #d4edda; }
+
 /* RP table: separator between judge and cumulative columns */
 .detail-table .rp-separator {
     border-left: 3px solid var(--color-primary);

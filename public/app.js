@@ -112,7 +112,7 @@ function displayResults(data) {
     if (existingCg) existingCg.remove();
     const colgroup = document.createElement('colgroup');
     const nameCol = document.createElement('col');
-    nameCol.style.width = '25%';
+    nameCol.style.width = '50%';
     colgroup.appendChild(nameCol);
     results.forEach(() => colgroup.appendChild(document.createElement('col')));
     table.prepend(colgroup);
@@ -413,6 +413,9 @@ function renderVotingDetails(results, data) {
                 block.querySelectorAll('.detail-table').forEach(t =>
                     equalizeColumnWidths(t, ['col-judge', 'col-cumulative', 'col-matrix'])
                 );
+                // Cross-table equalization: ensure matching columns across
+                // related tables (e.g. Borda main + tiebreak tables)
+                equalizeColumnWidths(block, ['col-judge']);
             }
         });
 
@@ -551,7 +554,7 @@ function renderRPDetails(container, result, data) {
     if (hasQuality) {
         const note = document.createElement('p');
         note.className = 'detail-description';
-        note.textContent = 'Numbers in parentheses are the sum of the individual judge rankings counted for that cell (highlighted when you roll over the cell).';
+        note.textContent = 'Numbers in parentheses are the sum of the individual judge rankings counted for that cell (highlighted when you roll over the cell), sometimes known as the \u201Cquality of majority\u201D or \u201Caggregate\u201D.';
         container.appendChild(note);
     }
 
