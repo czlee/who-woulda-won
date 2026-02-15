@@ -1,6 +1,6 @@
 """Relative Placement voting system (WCS Standard)."""
 
-from core.models import Scoresheet, VotingResult
+from core.models import Placement, Scoresheet, VotingResult
 from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
@@ -39,6 +39,7 @@ class RelativePlacementSystem(VotingSystem):
         cum_counts = self._compute_cumulative_counts(scoresheet)
 
         final_ranking = []
+        tied_groups = []
         unplaced = set(scoresheet.competitors)
         round_details = []
 
@@ -100,6 +101,7 @@ class RelativePlacementSystem(VotingSystem):
                         # Unresolved tie
                         round_info["winners"] = winner
                         round_info["tied"] = True
+                        tied_groups.append(list(winner))
                         placed = set(winner)
                         for w in winner:
                             final_ranking.append(w)
@@ -120,7 +122,7 @@ class RelativePlacementSystem(VotingSystem):
 
         return VotingResult(
             system_name=self.name,
-            final_ranking=final_ranking,
+            final_ranking=Placement.build_ranking(final_ranking, tied_groups),
             details={
                 "majority_threshold": majority,
                 "cumulative_counts": {

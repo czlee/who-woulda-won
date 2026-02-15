@@ -1,6 +1,6 @@
 """Borda count voting system."""
 
-from core.models import Scoresheet, VotingResult
+from core.models import Placement, Scoresheet, VotingResult
 from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
@@ -72,6 +72,7 @@ class BordaCountSystem(VotingSystem):
 
         # Build final ranking with tiebreaking
         final_ranking = []
+        tied_groups = []
         tiebreaker_info = []
 
         for score in sorted(score_groups.keys(), reverse=True):
@@ -81,8 +82,11 @@ class BordaCountSystem(VotingSystem):
                 final_ranking.append(group[0])
             else:
                 # Apply tiebreakers
-                resolved, info_list = self._break_ties(group, scoresheet)
+                resolved, info_list, unresolved = self._break_ties(
+                    group, scoresheet
+                )
                 final_ranking.extend(resolved)
+                tied_groups.extend(unresolved)
                 for entry in info_list:
                     if entry["level"] == 1 and entry["score"] == 0:
                         entry["score"] = score
@@ -90,7 +94,7 @@ class BordaCountSystem(VotingSystem):
 
         return VotingResult(
             system_name=self.name,
-            final_ranking=final_ranking,
+            final_ranking=Placement.build_ranking(final_ranking, tied_groups),
             details={
                 "scores": scores,
                 "breakdowns": {c: {"judges": scoresheet.judges, "points": breakdowns[c]}
@@ -102,14 +106,15 @@ class BordaCountSystem(VotingSystem):
 
     def _break_ties(
         self, tied: list[str], scoresheet: Scoresheet, level: int = 1
-    ) -> tuple[list[str], list[dict]]:
+    ) -> tuple[list[str], list[dict], list[list[str]]]:
         """Break ties among competitors with the same Borda score.
 
         Recursively applies relative Borda count among the tied competitors.
-        Returns (ordered list, flat list of tiebreak entries for all levels).
+        Returns (ordered list, flat list of tiebreak entries, list of
+        unresolved tied groups).
         """
         if len(tied) <= 1:
-            return tied, []
+            return tied, [], []
 
         # Compute relative Borda scores among only the tied competitors
         relative_scores, breakdowns = self._compute_borda_scores(tied, scoresheet)
@@ -129,7 +134,7 @@ class BordaCountSystem(VotingSystem):
                 "score": 0,  # will be set by caller for level 1
                 "level": level,
                 "resolution": {"method": "unresolved", "details": {"remaining_tied": tied}},
-            }]
+            }], [list(tied)]
 
         info_list = [{
             "tied_competitors": tied,
@@ -149,16 +154,20 @@ class BordaCountSystem(VotingSystem):
 
         # Order groups by score (highest first) and recurse on still-tied groups
         result = []
+        unresolved_groups = []
         for score in sorted(score_groups.keys(), reverse=True):
             group = score_groups[score]
             if len(group) == 1:
                 result.append(group[0])
             else:
-                resolved, sub_info = self._break_ties(group, scoresheet, level + 1)
+                resolved, sub_info, sub_unresolved = self._break_ties(
+                    group, scoresheet, level + 1
+                )
                 result.extend(resolved)
+                unresolved_groups.extend(sub_unresolved)
                 for entry in sub_info:
                     if entry["level"] == level + 1 and entry["score"] == 0:
                         entry["score"] = score
                     info_list.append(entry)
 
-        return result, info_list
+        return result, info_list, unresolved_groups

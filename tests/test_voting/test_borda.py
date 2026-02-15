@@ -1,6 +1,6 @@
 """Tests for Borda count voting system."""
 
-from tests.conftest import make_scoresheet
+from tests.conftest import make_scoresheet, ranking_names
 
 from core.voting.borda import BordaCountSystem
 
@@ -15,7 +15,7 @@ class TestBordaCount:
     def test_clear_winner(self, clear_winner):
         """Dataset 1: A=8, B=6, C=4, D=0 → A, B, C, D."""
         result = self.system.calculate(clear_winner)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
     def test_clear_winner_scores(self, clear_winner):
         """Verify individual Borda scores for dataset 1."""
@@ -31,7 +31,7 @@ class TestBordaCount:
     def test_disagreement(self, disagreement):
         """Dataset 2: A=9, B=9, C=6, D=6. Recursive Borda: A>B(3-2), C>D(3-2)."""
         result = self.system.calculate(disagreement)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
     def test_disagreement_tied_scores(self, disagreement):
         """Verify the tied scores that trigger tiebreakers."""
@@ -61,17 +61,17 @@ class TestBordaCount:
 
     def test_unanimous(self, unanimous):
         result = self.system.calculate(unanimous)
-        assert result.final_ranking == ["A", "B", "C"]
+        assert ranking_names(result) == ["A", "B", "C"]
 
     def test_two_competitors(self, two_competitors):
         result = self.system.calculate(two_competitors)
-        assert result.final_ranking == ["A", "B"]
+        assert ranking_names(result) == ["A", "B"]
 
     def test_perfect_cycle(self, perfect_cycle):
         """All Borda scores equal (3 each). All competitors should be present."""
         result = self.system.calculate(perfect_cycle)
         assert len(result.final_ranking) == 3
-        assert set(result.final_ranking) == {"A", "B", "C"}
+        assert set(ranking_names(result)) == {"A", "B", "C"}
 
     def test_details_has_expected_keys(self, clear_winner):
         result = self.system.calculate(clear_winner)
@@ -103,7 +103,7 @@ class TestBordaCount:
         scores = result.details["scores"]
         assert scores["A"] == scores["B"] == scores["C"] == 9
         assert scores["D"] == 3
-        assert result.final_ranking == ["B", "A", "C", "D"]
+        assert ranking_names(result) == ["B", "A", "C", "D"]
 
         # Verify tiebreaker info reports recursive-borda
         assert len(result.details["tiebreakers"]) == 1

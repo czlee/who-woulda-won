@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.conftest import make_scoresheet
+from tests.conftest import make_scoresheet, ranking_names
 from core.voting.relative_placement import RelativePlacementSystem
 
 
@@ -41,7 +41,7 @@ class TestRelativePlacement:
     def test_clear_winner(self, clear_winner):
         """Dataset 1: Clear majorities at each cutoff → A, B, C, D."""
         result = self.system.calculate(clear_winner)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
     def test_disagreement_differs_from_others(self, disagreement):
         """Dataset 2: RP uniquely gives A, B, D, C.
@@ -49,21 +49,21 @@ class TestRelativePlacement:
         Place 3: D has greater majority at cutoff 3 (4 judges vs C's 3).
         """
         result = self.system.calculate(disagreement)
-        assert result.final_ranking == ["A", "B", "D", "C"]
+        assert ranking_names(result) == ["A", "B", "D", "C"]
 
     def test_unanimous(self, unanimous):
         result = self.system.calculate(unanimous)
-        assert result.final_ranking == ["A", "B", "C"]
+        assert ranking_names(result) == ["A", "B", "C"]
 
     def test_two_competitors(self, two_competitors):
         result = self.system.calculate(two_competitors)
-        assert result.final_ranking == ["A", "B"]
+        assert ranking_names(result) == ["A", "B"]
 
     def test_perfect_cycle(self, perfect_cycle):
         """Symmetric case — all cumulative counts identical."""
         result = self.system.calculate(perfect_cycle)
         assert len(result.final_ranking) == 3
-        assert set(result.final_ranking) == {"A", "B", "C"}
+        assert set(ranking_names(result)) == {"A", "B", "C"}
 
     def test_majority_threshold(self, clear_winner):
         """3 judges → majority = 2."""
@@ -94,7 +94,7 @@ class TestRelativePlacement:
             "J5": {"A": 3, "B": 2, "C": 1},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking[0] == "B"
+        assert ranking_names(result)[0] == "B"
 
         place1 = result.details["rounds"][0]
         resolution = place1["resolution"]
@@ -160,7 +160,7 @@ class TestRelativePlacement:
         5 (1+1+1+2), B's sum to 7 (1+2+2+2). Lower sum wins → A.
         """
         result = self.system.calculate(quality_of_majority_scoresheet)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
         place1 = result.details["rounds"][0]
         resolution = place1["resolution"]
@@ -206,7 +206,7 @@ class TestRelativePlacement:
             "J5": {"A": 5, "B": 3, "C": 1, "D": 2, "E": 4},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking == ["B", "A", "C", "D", "E"]
+        assert ranking_names(result) == ["B", "A", "C", "D", "E"]
 
         place1 = result.details["rounds"][0]
         resolution = place1["resolution"]
@@ -276,7 +276,7 @@ class TestRelativePlacementRealData:
             "MP": {"SS_GW": 4, "CL_EA": 1, "JP_FF": 5, "AW_DP": 3, "LC_HR": 2, "MD_AH": 8, "TL_LD": 6, "TN_TS": 7, "TM_RP": 9},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking == [
+        assert ranking_names(result) == [
             "SS_GW", "CL_EA", "JP_FF", "AW_DP", "LC_HR",
             "MD_AH", "TN_TS", "TL_LD", "TM_RP",
         ]
@@ -298,7 +298,7 @@ class TestRelativePlacementRealData:
             "AV": {"MD_FF": 2, "DR_CH": 1, "DS_JZ": 10, "CL_GW": 4, "NE_LJ": 8, "CJ_CH": 7, "HC_CB": 5, "JP_SVH": 9, "TL_AS": 3, "TM": 6},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking == [
+        assert ranking_names(result) == [
             "MD_FF", "DR_CH", "DS_JZ", "CL_GW", "NE_LJ",
             "CJ_CH", "HC_CB", "TM", "JP_SVH", "TL_AS",
         ]

@@ -1,6 +1,6 @@
 """Schulze method voting system."""
 
-from core.models import Scoresheet, VotingResult
+from core.models import Placement, Scoresheet, VotingResult
 from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
@@ -85,7 +85,7 @@ class SchulzeSystem(VotingSystem):
         indexed_results = [(competitors[i], wins[i]) for i in range(n)]
         indexed_results.sort(key=lambda x: x[1], reverse=True)
 
-        final_ranking = [c for c, _ in indexed_results]
+        ordered = [c for c, _ in indexed_results]
 
         # Detect ties (same number of wins)
         ties = []
@@ -99,6 +99,8 @@ class SchulzeSystem(VotingSystem):
             if len(tie_group) > 1:
                 ties.append(tie_group)
             i = j
+
+        final_ranking = Placement.build_ranking(ordered, ties)
 
         # Build readable matrices for details
         pairwise_matrix = {

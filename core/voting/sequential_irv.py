@@ -2,7 +2,7 @@
 
 import random
 
-from core.models import Scoresheet, VotingResult
+from core.models import Placement, Scoresheet, VotingResult
 from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
@@ -41,6 +41,7 @@ class SequentialIRVSystem(VotingSystem):
 
     def calculate(self, scoresheet: Scoresheet) -> VotingResult:
         final_ranking = []
+        tied_groups = []
         remaining = set(scoresheet.competitors)
         placement_rounds = []
 
@@ -67,6 +68,7 @@ class SequentialIRVSystem(VotingSystem):
 
             if isinstance(winner, list):
                 # Tie - add all tied competitors
+                tied_groups.append(list(winner))
                 for w in winner:
                     final_ranking.append(w)
                     remaining.discard(w)
@@ -78,7 +80,7 @@ class SequentialIRVSystem(VotingSystem):
 
         return VotingResult(
             system_name=self.name,
-            final_ranking=final_ranking,
+            final_ranking=Placement.build_ranking(final_ranking, tied_groups),
             details={
                 "placement_rounds": placement_rounds,
             },

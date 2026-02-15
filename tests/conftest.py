@@ -1,6 +1,11 @@
 """Shared test helpers."""
 
-from core.models import Scoresheet
+from core.models import Scoresheet, VotingResult
+
+
+def ranking_names(result: VotingResult) -> list[str]:
+    """Extract competitor names from a VotingResult's final_ranking."""
+    return [p.name for p in result.final_ranking]
 
 
 def make_scoresheet(name: str, rankings_table: dict[str, dict[str, int]]) -> Scoresheet:

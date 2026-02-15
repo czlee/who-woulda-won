@@ -1,6 +1,6 @@
 """Tests for Sequential IRV voting system."""
 
-from tests.conftest import make_scoresheet
+from tests.conftest import make_scoresheet, ranking_names
 from core.voting.sequential_irv import SequentialIRVSystem
 
 
@@ -14,7 +14,7 @@ class TestSequentialIRV:
     def test_clear_winner(self, clear_winner):
         """Dataset 1: A has first-choice majority (2/3) → A, B, C, D."""
         result = self.system.calculate(clear_winner)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
     def test_disagreement(self, disagreement):
         """Dataset 2: No first-choice majority. Elimination rounds resolve.
@@ -23,21 +23,21 @@ class TestSequentialIRV:
         Then: A=2, B=2, C=1. Eliminate C. Then: A=3, B=2. A wins.
         """
         result = self.system.calculate(disagreement)
-        assert result.final_ranking == ["A", "B", "C", "D"]
+        assert ranking_names(result) == ["A", "B", "C", "D"]
 
     def test_unanimous(self, unanimous):
         result = self.system.calculate(unanimous)
-        assert result.final_ranking == ["A", "B", "C"]
+        assert ranking_names(result) == ["A", "B", "C"]
 
     def test_two_competitors(self, two_competitors):
         result = self.system.calculate(two_competitors)
-        assert result.final_ranking == ["A", "B"]
+        assert ranking_names(result) == ["A", "B"]
 
     def test_perfect_cycle(self, perfect_cycle):
         """All first-choice votes equal (1 each). All competitors present."""
         result = self.system.calculate(perfect_cycle)
         assert len(result.final_ranking) == 3
-        assert set(result.final_ranking) == {"A", "B", "C"}
+        assert set(ranking_names(result)) == {"A", "B", "C"}
 
     def test_majority_wins_immediately(self):
         """When one competitor has >50% first-choice, no elimination needed.
@@ -55,7 +55,7 @@ class TestSequentialIRV:
             "J5": {"A": 3, "B": 1, "C": 2},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking[0] == "A"
+        assert ranking_names(result)[0] == "A"
         # First placement should resolve in 1 IRV round (immediate majority)
         first_round = result.details["placement_rounds"][0]
         assert len(first_round["irv_rounds"]) == 1
@@ -78,7 +78,7 @@ class TestSequentialIRV:
         })
         result = self.system.calculate(scoresheet)
         # C has 3 first-choice votes → majority → wins 1st
-        assert result.final_ranking[0] == "C"
+        assert ranking_names(result)[0] == "C"
 
     def test_details_has_expected_keys(self, clear_winner):
         result = self.system.calculate(clear_winner)
@@ -110,8 +110,8 @@ class TestSequentialIRV:
             "J7": {"A": 3, "B": 2, "C": 1},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking[0] == "A"
-        assert result.final_ranking == ["A", "B", "C"]
+        assert ranking_names(result)[0] == "A"
+        assert ranking_names(result) == ["A", "B", "C"]
 
     def test_two_way_elimination_tiebreak_details(self):
         """Verify tiebreak details structure for 2-way elimination."""
@@ -171,7 +171,7 @@ class TestSequentialIRV:
             "J9": {"A": 3, "B": 4, "C": 3, "D": 1},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking[0] == "A"
+        assert ranking_names(result)[0] == "A"
 
     def test_restricted_vote_elimination_tiebreak_details(self):
         """Verify tiebreak details for restricted vote elimination."""
@@ -232,7 +232,7 @@ class TestSequentialIRV:
             "J9": {"A": 4, "B": 3, "C": 2, "D": 1},
         })
         result = self.system.calculate(scoresheet)
-        assert set(result.final_ranking) == {"A", "B", "C", "D"}
+        assert set(ranking_names(result)) == {"A", "B", "C", "D"}
 
         first_placement = result.details["placement_rounds"][0]
         round1 = first_placement["irv_rounds"][0]
@@ -281,7 +281,7 @@ class TestSequentialIRV:
             "J10": {"A": 2, "D": 1, "C": 3, "B": 4},
         })
         result = self.system.calculate(scoresheet)
-        assert result.final_ranking[0] == "A"
+        assert ranking_names(result)[0] == "A"
 
         first_placement = result.details["placement_rounds"][0]
         round1 = first_placement["irv_rounds"][0]

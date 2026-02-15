@@ -130,12 +130,12 @@ function displayResults(data) {
 
             // For non-RP columns, show triangle relative to RP placement
             if (i > 0 && placement !== null && rpPlacement !== null) {
-                if (placement < rpPlacement) {
+                if (placement.rank < rpPlacement.rank) {
                     const arrow = document.createElement('span');
                     arrow.className = 'placement-up';
                     arrow.textContent = ' \u25B2';
                     td.appendChild(arrow);
-                } else if (placement > rpPlacement) {
+                } else if (placement.rank > rpPlacement.rank) {
                     const arrow = document.createElement('span');
                     arrow.className = 'placement-down';
                     arrow.textContent = ' \u25BC';
@@ -144,7 +144,7 @@ function displayResults(data) {
             }
 
             // Highlight winners
-            if (placement === 1) {
+            if (placement !== null && placement.rank === 1) {
                 td.classList.add('winner');
             }
 
@@ -171,15 +171,15 @@ function reorderResults(results) {
 }
 
 /**
- * Build a map of competitor -> [placement for each system]
+ * Build a map of competitor -> [{rank, tied} for each system]
  */
 function buildRankingsMap(results, competitors) {
     const rankings = {};
 
     competitors.forEach(competitor => {
         rankings[competitor] = results.map(result => {
-            const idx = result.final_ranking.indexOf(competitor);
-            return idx >= 0 ? idx + 1 : null;
+            const entry = result.final_ranking.find(e => e.name === competitor);
+            return entry ? { rank: entry.rank, tied: entry.tied } : null;
         });
     });
 
@@ -187,14 +187,26 @@ function buildRankingsMap(results, competitors) {
 }
 
 /**
- * Format placement as ordinal (1st, 2nd, etc.)
+ * Format placement as ordinal (1st, 2nd, etc.), with "=" suffix when tied.
+ * Accepts either a number or a {rank, tied} object.
  */
-function formatPlacement(n) {
+function formatPlacement(placement) {
+    if (placement === null || placement === undefined) return '\u2014';
+
+    let n, tied;
+    if (typeof placement === 'object') {
+        n = placement.rank;
+        tied = placement.tied;
+    } else {
+        n = placement;
+        tied = false;
+    }
+
     if (n === null || n === undefined) return '\u2014';
 
     const suffixes = ['th', 'st', 'nd', 'rd'];
     const v = n % 100;
-    return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+    return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]) + (tied ? '=' : '');
 }
 
 /**
@@ -392,7 +404,7 @@ function renderRPDetails(container, result, data) {
     const cellDisplay = buildRPCellDisplay(details, n);
 
     // Sort competitors by final ranking
-    const sorted = [...result.final_ranking];
+    const sorted = result.final_ranking.map(e => e.name);
 
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
@@ -442,6 +454,7 @@ function renderRPDetails(container, result, data) {
     tbody.appendChild(majRow);
 
     // Competitor rows
+    const rpPlacements = result.final_ranking;
     sorted.forEach((competitor, idx) => {
         const tr = document.createElement('tr');
 
@@ -504,7 +517,7 @@ function renderRPDetails(container, result, data) {
 
         // Result column
         const resultTd = document.createElement('td');
-        resultTd.textContent = formatPlacement(idx + 1);
+        resultTd.textContent = formatPlacement(rpPlacements[idx]);
         resultTd.classList.add('rp-result');
         tr.appendChild(resultTd);
 
@@ -645,7 +658,7 @@ function buildBordaTable(competitors, breakdowns, scores, judgeInfos) {
 function renderBordaDetails(container, result, data) {
     const details = result.details;
     const judges = data.judges;
-    const sorted = [...result.final_ranking];
+    const sorted = result.final_ranking.map(e => e.name);
     const judgeInfos = buildJudgeInitials(judges);
 
     // Main table
@@ -693,7 +706,7 @@ function renderBordaDetails(container, result, data) {
  */
 function renderSchulzeDetails(container, result, data) {
     const details = result.details;
-    const competitors = result.final_ranking;
+    const competitors = result.final_ranking.map(e => e.name);
     const compInfos = buildCompetitorInitials(competitors);
     const compInitialsMap = {};
     compInfos.forEach(c => { compInitialsMap[c.name] = c.initials; });

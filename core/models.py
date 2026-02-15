@@ -1,7 +1,7 @@
 """Core data models for scoresheet and voting results."""
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Self
 
 
 @dataclass
@@ -54,6 +54,61 @@ class Scoresheet:
 
 
 @dataclass
+class Placement:
+    """A competitor's placement in a voting result.
+
+    Attributes:
+        name: Competitor identifier
+        rank: 1-indexed placement (tied competitors share the same rank)
+        tied: Whether this competitor is tied with others at this rank
+    """
+    name: str
+    rank: int
+    tied: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"name": self.name, "rank": self.rank, "tied": self.tied}
+
+    @classmethod
+    def build_ranking(
+        cls, ordered: list[str], tied_groups: list[list[str]]
+    ) -> list[Self]:
+        """Build a list of Placements from an ordered list and tie groups.
+
+        Args:
+            ordered: Competitors in order from 1st to last place.
+            tied_groups: Lists of competitors who are tied with each other.
+                Each group must contain 2+ competitors that appear
+                consecutively in `ordered`.
+
+        Returns:
+            List of Placement objects with correct ranks and tied flags.
+        """
+        tied_set = {}  # maps competitor -> their tied group
+        for group in tied_groups:
+            for name in group:
+                tied_set[name] = group
+
+        placements = []
+        rank = 1
+        i = 0
+        while i < len(ordered):
+            name = ordered[i]
+            if name in tied_set:
+                group = tied_set[name]
+                for member in group:
+                    placements.append(cls(name=member, rank=rank, tied=True))
+                i += len(group)
+                rank += len(group)
+            else:
+                placements.append(cls(name=name, rank=rank, tied=False))
+                i += 1
+                rank += 1
+
+        return placements
+
+
+@dataclass
 class VotingResult:
     """Result from a voting system.
 
@@ -64,12 +119,12 @@ class VotingResult:
                  (e.g., point totals, elimination rounds, tiebreaker info)
     """
     system_name: str
-    final_ranking: list[str]
+    final_ranking: list[Placement]
     details: dict[str, Any] = field(default_factory=dict)
 
     def get_place(self, competitor: str) -> int | None:
         """Get the 1-indexed placement for a competitor, or None if not found."""
-        try:
-            return self.final_ranking.index(competitor) + 1
-        except ValueError:
-            return None
+        for p in self.final_ranking:
+            if p.name == competitor:
+                return p.rank
+        return None
