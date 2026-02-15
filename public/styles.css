@@ -1,3 +1,13 @@
+/* Custom properties */
+:root {
+    --color-primary: #3498DB;
+    --color-primary-dark: #2471A3;
+    --color-primary-hover: #2E86C1;
+    --color-primary-light: #5DADE2;
+    --color-primary-bg: #EBF5FB;
+    --color-primary-border-light: #A9CCE3;
+}
+
 /* Reset and base styles */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -18,7 +28,7 @@ header {
     text-align: center;
     margin-bottom: 2rem;
     padding: 1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
     color: white;
     border-radius: 8px;
 }
@@ -50,7 +60,7 @@ section {
 h2 {
     margin-top: 0;
     color: #444;
-    border-bottom: 2px solid #667eea;
+    border-bottom: 2px solid var(--color-primary);
     padding-bottom: 0.5rem;
 }
 
@@ -84,13 +94,13 @@ h3 {
 }
 
 .tab-btn:hover {
-    border-color: #667eea;
+    border-color: var(--color-primary);
 }
 
 .tab-btn.active {
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
-    border-color: #667eea;
+    border-color: var(--color-primary);
 }
 
 .tab-content {
@@ -123,7 +133,7 @@ input[type="file"] {
 }
 
 input[type="url"]:focus {
-    border-color: #667eea;
+    border-color: var(--color-primary);
     outline: none;
 }
 
@@ -135,7 +145,7 @@ input[type="url"]:focus {
 
 button[type="submit"] {
     padding: 0.75rem 1.5rem;
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     border: none;
     border-radius: 4px;
@@ -145,7 +155,7 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-    background: #5a6fd6;
+    background: var(--color-primary-hover);
 }
 
 button[type="submit"]:disabled {
@@ -163,7 +173,7 @@ button[type="submit"]:disabled {
     width: 40px;
     height: 40px;
     border: 4px solid #ddd;
-    border-top-color: #667eea;
+    border-top-color: var(--color-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 1rem;
@@ -216,6 +226,7 @@ button[type="submit"]:disabled {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
+    table-layout: fixed;
 }
 
 .results-table th,
@@ -226,7 +237,7 @@ button[type="submit"]:disabled {
 }
 
 .results-table th {
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     font-weight: 600;
 }
@@ -245,7 +256,7 @@ button[type="submit"]:disabled {
 }
 
 .results-table tbody tr:hover {
-    background: #f0f0ff;
+    background: var(--color-primary-bg);
 }
 
 /* Placement change triangles */
@@ -280,7 +291,7 @@ button[type="submit"]:disabled {
     padding: 0.75rem 1rem;
     cursor: pointer;
     font-weight: 600;
-    color: #667eea;
+    color: var(--color-primary);
     list-style: none;
     display: flex;
     align-items: center;
@@ -331,7 +342,7 @@ button[type="submit"]:disabled {
 }
 
 .detail-table th {
-    background: #667eea;
+    background: var(--color-primary);
     color: white;
     font-weight: 600;
     font-size: 0.8rem;
@@ -346,14 +357,26 @@ button[type="submit"]:disabled {
     background: #f4f4f4;
 }
 
+.detail-table tbody tr:hover {
+    background: var(--color-primary-bg);
+}
+
+/* Special cell colours override row hover (slightly darker than non-hover) */
+.detail-table tbody tr:hover .cell-wins   { background-color: #cbe9d2; }
+.detail-table tbody tr:hover .cell-loses  { background-color: #f4ccd0; }
+.detail-table tbody tr:hover .cell-ties   { background-color: #ffeeb9; }
+.detail-table tbody tr:hover .cell-diagonal { background-color: #e3e6ea; }
+.detail-table tbody tr:hover .rp-first-majority { background: #cbe9d2; }
+.detail-table tbody tr:hover .rp-highlight { background: #cbe9d2; }
+
 /* RP table: separator between judge and cumulative columns */
 .detail-table .rp-separator {
-    border-left: 3px solid #667eea;
+    border-left: 3px solid var(--color-primary);
 }
 
 /* RP table: result column */
 .detail-table .rp-result {
-    border-left: 3px solid #667eea;
+    border-left: 3px solid var(--color-primary);
     font-weight: 600;
 }
 
@@ -371,6 +394,20 @@ button[type="submit"]:disabled {
 /* RP table: highlight judge cells on count hover */
 .rp-highlight {
     background: #d4edda !important;
+}
+
+/* Borda tiebreak section header within unified table */
+/* Need specificity to override .detail-table td and .detail-table td:first-child */
+.detail-table td.borda-section-header:first-child,
+.detail-table td.borda-section-header,
+.borda-section-header {
+    color: var(--color-primary);
+    background: #f9f9f9;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: left;
+    border-left: none;
+    border-right: none;
 }
 
 /* Schulze matrix cell colours */
@@ -392,7 +429,7 @@ button[type="submit"]:disabled {
 
 .schulze-wins-col {
     font-weight: 600;
-    border-left: 3px solid #667eea;
+    border-left: 3px solid var(--color-primary);
 }
 
 /* Sequential IRV narrative */
@@ -470,15 +507,15 @@ thead .has-tooltip:hover {
 .irv-tiebreak {
     margin: 0.25rem 0 0.5rem 1rem;
     padding: 0.4rem 0.6rem;
-    border-left: 2px solid #e0a040;
-    background: #fffbf0;
+    border-left: 2px solid var(--color-primary-light);
+    background: var(--color-primary-bg);
     font-size: 0.85rem;
     color: #555;
 }
 
 .irv-tiebreak-header {
     font-weight: 600;
-    color: #b8860b;
+    color: var(--color-primary-dark);
     margin-bottom: 0.2rem;
     font-size: 0.85rem;
 }
@@ -506,8 +543,8 @@ thead .has-tooltip:hover {
 
 /* Privacy notice */
 .privacy-notice {
-    background: #e8f4f8;
-    border: 1px solid #b8d4e3;
+    background: var(--color-primary-bg);
+    border: 1px solid var(--color-primary-border-light);
     font-size: 0.9rem;
 }
 
@@ -529,7 +566,7 @@ footer {
 }
 
 footer a {
-    color: #667eea;
+    color: var(--color-primary);
 }
 
 /* Utility classes */
