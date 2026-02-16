@@ -272,6 +272,17 @@ class TestSchulze:
         assert result.details["ties"] == []
 
     def test_winning_beatpath_strength_tiebreak(self):
+        """Three-way tie on wins resolved by winning beatpath strength sums.
+
+             J1  J2  J3  J4  J5  J6
+        A     1   3   2   1   3   2
+        B     2   1   3   2   1   4
+        C     4   2   1   4   2   1
+        D     3   4   4   3   4   3
+
+        A, B, C each have 2 Schulze wins, D has 0. Winning beatpath
+        strength sums break the tie: A=6, B=5, C=4 → A, B, C, D.
+        """
         scoresheet = make_scoresheet("Winning Beatpath Strength Tiebreak", {
             "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
             "J2": {"A": 3, "B": 1, "C": 2, "D": 4},
@@ -297,6 +308,18 @@ class TestSchulze:
         assert beatpath_sums["C"] == 4
 
     def test_winning_beatpath_strength_partial_tiebreak(self):
+        """Three-way tie on wins only partially resolved by winning beatpath strength.
+
+             J1  J2  J3  J4  J5  J6
+        A     1   3   2   1   3   2
+        B     2   1   3   2   1   3
+        C     4   2   1   4   2   1
+        D     3   4   4   3   4   4
+
+        Same as above but J6 ranks B 3rd instead of 4th. A, B, C each
+        have 2 Schulze wins. Winning beatpath strength sums: A=6, B=6,
+        C=4. C is resolved to 3rd, but A and B remain tied at 1st.
+        """
         scoresheet = make_scoresheet("Winning Beatpath Strength Partial Tiebreak", {
             "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
             "J2": {"A": 3, "B": 1, "C": 2, "D": 4},
