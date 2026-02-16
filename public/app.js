@@ -430,7 +430,6 @@ function renderRPDetails(container, result, data) {
 
     // Determine which cumulative cells to display
     const cellDisplay = buildRPCellDisplay(details, n);
-    const hasQuality = Object.values(cellDisplay).some(d => d.quality !== undefined);
 
     // Sort competitors by final ranking
     const sorted = result.final_ranking.map(e => e.name);
@@ -538,14 +537,6 @@ function renderRPDetails(container, result, data) {
 
     table.appendChild(tbody);
     wrapper.appendChild(table);
-
-    // Add quality-of-majority explanatory note if any quality scores are shown
-    if (hasQuality) {
-        const note = document.createElement('p');
-        note.className = 'detail-description';
-        note.textContent = 'Numbers in parentheses are the sum of the individual judge rankings counted for that cell (highlighted when you roll over the cell), sometimes known as the \u201Cquality of majority\u201D or \u201Caggregate\u201D.';
-        container.appendChild(note);
-    }
 
     container.appendChild(wrapper);
 }
@@ -777,14 +768,14 @@ function renderSchulzeDetails(container, result, data) {
         buildSchulzeMatrix(competitors, compInitialsMap, details.pairwise_preferences, null)
     );
 
-    // Strongest Path Strengths
+    // Strongest Beatpath Strengths
     const h4b = document.createElement('h4');
-    h4b.textContent = 'Strongest Path Strengths';
+    h4b.textContent = 'Strongest Beatpath Strengths';
     container.appendChild(h4b);
 
     const sDesc = document.createElement('p');
     sDesc.className = 'detail-description';
-    sDesc.textContent = 'Cell (row, column) = strength of strongest path from row to column. Rightmost column = number of Schulze wins (ties count as half).';
+    sDesc.textContent = 'Cell (row, column) = strength of strongest beatpath from row to column. Rightmost column = number of Schulze wins (ties count as half).';
     container.appendChild(sDesc);
 
     container.appendChild(
