@@ -271,3 +271,56 @@ class TestSchulze:
         # No ties remain — half-points resolved them all
         assert result.details["ties"] == []
 
+    def test_winning_beatpath_strength_tiebreak(self):
+        scoresheet = make_scoresheet("Winning Beatpath Strength Tiebreak", {
+            "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J2": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J3": {"A": 2, "B": 3, "C": 1, "D": 4},
+            "J4": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J5": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J6": {"A": 2, "B": 4, "C": 1, "D": 3},
+        })
+        result = self.system.calculate(scoresheet)
+        wins = result.details["schulze_wins"]
+        assert wins["A"] == 2
+        assert wins["B"] == 2
+        assert wins["C"] == 2
+        assert wins["D"] == 0
+
+        names = ranking_names(result)
+        assert names == ["A", "B", "C", "D"]
+        assert result.details["tiebreak_used"] == "winning"
+
+        beatpath_sums = result.details["winning_beatpath_sums"]
+        assert beatpath_sums["A"] == 6
+        assert beatpath_sums["B"] == 5
+        assert beatpath_sums["C"] == 4
+
+    def test_winning_beatpath_strength_partial_tiebreak(self):
+        scoresheet = make_scoresheet("Winning Beatpath Strength Partial Tiebreak", {
+            "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J2": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J3": {"A": 2, "B": 3, "C": 1, "D": 4},
+            "J4": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J5": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J6": {"A": 2, "B": 3, "C": 1, "D": 4},
+        })
+        result = self.system.calculate(scoresheet)
+        wins = result.details["schulze_wins"]
+        assert wins["A"] == 2
+        assert wins["B"] == 2
+        assert wins["C"] == 2
+        assert wins["D"] == 0
+
+        assert {r.name for r in result.final_ranking[0:2]} == {"A", "B"}
+        assert all(r.rank == 1 for r in result.final_ranking[0:2])
+        assert all(r.tied == True for r in result.final_ranking[0:2])
+        assert result.final_ranking[2].to_dict() == {"name": "C", "rank": 3, "tied": False}
+        assert result.final_ranking[3].to_dict() == {"name": "D", "rank": 4, "tied": False}
+
+        assert result.details["tiebreak_used"] == "winning"
+
+        beatpath_sums = result.details["winning_beatpath_sums"]
+        assert beatpath_sums["A"] == 6
+        assert beatpath_sums["B"] == 6
+        assert beatpath_sums["C"] == 4
