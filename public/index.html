@@ -68,7 +68,85 @@
                 </table>
             </div>
 
-            <div id="voting-details-container"></div>
+            <div id="voting-details-container">
+                <div class="voting-details">
+                    <details class="voting-detail-block" id="detail-relative-placement">
+                        <summary>Relative Placement</summary>
+                        <div class="detail-content">
+                            <p class="detail-description">The official WCS system. A competitor places when a majority of judges rank them at that place or better.</p>
+                            <details class="learn-more">
+                                <summary>Learn more</summary>
+                                <div class="learn-more-content">
+                                    <p>Relative Placement is the <strong>official scoring system used in West Coast Swing</strong> competitions. It works by finding, for each placement, the competitor who has a majority of judges ranking them at that place or better.</p>
+                                    <p>The system processes placements in order (1st, 2nd, 3rd, etc.). For each placement, it counts how many judges ranked each remaining competitor at that place or higher. This is the <em>cumulative count</em>. The competitor who first achieves a majority (more than half of the judges) at some cumulative column earns that placement.</p>
+                                    <p>When two or more competitors reach a majority in the same column, tiebreakers apply:</p>
+                                    <ul>
+                                        <li><strong>Greater majority:</strong> The competitor with more judges at or above that column wins the tie.</li>
+                                        <li><strong>Quality of majority:</strong> If still tied, sum the actual placements given by the judges who contributed to the majority. The lower total (better quality) wins.</li>
+                                    </ul>
+                                    <p>In the working table below, each competitor's row shows their individual judge placements, followed by cumulative counts. The cell where a majority is first reached is highlighted.</p>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+
+                    <details class="voting-detail-block" id="detail-borda-count">
+                        <summary>Borda Count</summary>
+                        <div class="detail-content">
+                            <p class="detail-description">Points-based: 1st place = n&#x2212;1 points, 2nd = n&#x2212;2, &#x2026;, last = 0. Sum across all judges.</p>
+                            <details class="learn-more">
+                                <summary>Learn more</summary>
+                                <div class="learn-more-content">
+                                    <p>The <strong>Borda Count</strong> assigns points based on each judge's ranking. With <em>n</em> competitors, a 1st-place ranking is worth <em>n</em>&#x2212;1 points, 2nd place is worth <em>n</em>&#x2212;2, and so on down to 0 for last place. Each competitor's points are summed across all judges.</p>
+                                    <p>The competitor with the highest total wins. For subsequent placements, if there is a tie in the main Borda scores, a <strong>recursive Borda tiebreak</strong> is used: the tied competitors are re-scored using only their relative rankings among each other, effectively running a smaller Borda Count within the tied group. This process repeats if the tiebreak itself produces a tie.</p>
+                                    <p>Borda Count tends to favour broadly acceptable candidates over polarising ones, since it rewards consistent mid-to-high rankings rather than requiring outright majorities.</p>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+
+                    <details class="voting-detail-block" id="detail-schulze-method">
+                        <summary>Schulze Method</summary>
+                        <div class="detail-content">
+                            <p class="detail-description">A Condorcet method using beatpath strengths. Handles cyclic preferences gracefully.</p>
+                            <details class="learn-more">
+                                <summary>Learn more</summary>
+                                <div class="learn-more-content">
+                                    <p>The <strong>Schulze Method</strong> is a Condorcet voting system, meaning it tries to find the candidate who would beat every other candidate in a head-to-head comparison. It handles situations where preferences are cyclic (A beats B, B beats C, C beats A) by using <em>beatpath strengths</em>.</p>
+                                    <p>First, a <strong>pairwise preference matrix</strong> is built: for each pair of competitors, count how many judges prefer one over the other. Then, the algorithm finds the strongest <em>beatpath</em> between every pair of competitors. A beatpath from A to B is a sequence of pairwise victories (A beats X, X beats Y, &#x2026;, Z beats B), and its strength is the weakest link in the chain.</p>
+                                    <p>A competitor wins against another if their strongest beatpath to that opponent is stronger than the reverse path. The overall winner is the competitor whose strongest beatpath to every other competitor exceeds the reverse, and subsequent placements follow the same logic.</p>
+                                    <p>The two tables below show the pairwise preference matrix (direct head-to-head counts) and the strongest path matrix (computed beatpath strengths).</p>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+
+                    <details class="voting-detail-block" id="detail-sequential-irv">
+                        <summary>Sequential IRV</summary>
+                        <div class="detail-content">
+                            <p class="detail-description">Run Instant Runoff Voting repeatedly: find winner, remove them, repeat for 2nd place, etc.</p>
+                            <details class="learn-more">
+                                <summary>Learn more</summary>
+                                <div class="learn-more-content">
+                                    <p><strong>Sequential Instant Runoff Voting (IRV)</strong> determines placements one at a time. To find 1st place, it runs a full IRV election among all competitors. The winner is removed, and IRV runs again among the remaining competitors to find 2nd place, and so on.</p>
+                                    <p>Each IRV election works as follows:</p>
+                                    <ul>
+                                        <li>Count each judge's top-ranked competitor (among those still in the race) as a first-preference vote.</li>
+                                        <li>If a competitor has a <strong>majority</strong> (more than half of all votes), they win.</li>
+                                        <li>Otherwise, the competitor with the <strong>fewest votes is eliminated</strong>, and their votes are redistributed to each judge's next preferred competitor.</li>
+                                        <li>This process repeats until someone achieves a majority.</li>
+                                    </ul>
+                                    <p>Sequential IRV can produce different results from Relative Placement because it considers each judge's full ranking through the elimination process, rather than looking at cumulative placement counts.</p>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+                </div>
+            </div>
         </section>
 
         <section class="privacy-notice">
