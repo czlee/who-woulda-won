@@ -84,23 +84,19 @@ class SchulzeSystem(VotingSystem):
 
         # Compute tiebreak metrics
         winning_strength = {}
-        total_strength = {}
         for i in range(n):
             ws = 0
-            ts = 0
             for j in range(n):
                 if i != j:
-                    ts += p[i][j]
                     if p[i][j] > p[j][i]:
                         ws += p[i][j]
             winning_strength[competitors[i]] = ws
-            total_strength[competitors[i]] = ts
 
-        # Sort competitors by (wins, winning_strength, total_strength) descending
+        # Sort competitors by (wins, winning_strength) descending
         wins_map = {competitors[i]: wins[i] for i in range(n)}
         sorted_comps = sorted(
             competitors,
-            key=lambda c: (wins_map[c], winning_strength[c], total_strength[c]),
+            key=lambda c: (wins_map[c], winning_strength[c]),
             reverse=True,
         )
 
@@ -108,15 +104,13 @@ class SchulzeSystem(VotingSystem):
         ordered: list[str | list[str]] = []
         ties = []
         used_winning = False
-        used_total = False
         i = 0
         while i < n:
-            # Collect group with identical (wins, ws, ts) tuples
+            # Collect group with identical (wins, ws) tuples
             j = i + 1
             while j < n and (
                 wins_map[sorted_comps[j]] == wins_map[sorted_comps[i]]
                 and winning_strength[sorted_comps[j]] == winning_strength[sorted_comps[i]]
-                and total_strength[sorted_comps[j]] == total_strength[sorted_comps[i]]
             ):
                 j += 1
             group = sorted_comps[i:j]
@@ -128,7 +122,7 @@ class SchulzeSystem(VotingSystem):
             i = j
 
         # Detect whether tiebreaks were needed by checking if any competitors
-        # share wins but differ on winning_strength or total_strength
+        # share wins but differ on winning_strength
         for a in range(n):
             for b in range(a + 1, n):
                 ca, cb = sorted_comps[a], sorted_comps[b]
@@ -136,15 +130,8 @@ class SchulzeSystem(VotingSystem):
                     continue
                 if winning_strength[ca] != winning_strength[cb]:
                     used_winning = True
-                elif total_strength[ca] != total_strength[cb]:
-                    used_total = True
 
-        if used_total:
-            tiebreak_used = "total"
-        elif used_winning:
-            tiebreak_used = "winning"
-        else:
-            tiebreak_used = "none"
+        tiebreak_used = "winning" if used_winning else "none"
 
         final_ranking = Placement.build_ranking(ordered)
 
@@ -179,16 +166,11 @@ class SchulzeSystem(VotingSystem):
             ),
         }
 
-        if tiebreak_used in ("winning", "total"):
+        if tiebreak_used == "winning":
             details["winning_beatpath_sums"] = winning_strength
             details["explanation"] += (
                 " Ties in win count are broken by the sum of winning "
                 "beatpath strengths."
-            )
-        if tiebreak_used == "total":
-            details["total_beatpath_sums"] = total_strength
-            details["explanation"] += (
-                " If still tied, the sum of all beatpath strengths is used."
             )
 
         return VotingResult(

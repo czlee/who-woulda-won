@@ -777,7 +777,7 @@ function renderSchulzeDetails(container, result, data) {
     sDesc.className = 'detail-description';
     let sDescText = 'Cell (row, column) = strength of strongest beatpath from row to column. Rightmost column = number of Schulze wins (ties count as half).';
     const extraCols = [];
-    if (details.tiebreak_used === 'winning' || details.tiebreak_used === 'total') {
+    if (details.tiebreak_used === 'winning') {
         // Show Win Str only for competitors whose win count matches another's
         const winCounts = Object.values(details.schulze_wins);
         const winStrRelevant = new Set(Object.keys(details.schulze_wins).filter(c => {
@@ -786,18 +786,6 @@ function renderSchulzeDetails(container, result, data) {
         }));
         extraCols.push({header: 'Win Str', values: details.winning_beatpath_sums, relevant: winStrRelevant});
         sDescText += ' "Win Str" = sum of winning beatpath strengths (tiebreaker).';
-    }
-    if (details.tiebreak_used === 'total') {
-        // Show Total Str only for competitors that also tie on Win Str
-        const wins = details.schulze_wins;
-        const ws = details.winning_beatpath_sums;
-        const totalStrRelevant = new Set(Object.keys(wins).filter(c => {
-            return Object.keys(wins).some(other =>
-                other !== c && wins[other] === wins[c] && ws[other] === ws[c]
-            );
-        }));
-        extraCols.push({header: 'Total Str', values: details.total_beatpath_sums, relevant: totalStrRelevant});
-        sDescText += ' "Total Str" = sum of all beatpath strengths (second tiebreaker).';
     }
     sDesc.textContent = sDescText;
     container.appendChild(sDesc);
