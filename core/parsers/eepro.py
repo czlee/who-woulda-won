@@ -8,7 +8,7 @@ from core.parsers import register_parser
 from core.parsers.base import ScoresheetParser
 
 
-@register_parser
+# @register_parser
 class EeproParser(ScoresheetParser):
     """Parser for eepro.com (Event Express Pro) competition results.
 
