@@ -775,11 +775,21 @@ function renderSchulzeDetails(container, result, data) {
 
     const sDesc = document.createElement('p');
     sDesc.className = 'detail-description';
-    sDesc.textContent = 'Cell (row, column) = strength of strongest beatpath from row to column. Rightmost column = number of Schulze wins (ties count as half).';
+    let sDescText = 'Cell (row, column) = strength of strongest beatpath from row to column. Rightmost column = number of Schulze wins (ties count as half).';
+    const extraCols = [];
+    if (details.tiebreak_used === 'winning' || details.tiebreak_used === 'total') {
+        extraCols.push({header: 'Win Str', values: details.winning_beatpath_sums});
+        sDescText += ' "Win Str" = sum of winning beatpath strengths (tiebreaker).';
+    }
+    if (details.tiebreak_used === 'total') {
+        extraCols.push({header: 'Total Str', values: details.total_beatpath_sums});
+        sDescText += ' "Total Str" = sum of all beatpath strengths (second tiebreaker).';
+    }
+    sDesc.textContent = sDescText;
     container.appendChild(sDesc);
 
     container.appendChild(
-        buildSchulzeMatrix(competitors, compInitialsMap, details.path_strengths, details.schulze_wins)
+        buildSchulzeMatrix(competitors, compInitialsMap, details.path_strengths, details.schulze_wins, extraCols)
     );
 }
 
@@ -787,7 +797,8 @@ function renderSchulzeDetails(container, result, data) {
  * Build a Schulze matrix table (pairwise or path strengths).
  * Cells are coloured green (row beats column) or red (column beats row).
  */
-function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
+function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extraCols) {
+    extraCols = extraCols || [];
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
 
@@ -809,6 +820,11 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
         winsTh.classList.add('schulze-wins-col');
         headerRow.appendChild(winsTh);
     }
+    extraCols.forEach(col => {
+        const th = createTh(col.header);
+        th.classList.add('schulze-wins-col');
+        headerRow.appendChild(th);
+    });
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
@@ -855,6 +871,12 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol) {
             winsTd.classList.add('schulze-wins-col');
             tr.appendChild(winsTd);
         }
+        extraCols.forEach(col => {
+            const td = document.createElement('td');
+            td.textContent = col.values[rowComp];
+            td.classList.add('schulze-wins-col');
+            tr.appendChild(td);
+        });
 
         tbody.appendChild(tr);
     });

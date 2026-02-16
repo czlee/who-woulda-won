@@ -86,6 +86,7 @@ class TestSchulze:
         assert "path_strengths" in result.details
         assert "schulze_wins" in result.details
         assert "ties" in result.details
+        assert "tiebreak_used" in result.details
 
     # --- path_strengths tests ---
 
@@ -216,7 +217,7 @@ class TestSchulze:
 
     def test_ties_detail_content(self, perfect_cycle, clear_winner):
         """Verify the ties detail lists groups of tied competitors."""
-        # Perfect cycle: all three competitors are tied
+        # Perfect cycle: all three competitors are tied (tiebreak can't help)
         result = self.system.calculate(perfect_cycle)
         ties = result.details["ties"]
         assert len(ties) == 1
@@ -225,6 +226,21 @@ class TestSchulze:
         # Clear winner: no ties
         result = self.system.calculate(clear_winner)
         assert result.details["ties"] == []
+
+    def test_perfect_cycle_tiebreak_none(self, perfect_cycle):
+        """Perfect cycle: all strengths equal, tiebreak can't resolve anything."""
+        result = self.system.calculate(perfect_cycle)
+        assert result.details["tiebreak_used"] == "none"
+        # All winning and total strengths are equal
+        assert "winning_beatpath_sums" not in result.details
+        assert "total_beatpath_sums" not in result.details
+
+    def test_clear_winner_tiebreak_none(self, clear_winner):
+        """No ties means no tiebreak needed."""
+        result = self.system.calculate(clear_winner)
+        assert result.details["tiebreak_used"] == "none"
+
+    # --- tiebreak tests ---
 
     def test_asymmetric_ties(self):
         """Competitors with different numbers of ties get different win counts.

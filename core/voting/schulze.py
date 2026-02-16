@@ -5,6 +5,22 @@ from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
 
+def _sub_sort(group: list[str], metric: dict[str, int | float]) -> list[list[str]]:
+    """Sort a tie group by a metric, returning sub-groups (preserving ties)."""
+    group_sorted = sorted(group, key=lambda c: metric[c], reverse=True)
+    sub_groups: list[list[str]] = []
+    i = 0
+    while i < len(group_sorted):
+        sg = [group_sorted[i]]
+        j = i + 1
+        while j < len(group_sorted) and metric[group_sorted[j]] == metric[group_sorted[i]]:
+            sg.append(group_sorted[j])
+            j += 1
+        sub_groups.append(sg)
+        i = j
+    return sub_groups
+
+
 @register_voting_system
 class SchulzeSystem(VotingSystem):
     """Schulze method voting system.
@@ -81,26 +97,70 @@ class SchulzeSystem(VotingSystem):
                     if p[i][j] == p[j][i]:
                         wins[i] += 0.5
 
+        # Compute tiebreak metrics
+        winning_strength = {}
+        total_strength = {}
+        for i in range(n):
+            ws = 0
+            ts = 0
+            for j in range(n):
+                if i != j:
+                    ts += p[i][j]
+                    if p[i][j] > p[j][i]:
+                        ws += p[i][j]
+            winning_strength[competitors[i]] = ws
+            total_strength[competitors[i]] = ts
+
         # Create ranking by sorting by wins (descending)
         indexed_results = [(competitors[i], wins[i]) for i in range(n)]
         indexed_results.sort(key=lambda x: x[1], reverse=True)
 
-        # Build ranking, grouping ties (same number of wins)
+        # Build ranking, grouping ties and applying tiebreakers
         ordered: list[str | list[str]] = []
         ties = []
+        used_winning = False
+        used_total = False
         i = 0
         while i < n:
-            tie_group = [indexed_results[i][0]]
+            # Collect group with same win count
             j = i + 1
             while j < n and indexed_results[j][1] == indexed_results[i][1]:
-                tie_group.append(indexed_results[j][0])
                 j += 1
-            if len(tie_group) > 1:
-                ordered.append(tie_group)
-                ties.append(tie_group)
+            group = [indexed_results[k][0] for k in range(i, j)]
+
+            if len(group) == 1:
+                ordered.append(group[0])
             else:
-                ordered.append(tie_group[0])
+                # Tiebreak level 1: winning beatpath strength sum
+                sub_groups = _sub_sort(group, winning_strength)
+                if sub_groups != [group]:
+                    used_winning = True
+                # Tiebreak level 2: total beatpath strength sum
+                resolved: list[list[str]] = []
+                for sg in sub_groups:
+                    if len(sg) == 1:
+                        resolved.append(sg)
+                    else:
+                        sub2 = _sub_sort(sg, total_strength)
+                        if sub2 != [sg]:
+                            used_total = True
+                        resolved.extend(sub2)
+                # Flatten into ordered
+                for sg in resolved:
+                    if len(sg) == 1:
+                        ordered.append(sg[0])
+                    else:
+                        ordered.append(sg)
+                        ties.append(sg)
             i = j
+
+        # Determine deepest tiebreak level used
+        if used_total:
+            tiebreak_used = "total"
+        elif used_winning:
+            tiebreak_used = "winning"
+        else:
+            tiebreak_used = "none"
 
         final_ranking = Placement.build_ranking(ordered)
 
@@ -121,19 +181,34 @@ class SchulzeSystem(VotingSystem):
             for i in range(n)
         }
 
+        details: dict = {
+            "pairwise_preferences": pairwise_matrix,
+            "path_strengths": path_strengths,
+            "schulze_wins": {competitors[i]: wins[i] for i in range(n)},
+            "ties": ties,
+            "tiebreak_used": tiebreak_used,
+            "explanation": (
+                "Each cell d[A][B] shows judges preferring A over B. "
+                "Path strengths use Floyd-Warshall to find strongest "
+                "indirect paths. A beats B if path A→B > path B→A. "
+                "Ties (equal path strengths) count as half a win for each side."
+            ),
+        }
+
+        if tiebreak_used in ("winning", "total"):
+            details["winning_beatpath_sums"] = winning_strength
+            details["explanation"] += (
+                " Ties in win count are broken by the sum of winning "
+                "beatpath strengths."
+            )
+        if tiebreak_used == "total":
+            details["total_beatpath_sums"] = total_strength
+            details["explanation"] += (
+                " If still tied, the sum of all beatpath strengths is used."
+            )
+
         return VotingResult(
             system_name=self.name,
             final_ranking=final_ranking,
-            details={
-                "pairwise_preferences": pairwise_matrix,
-                "path_strengths": path_strengths,
-                "schulze_wins": {competitors[i]: wins[i] for i in range(n)},
-                "ties": ties,
-                "explanation": (
-                    "Each cell d[A][B] shows judges preferring A over B. "
-                    "Path strengths use Floyd-Warshall to find strongest "
-                    "indirect paths. A beats B if path A→B > path B→A. "
-                    "Ties (equal path strengths) count as half a win for each side."
-                ),
-            },
+            details=details,
         )
