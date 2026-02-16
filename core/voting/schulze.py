@@ -5,21 +5,6 @@ from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
 
-def _sub_sort(group: list[str], metric: dict[str, int | float]) -> list[list[str]]:
-    """Sort a tie group by a metric, returning sub-groups (preserving ties)."""
-    group_sorted = sorted(group, key=lambda c: metric[c], reverse=True)
-    sub_groups: list[list[str]] = []
-    i = 0
-    while i < len(group_sorted):
-        sg = [group_sorted[i]]
-        j = i + 1
-        while j < len(group_sorted) and metric[group_sorted[j]] == metric[group_sorted[i]]:
-            sg.append(group_sorted[j])
-            j += 1
-        sub_groups.append(sg)
-        i = j
-    return sub_groups
-
 
 @register_voting_system
 class SchulzeSystem(VotingSystem):
@@ -111,50 +96,49 @@ class SchulzeSystem(VotingSystem):
             winning_strength[competitors[i]] = ws
             total_strength[competitors[i]] = ts
 
-        # Create ranking by sorting by wins (descending)
-        indexed_results = [(competitors[i], wins[i]) for i in range(n)]
-        indexed_results.sort(key=lambda x: x[1], reverse=True)
+        # Sort competitors by (wins, winning_strength, total_strength) descending
+        wins_map = {competitors[i]: wins[i] for i in range(n)}
+        sorted_comps = sorted(
+            competitors,
+            key=lambda c: (wins_map[c], winning_strength[c], total_strength[c]),
+            reverse=True,
+        )
 
-        # Build ranking, grouping ties and applying tiebreakers
+        # Scan sorted list to build ordered ranking and detect tiebreak usage
         ordered: list[str | list[str]] = []
         ties = []
         used_winning = False
         used_total = False
         i = 0
         while i < n:
-            # Collect group with same win count
+            # Collect group with identical (wins, ws, ts) tuples
             j = i + 1
-            while j < n and indexed_results[j][1] == indexed_results[i][1]:
+            while j < n and (
+                wins_map[sorted_comps[j]] == wins_map[sorted_comps[i]]
+                and winning_strength[sorted_comps[j]] == winning_strength[sorted_comps[i]]
+                and total_strength[sorted_comps[j]] == total_strength[sorted_comps[i]]
+            ):
                 j += 1
-            group = [indexed_results[k][0] for k in range(i, j)]
-
+            group = sorted_comps[i:j]
             if len(group) == 1:
                 ordered.append(group[0])
             else:
-                # Tiebreak level 1: winning beatpath strength sum
-                sub_groups = _sub_sort(group, winning_strength)
-                if sub_groups != [group]:
-                    used_winning = True
-                # Tiebreak level 2: total beatpath strength sum
-                resolved: list[list[str]] = []
-                for sg in sub_groups:
-                    if len(sg) == 1:
-                        resolved.append(sg)
-                    else:
-                        sub2 = _sub_sort(sg, total_strength)
-                        if sub2 != [sg]:
-                            used_total = True
-                        resolved.extend(sub2)
-                # Flatten into ordered
-                for sg in resolved:
-                    if len(sg) == 1:
-                        ordered.append(sg[0])
-                    else:
-                        ordered.append(sg)
-                        ties.append(sg)
+                ordered.append(group)
+                ties.append(group)
             i = j
 
-        # Determine deepest tiebreak level used
+        # Detect whether tiebreaks were needed by checking if any competitors
+        # share wins but differ on winning_strength or total_strength
+        for a in range(n):
+            for b in range(a + 1, n):
+                ca, cb = sorted_comps[a], sorted_comps[b]
+                if wins_map[ca] != wins_map[cb]:
+                    continue
+                if winning_strength[ca] != winning_strength[cb]:
+                    used_winning = True
+                elif total_strength[ca] != total_strength[cb]:
+                    used_total = True
+
         if used_total:
             tiebreak_used = "total"
         elif used_winning:
@@ -184,7 +168,7 @@ class SchulzeSystem(VotingSystem):
         details: dict = {
             "pairwise_preferences": pairwise_matrix,
             "path_strengths": path_strengths,
-            "schulze_wins": {competitors[i]: wins[i] for i in range(n)},
+            "schulze_wins": wins_map,
             "ties": ties,
             "tiebreak_used": tiebreak_used,
             "explanation": (
