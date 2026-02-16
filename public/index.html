@@ -5,16 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Who Woulda Won? - WCS Voting System Comparison</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
         <h1>Who Woulda Won?</h1>
-        <p class="subtitle">Compare voting systems on WCS competition scoresheets</p>
+        <p class="subtitle">Compare voting systems on dance competition scoresheets</p>
     </header>
 
     <main>
         <section class="input-section">
-            <h2>Analyse a Scoresheet</h2>
+            <p>Try a scoresheet from a dance competition final to see who would've won under different voting systems:</p>
 
             <div class="input-tabs">
                 <button class="tab-btn active" data-tab="url">Enter URL</button>
@@ -23,21 +24,19 @@
 
             <div class="tab-content active" id="url-tab">
                 <form id="url-form">
-                    <label for="url-input">Scoresheet URL:</label>
                     <input type="url" id="url-input" name="url"
                            placeholder="https://scoring.dance/..." required>
                     <p class="hint">Supported: scoring.dance, danceconvention.net</p>
-                    <button type="submit" id="url-submit">Analyse</button>
+                    <button type="submit" id="url-submit">Let's see!</button>
                 </form>
             </div>
 
             <div class="tab-content" id="file-tab">
                 <form id="file-form">
-                    <label for="file-input">Upload scoresheet (HTML or PDF):</label>
                     <input type="file" id="file-input" name="file"
                            accept=".html,.htm,.pdf" required>
-                    <p class="hint">Supported formats: pages saved from scoring.dance, or danceconvention.net</p>
-                    <button type="submit" id="file-submit">Analyse</button>
+                    <p class="hint">Supported formats: pages saved from scoring.dance (HTML) or danceconvention.net (PDF)</p>
+                    <button type="submit" id="file-submit">Let's see!</button>
                 </form>
             </div>
         </section>
@@ -115,7 +114,8 @@
                                     <p>The <strong>Schulze method</strong> uses head-to-head voting between pairs of competitors to produce an overall ranking. Where majority votes are cyclic (A beats B, B beats C, C beats A), it uses <em>beatpath strengths</em> to resolve the conflict.</p>
                                     <p>The first table below is a <strong>pairwise preference matrix</strong>. Each cell shows the number of judges who ranked the row higher than the column. Cells are highlighted in green if more judges preferred the row than preferred the column.</p>
                                     <p>The second table below shows the <strong>strongest beatpath strengths</strong>. A <em>beatpath</em> from A to B is a sequence of pairwise victories. Its strength is the weakest link in the chain, as given by the smallest majority. For example, if A beats X 5&#x2013;2, X beats Y 4&#x2013;3 and Y beats Z 6&#x2013;1, the beatpath from A to B has strength 4. If no beatpath is available, it is recorded as zero.</p>
-                                    <p>A competitor has a <em>Schulze win</em> against another if their strongest beatpath to that opponent is stronger than the opponent's beatpath to them. Competitors are ranked by how many Schulze wins they have, with Schulze ties counting as half. If competitors are still tied on win count, ties are broken by the sum of winning beatpath strengths.</p>
+                                    <p>A competitor has a <em>Schulze win</em> against another if their strongest beatpath to that opponent is stronger than the opponent's beatpath to them. Competitors are ranked by how many Schulze wins they have, with Schulze ties counting as half.</p>
+                                    <p>The implementation below breaks ties using the sum of winning beatpath strengths.</p>
                                     <p>The Schulze method is a <strong>Condorcet method</strong>: If there is a candidate who beats every other candidate in a pairwise head-to-head vote (a Condorcet winner), this method is guaranteed to pick that winner.</p>
                                 </div>
                             </details>
@@ -159,7 +159,7 @@
 
     <footer>
         <p>
-            <a href="https://github.com/czlee/who-woulda-won" target="_blank">Source on GitHub</a>
+            created by Chuan-Zheng Lee | <a href="https://github.com/czlee/who-woulda-won" target="_blank">source on GitHub</a>
         </p>
     </footer>
 
