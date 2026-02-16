@@ -5,6 +5,7 @@ from core.voting import register_voting_system
 from core.voting.base import VotingSystem
 
 
+
 @register_voting_system
 class SchulzeSystem(VotingSystem):
     """Schulze method voting system.
@@ -81,26 +82,56 @@ class SchulzeSystem(VotingSystem):
                     if p[i][j] == p[j][i]:
                         wins[i] += 0.5
 
-        # Create ranking by sorting by wins (descending)
-        indexed_results = [(competitors[i], wins[i]) for i in range(n)]
-        indexed_results.sort(key=lambda x: x[1], reverse=True)
+        # Compute tiebreak metrics
+        winning_strength = {}
+        for i in range(n):
+            ws = 0
+            for j in range(n):
+                if i != j:
+                    if p[i][j] > p[j][i]:
+                        ws += p[i][j]
+            winning_strength[competitors[i]] = ws
 
-        # Build ranking, grouping ties (same number of wins)
+        # Sort competitors by (wins, winning_strength) descending
+        wins_map = {competitors[i]: wins[i] for i in range(n)}
+        sorted_comps = sorted(
+            competitors,
+            key=lambda c: (wins_map[c], winning_strength[c]),
+            reverse=True,
+        )
+
+        # Scan sorted list to build ordered ranking and detect tiebreak usage
         ordered: list[str | list[str]] = []
         ties = []
+        used_winning = False
         i = 0
         while i < n:
-            tie_group = [indexed_results[i][0]]
+            # Collect group with identical (wins, ws) tuples
             j = i + 1
-            while j < n and indexed_results[j][1] == indexed_results[i][1]:
-                tie_group.append(indexed_results[j][0])
+            while j < n and (
+                wins_map[sorted_comps[j]] == wins_map[sorted_comps[i]]
+                and winning_strength[sorted_comps[j]] == winning_strength[sorted_comps[i]]
+            ):
                 j += 1
-            if len(tie_group) > 1:
-                ordered.append(tie_group)
-                ties.append(tie_group)
+            group = sorted_comps[i:j]
+            if len(group) == 1:
+                ordered.append(group[0])
             else:
-                ordered.append(tie_group[0])
+                ordered.append(group)
+                ties.append(group)
             i = j
+
+        # Detect whether tiebreaks were needed by checking if any competitors
+        # share wins but differ on winning_strength
+        for a in range(n):
+            for b in range(a + 1, n):
+                ca, cb = sorted_comps[a], sorted_comps[b]
+                if wins_map[ca] != wins_map[cb]:
+                    continue
+                if winning_strength[ca] != winning_strength[cb]:
+                    used_winning = True
+
+        tiebreak_used = "winning" if used_winning else "none"
 
         final_ranking = Placement.build_ranking(ordered)
 
@@ -121,19 +152,29 @@ class SchulzeSystem(VotingSystem):
             for i in range(n)
         }
 
+        details: dict = {
+            "pairwise_preferences": pairwise_matrix,
+            "path_strengths": path_strengths,
+            "schulze_wins": wins_map,
+            "ties": ties,
+            "tiebreak_used": tiebreak_used,
+            "explanation": (
+                "Each cell d[A][B] shows judges preferring A over B. "
+                "Path strengths use Floyd-Warshall to find strongest "
+                "indirect paths. A beats B if path A→B > path B→A. "
+                "Ties (equal path strengths) count as half a win for each side."
+            ),
+        }
+
+        if tiebreak_used == "winning":
+            details["winning_beatpath_sums"] = winning_strength
+            details["explanation"] += (
+                " Ties in win count are broken by the sum of winning "
+                "beatpath strengths."
+            )
+
         return VotingResult(
             system_name=self.name,
             final_ranking=final_ranking,
-            details={
-                "pairwise_preferences": pairwise_matrix,
-                "path_strengths": path_strengths,
-                "schulze_wins": {competitors[i]: wins[i] for i in range(n)},
-                "ties": ties,
-                "explanation": (
-                    "Each cell d[A][B] shows judges preferring A over B. "
-                    "Path strengths use Floyd-Warshall to find strongest "
-                    "indirect paths. A beats B if path A→B > path B→A. "
-                    "Ties (equal path strengths) count as half a win for each side."
-                ),
-            },
+            details=details,
         )

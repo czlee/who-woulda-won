@@ -86,6 +86,7 @@ class TestSchulze:
         assert "path_strengths" in result.details
         assert "schulze_wins" in result.details
         assert "ties" in result.details
+        assert "tiebreak_used" in result.details
 
     # --- path_strengths tests ---
 
@@ -216,7 +217,7 @@ class TestSchulze:
 
     def test_ties_detail_content(self, perfect_cycle, clear_winner):
         """Verify the ties detail lists groups of tied competitors."""
-        # Perfect cycle: all three competitors are tied
+        # Perfect cycle: all three competitors are tied (tiebreak can't help)
         result = self.system.calculate(perfect_cycle)
         ties = result.details["ties"]
         assert len(ties) == 1
@@ -225,6 +226,21 @@ class TestSchulze:
         # Clear winner: no ties
         result = self.system.calculate(clear_winner)
         assert result.details["ties"] == []
+
+    def test_perfect_cycle_tiebreak_none(self, perfect_cycle):
+        """Perfect cycle: all strengths equal, tiebreak can't resolve anything."""
+        result = self.system.calculate(perfect_cycle)
+        assert result.details["tiebreak_used"] == "none"
+        # All winning and total strengths are equal
+        assert "winning_beatpath_sums" not in result.details
+        assert "total_beatpath_sums" not in result.details
+
+    def test_clear_winner_tiebreak_none(self, clear_winner):
+        """No ties means no tiebreak needed."""
+        result = self.system.calculate(clear_winner)
+        assert result.details["tiebreak_used"] == "none"
+
+    # --- tiebreak tests ---
 
     def test_asymmetric_ties(self):
         """Competitors with different numbers of ties get different win counts.
@@ -255,3 +271,79 @@ class TestSchulze:
         # No ties remain — half-points resolved them all
         assert result.details["ties"] == []
 
+    def test_winning_beatpath_strength_tiebreak(self):
+        """Three-way tie on wins resolved by winning beatpath strength sums.
+
+             J1  J2  J3  J4  J5  J6
+        A     1   3   2   1   3   2
+        B     2   1   3   2   1   4
+        C     4   2   1   4   2   1
+        D     3   4   4   3   4   3
+
+        A, B, C each have 2 Schulze wins, D has 0. Winning beatpath
+        strength sums break the tie: A=6, B=5, C=4 → A, B, C, D.
+        """
+        scoresheet = make_scoresheet("Winning Beatpath Strength Tiebreak", {
+            "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J2": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J3": {"A": 2, "B": 3, "C": 1, "D": 4},
+            "J4": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J5": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J6": {"A": 2, "B": 4, "C": 1, "D": 3},
+        })
+        result = self.system.calculate(scoresheet)
+        wins = result.details["schulze_wins"]
+        assert wins["A"] == 2
+        assert wins["B"] == 2
+        assert wins["C"] == 2
+        assert wins["D"] == 0
+
+        names = ranking_names(result)
+        assert names == ["A", "B", "C", "D"]
+        assert result.details["tiebreak_used"] == "winning"
+
+        beatpath_sums = result.details["winning_beatpath_sums"]
+        assert beatpath_sums["A"] == 6
+        assert beatpath_sums["B"] == 5
+        assert beatpath_sums["C"] == 4
+
+    def test_winning_beatpath_strength_partial_tiebreak(self):
+        """Three-way tie on wins only partially resolved by winning beatpath strength.
+
+             J1  J2  J3  J4  J5  J6
+        A     1   3   2   1   3   2
+        B     2   1   3   2   1   3
+        C     4   2   1   4   2   1
+        D     3   4   4   3   4   4
+
+        Same as above but J6 ranks B 3rd instead of 4th. A, B, C each
+        have 2 Schulze wins. Winning beatpath strength sums: A=6, B=6,
+        C=4. C is resolved to 3rd, but A and B remain tied at 1st.
+        """
+        scoresheet = make_scoresheet("Winning Beatpath Strength Partial Tiebreak", {
+            "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J2": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J3": {"A": 2, "B": 3, "C": 1, "D": 4},
+            "J4": {"A": 1, "B": 2, "C": 4, "D": 3},
+            "J5": {"A": 3, "B": 1, "C": 2, "D": 4},
+            "J6": {"A": 2, "B": 3, "C": 1, "D": 4},
+        })
+        result = self.system.calculate(scoresheet)
+        wins = result.details["schulze_wins"]
+        assert wins["A"] == 2
+        assert wins["B"] == 2
+        assert wins["C"] == 2
+        assert wins["D"] == 0
+
+        assert {r.name for r in result.final_ranking[0:2]} == {"A", "B"}
+        assert all(r.rank == 1 for r in result.final_ranking[0:2])
+        assert all(r.tied == True for r in result.final_ranking[0:2])
+        assert result.final_ranking[2].to_dict() == {"name": "C", "rank": 3, "tied": False}
+        assert result.final_ranking[3].to_dict() == {"name": "D", "rank": 4, "tied": False}
+
+        assert result.details["tiebreak_used"] == "winning"
+
+        beatpath_sums = result.details["winning_beatpath_sums"]
+        assert beatpath_sums["A"] == 6
+        assert beatpath_sums["B"] == 6
+        assert beatpath_sums["C"] == 4
