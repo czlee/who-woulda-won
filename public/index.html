@@ -9,7 +9,7 @@
 <body>
     <header>
         <h1>Who Woulda Won?</h1>
-        <p class="subtitle">Compare voting systems on WCS Jack & Jill scoresheets</p>
+        <p class="subtitle">Compare voting systems on WCS competition scoresheets</p>
     </header>
 
     <main>
@@ -68,7 +68,87 @@
                 </table>
             </div>
 
-            <div id="voting-details-container"></div>
+            <div id="voting-details-container">
+                <div class="voting-details">
+                    <details class="voting-detail-block" id="detail-relative-placement">
+                        <summary>Relative Placement</summary>
+                        <div class="detail-content">
+                            <details class="learn-more">
+                                <summary>How does relative placement work?</summary>
+                                <div class="learn-more-content">
+                                    <p><strong>Relative placement</strong> is the official scoring system used in WSDC competitions. It works by finding, for each placement, the competitor who has a majority of judges ranking them at that place or better.</p>
+                                    <p>The system processes placements in order (1st, 2nd, 3rd, etc.). For each placement, it counts how many judges ranked each remaining competitor at that place or higher. This is the <em>cumulative count</em>. A competitor is placed when they achieve a majority at some cumulative count.</p>
+                                    <p>When two or more competitors reach a majority in the same cumulative count column, tiebreakers apply:</p>
+                                    <ul>
+                                        <li><strong>Greater majority:</strong> The competitor with more judges at or above that column wins the tie.</li>
+                                        <li><strong>Quality of majority:</strong> If still tied, sum the actual placements given by the judges who contributed to the majority. The lower total (better quality) wins.</li>
+                                    </ul>
+                                    <p>In the working table below, each competitor's row shows their individual judge placements, followed by cumulative counts. Where a quality of majority score was needed to break a tie, this is shown in parentheses. The cell where a majority is first reached is highlighted. If you roll over a cumulative count cell, the cells of the contributing individual judges are highlighted.</p>
+                                    <p>This system is also known as (part of) the Skating System. It is used in many partner dance competitions, including ballroom, Lindy hop, salsa, bachata and zouk.</p>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+
+                    <details class="voting-detail-block" id="detail-borda-count">
+                        <summary>Borda Count</summary>
+                        <div class="detail-content">
+                            <details class="learn-more">
+                                <summary>How does the Borda count work?</summary>
+                                <div class="learn-more-content">
+                                    <p>The <strong>Borda count</strong> assigns points based on each judge's ranking. With <em>n</em> competitors, a 1st-place ranking is worth <em>n</em>&#x2212;1 points, 2nd place is worth <em>n</em>&#x2212;2, and so on down to 0 for last place. Each competitor's points are summed across all judges. The competitor with the highest total wins.</p>
+                                    <p>The implementation below breaks ties using a recursive Borda count: The tied competitors are re-scored using only their relative rankings among each other, effectively running a smaller Borda count within the tied group. This process repeats if the tiebreak itself produces another tie.</p>
+                                    <p>The Borda count tends to favour broadly acceptable candidates over polarising ones, since it rewards consistent mid-to-high rankings rather than requiring outright majorities.</p>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+
+                    <details class="voting-detail-block" id="detail-schulze-method">
+                        <summary>Schulze Method</summary>
+                        <div class="detail-content">
+                            <details class="learn-more">
+                                <summary>How does the Schulze method work?</summary>
+                                <div class="learn-more-content">
+                                    <p>The <strong>Schulze method</strong> uses head-to-head voting between pairs of competitors to produce an overall ranking. Where majority votes are cyclic (A beats B, B beats C, C beats A), it uses <em>beatpath strengths</em> to resolve the conflict.</p>
+                                    <p>The first table below is a <strong>pairwise preference matrix</strong>. Each cell shows the number of judges who ranked the row higher than the column. Cells are highlighted in green if more judges preferred the row than preferred the column.</p>
+                                    <p>The second table below shows the <strong>strongest beatpath strengths</strong>. A <em>beatpath</em> from A to B is a sequence of pairwise victories. Its strength is the weakest link in the chain, as given by the smallest majority. For example, if A beats X 5&#x2013;2, X beats Y 4&#x2013;3 and Y beats Z 6&#x2013;1, the beatpath from A to B has strength 4. If no beatpath is available, it is recorded as zero.</p>
+                                    <p>A competitor has a <em>Schulze win</em> against another if their strongest beatpath to that opponent is stronger than the opponent's beatpath to them. Competitors are ranked by how many Schulze wins they have, with Schulze ties counting as half.</p>
+                                    <p>The Schulze method is a <strong>Condorcet method</strong>: If there is a candidate who beat every other candidate in a pairwise head-to-head vote (a Condorcet winner), this method is guaranteed to pick that winner.</p>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+
+                    <details class="voting-detail-block" id="detail-sequential-irv">
+                        <summary>Sequential IRV</summary>
+                        <div class="detail-content">
+                            <details class="learn-more">
+                                <summary>How does sequential IRV work?</summary>
+                                <div class="learn-more-content">
+                                    <p><strong>Sequential instant runoff voting (IRV)</strong> determines placements one at a time. To find 1st place, it runs a full IRV election among all competitors. The winner is removed, and IRV runs again among the remaining competitors to find 2nd place, and so on.</p>
+                                    <p>Each IRV election works as follows:</p>
+                                    <ul>
+                                        <li>Count each judge's top-ranked competitor (among those still in the race) as a first-preference vote.</li>
+                                        <li>If a competitor has a <strong>majority</strong> (more than half of all votes), they win.</li>
+                                        <li>Otherwise, the competitor with the <strong>fewest votes is eliminated</strong>, and their votes are redistributed to each judge's next preferred competitor.</li>
+                                        <li>This process repeats until someone achieves a majority.</li>
+                                    </ul>
+                                    <p>Because dance competitions use a small number of judges (relative to an election), ties are common. This implementation breaks ties as follows:</p>
+                                    <ul>
+                                        <li>If there is a tie for fewest votes, a <em>restricted vote</em> is taken among those competitors tied for the fewest votes, with each judge voting for their highest preference among those tied. If there is one competitor with the fewest votes in this restricted vote, they are eliminated. Otherwise, this process repeats among those tied for fewest votes until a unique eliminee is found.</li>
+                                        <li>If all competitors are tied, it will not be possible to reduce the field using a restricted vote. Instead, the judges' 2nd preference votes are tallied, and the competitor with the fewest such votes is eliminated. If there is a tie for fewest, a restricted vote is held using 1st preference votes. (The current implementation only does this at the top level; it's not yet implemented within the tiebreak.)</li>
+                                    </ul>
+                                </div>
+                            </details>
+                            <div class="detail-dynamic-content"></div>
+                        </div>
+                    </details>
+                </div>
+            </div>
         </section>
 
         <section class="privacy-notice">

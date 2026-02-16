@@ -358,17 +358,6 @@ function equalizeColumnWidths(table, groupClasses) {
 
 // ─── Voting system detail renderers ──────────────────────────────────
 
-const SYSTEM_DESCRIPTIONS = {
-    'Relative Placement':
-        'The official WCS system. A competitor places when a majority of judges rank them at that place or better.',
-    'Borda Count':
-        'Points-based: 1st place = n\u22121 points, 2nd = n\u22122, \u2026, last = 0. Sum across all judges.',
-    'Schulze Method':
-        'A Condorcet method using beatpath strengths. Handles cyclic preferences gracefully.',
-    'Sequential IRV':
-        'Run Instant Runoff Voting repeatedly: find winner, remove them, repeat for 2nd place, etc.',
-};
-
 const SYSTEM_RENDERERS = {
     'Relative Placement': renderRPDetails,
     'Borda Count':        renderBordaDetails,
@@ -376,53 +365,53 @@ const SYSTEM_RENDERERS = {
     'Sequential IRV':     renderIRVDetails,
 };
 
+const SYSTEM_BLOCK_IDS = {
+    'Relative Placement': 'detail-relative-placement',
+    'Borda Count':        'detail-borda-count',
+    'Schulze Method':     'detail-schulze-method',
+    'Sequential IRV':     'detail-sequential-irv',
+};
+
+// Attach column-equalization toggle listeners once (since blocks are now static HTML)
+for (const blockId of Object.values(SYSTEM_BLOCK_IDS)) {
+    const block = document.getElementById(blockId);
+    if (!block) continue;
+    block.addEventListener('toggle', () => {
+        if (block.open) {
+            block.querySelectorAll('.detail-table').forEach(t =>
+                equalizeColumnWidths(t, ['col-judge', 'col-cumulative', 'col-matrix'])
+            );
+            // Cross-table equalization: ensure matching columns across
+            // related tables (e.g. Borda main + tiebreak tables)
+            equalizeColumnWidths(block, ['col-judge']);
+        }
+    });
+}
+
 /**
- * Render expandable detail blocks for each voting system.
+ * Render dynamic content into the static voting detail blocks.
  */
 function renderVotingDetails(results, data) {
-    votingDetailsContainer.innerHTML = '';
-    const wrapper = document.createElement('div');
-    wrapper.className = 'voting-details';
+    // Clear all dynamic content areas first
+    votingDetailsContainer.querySelectorAll('.detail-dynamic-content').forEach(
+        el => { el.innerHTML = ''; }
+    );
 
     for (const result of results) {
-        const block = document.createElement('details');
-        block.className = 'voting-detail-block';
+        const blockId = SYSTEM_BLOCK_IDS[result.system_name];
+        if (!blockId) continue;
 
-        const summary = document.createElement('summary');
-        summary.textContent = result.system_name;
-        block.appendChild(summary);
+        const block = document.getElementById(blockId);
+        if (!block) continue;
 
-        const content = document.createElement('div');
-        content.className = 'detail-content';
-
-        const desc = document.createElement('p');
-        desc.className = 'detail-description';
-        desc.textContent = SYSTEM_DESCRIPTIONS[result.system_name] || '';
-        content.appendChild(desc);
+        const dynamicContent = block.querySelector('.detail-dynamic-content');
+        if (!dynamicContent) continue;
 
         const renderer = SYSTEM_RENDERERS[result.system_name];
         if (renderer) {
-            renderer(content, result, data);
+            renderer(dynamicContent, result, data);
         }
-
-        block.appendChild(content);
-
-        // Equalize like-column widths when the detail block is opened
-        block.addEventListener('toggle', () => {
-            if (block.open) {
-                block.querySelectorAll('.detail-table').forEach(t =>
-                    equalizeColumnWidths(t, ['col-judge', 'col-cumulative', 'col-matrix'])
-                );
-                // Cross-table equalization: ensure matching columns across
-                // related tables (e.g. Borda main + tiebreak tables)
-                equalizeColumnWidths(block, ['col-judge']);
-            }
-        });
-
-        wrapper.appendChild(block);
     }
-
-    votingDetailsContainer.appendChild(wrapper);
 }
 
 // ─── Relative Placement ──────────────────────────────────────────────
@@ -441,7 +430,6 @@ function renderRPDetails(container, result, data) {
 
     // Determine which cumulative cells to display
     const cellDisplay = buildRPCellDisplay(details, n);
-    const hasQuality = Object.values(cellDisplay).some(d => d.quality !== undefined);
 
     // Sort competitors by final ranking
     const sorted = result.final_ranking.map(e => e.name);
@@ -549,14 +537,6 @@ function renderRPDetails(container, result, data) {
 
     table.appendChild(tbody);
     wrapper.appendChild(table);
-
-    // Add quality-of-majority explanatory note if any quality scores are shown
-    if (hasQuality) {
-        const note = document.createElement('p');
-        note.className = 'detail-description';
-        note.textContent = 'Numbers in parentheses are the sum of the individual judge rankings counted for that cell (highlighted when you roll over the cell), sometimes known as the \u201Cquality of majority\u201D or \u201Caggregate\u201D.';
-        container.appendChild(note);
-    }
 
     container.appendChild(wrapper);
 }
@@ -788,14 +768,14 @@ function renderSchulzeDetails(container, result, data) {
         buildSchulzeMatrix(competitors, compInitialsMap, details.pairwise_preferences, null)
     );
 
-    // Strongest Path Strengths
+    // Strongest Beatpath Strengths
     const h4b = document.createElement('h4');
-    h4b.textContent = 'Strongest Path Strengths';
+    h4b.textContent = 'Strongest Beatpath Strengths';
     container.appendChild(h4b);
 
     const sDesc = document.createElement('p');
     sDesc.className = 'detail-description';
-    sDesc.textContent = 'Cell (row, column) = strength of strongest path from row to column. Rightmost column = number of Schulze wins (ties count as half).';
+    sDesc.textContent = 'Cell (row, column) = strength of strongest beatpath from row to column. Rightmost column = number of Schulze wins (ties count as half).';
     container.appendChild(sDesc);
 
     container.appendChild(
@@ -1259,5 +1239,12 @@ function showResults() {
 
 function hideResults() {
     resultsSection.classList.add('hidden');
-    votingDetailsContainer.innerHTML = '';
+    // Clear dynamic content but preserve static HTML structure
+    votingDetailsContainer.querySelectorAll('.detail-dynamic-content').forEach(
+        el => { el.innerHTML = ''; }
+    );
+    // Close any open detail blocks
+    votingDetailsContainer.querySelectorAll('details[open]').forEach(
+        el => { el.removeAttribute('open'); }
+    );
 }

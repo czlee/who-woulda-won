@@ -302,13 +302,13 @@ button[type="submit"]:disabled {
     display: none;
 }
 
-.voting-detail-block summary::before {
+.voting-detail-block > summary::before {
     content: '\25B6';
     font-size: 0.7em;
     transition: transform 0.2s;
 }
 
-.voting-detail-block[open] summary::before {
+.voting-detail-block[open] > summary::before {
     transform: rotate(90deg);
 }
 
@@ -319,7 +319,64 @@ button[type="submit"]:disabled {
 .detail-description {
     color: #666;
     font-size: 0.9rem;
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.75rem 0;
+}
+
+/* Nested "Learn more" expandable */
+details.learn-more {
+    margin-bottom: 1rem;
+    background: var(--color-primary-bg);
+    border-radius: 0.3rem;
+}
+
+details.learn-more > summary {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #666;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6em;
+}
+
+details.learn-more > summary::-webkit-details-marker {
+    display: none;
+}
+
+details.learn-more > summary::before {
+    content: '\25B6';
+    font-size: 0.55em;
+    transition: transform 0.2s;
+}
+
+details.learn-more[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.learn-more-content {
+    padding: 0 1.25rem 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.5;
+}
+
+.learn-more-content p {
+    margin: 0 0 0.5rem 0;
+}
+
+.learn-more-content p:last-child {
+    margin-bottom: 0;
+}
+
+.learn-more-content ul {
+    margin: 0.25rem 0 0.5rem 0;
+    padding-left: 1.25rem;
+}
+
+.learn-more-content li {
+    margin-bottom: 0.25rem;
 }
 
 /* Detail working tables (shared by RP, Borda, Schulze) */
