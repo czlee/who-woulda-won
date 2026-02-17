@@ -4,7 +4,16 @@
 
 // Quickstart URLs — curated scoresheets for first-time users
 const QUICKSTART_URLS = [
-    // TODO: populate with interesting scoresheet URLs
+    'https://danceconvention.net/eventdirector/en/roundscores/301006101.pdf', // NZO Novice 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO Intermediate 2022
+    'https://scoring.dance/enCA/events/354/results/4996.html', // Budafest Novice 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/300863133.pdf', // Shakedown Advanced 2025
+    'https://scoring.dance/enCA/events/362/results/5126.html', // Trinity Novice 2026
+    'https://scoring.dance/enCA/events/272/results/4906.html', // Monterey All-Star 2026
+    'https://scoring.dance/enCA/events/312/results/4639.html', // SNOW Sophisticated 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/300946391.pdf', // BOTB Novice 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/301146763.pdf', // TAP Advanced 2025
+    'https://scoring.dance/enCA/events/280/results/4208.html', // German Open All-Star 2025
 ];
 
 // DOM elements
