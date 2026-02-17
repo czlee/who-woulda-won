@@ -2,6 +2,11 @@
  * Who Woulda Won? - Frontend JavaScript
  */
 
+// Quickstart URLs — curated scoresheets for first-time users
+const QUICKSTART_URLS = [
+    // TODO: populate with interesting scoresheet URLs
+];
+
 // DOM elements
 const urlForm = document.getElementById('url-form');
 const fileForm = document.getElementById('file-form');
@@ -19,6 +24,9 @@ const resultsBody = document.getElementById('results-body');
 const votingDetailsContainer = document.getElementById('voting-details-container');
 
 // Tab switching via inline mode toggle links
+const quickstartContainer = document.getElementById('quickstart-container');
+let quickstartUsed = false;
+
 document.querySelectorAll('.mode-toggle').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -26,7 +34,25 @@ document.querySelectorAll('.mode-toggle').forEach(link => {
         document.querySelectorAll('.tab-content').forEach(tc => {
             tc.classList.toggle('active', tc.dataset.tab === targetTab || tc.id === targetTab + '-tab');
         });
+
+        // Hide quickstart on file tab, show on URL tab (if not yet used)
+        if (targetTab === 'file') {
+            quickstartContainer.classList.add('hidden');
+        } else if (!quickstartUsed) {
+            quickstartContainer.classList.remove('hidden');
+        }
     });
+});
+
+// Quickstart link handler
+document.getElementById('quickstart-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (QUICKSTART_URLS.length === 0) return;
+    const url = QUICKSTART_URLS[Math.floor(Math.random() * QUICKSTART_URLS.length)];
+    urlInput.value = url;
+    quickstartUsed = true;
+    quickstartContainer.classList.add('hidden');
+    urlForm.requestSubmit();
 });
 
 // URL form submission

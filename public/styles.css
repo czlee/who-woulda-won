@@ -155,6 +155,22 @@ button[type="submit"]:disabled {
     cursor: not-allowed;
 }
 
+/* Quickstart link */
+.quickstart-link {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #888;
+    margin: 0;
+}
+
+.quickstart-link a {
+    color: #888;
+}
+
+.quickstart-link a:hover {
+    color: var(--color-primary);
+}
+
 /* Loading state */
 .loading {
     text-align: center;
