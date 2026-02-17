@@ -76,16 +76,15 @@ h3 {
     width: 100%;
 }
 
-.input-section > p:first-child {
+.input-lead {
     margin-top: 0;
 }
 
 .mode-toggle {
-    display: block;
-    text-align: right;
+    float: right;
     color: #888;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    margin-top: 0.35rem;
 }
 
 .tab-content {
