@@ -159,16 +159,15 @@ button[type="submit"]:disabled {
 .quickstart-link {
     text-align: center;
     font-size: 0.85rem;
-    color: #888;
     margin: 0;
 }
 
 .quickstart-link a {
-    color: #888;
+    color: var(--color-primary);
 }
 
 .quickstart-link a:hover {
-    color: var(--color-primary);
+    color: var(--color-primary-dark);
 }
 
 /* Loading state */
