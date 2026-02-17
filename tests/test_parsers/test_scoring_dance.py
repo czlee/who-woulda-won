@@ -1,6 +1,9 @@
 """Tests for scoring.dance parser."""
 
+import json
+
 import pytest
+from core.parsers.base import PrelimsError
 from core.parsers.scoring_dance import ScoringDanceParser
 
 
@@ -134,3 +137,56 @@ class TestScoringDanceParser:
     def test_parse_invalid_html(self):
         with pytest.raises(ValueError):
             self.parser.parse(self.VALID_URL, b"<html><body>No data</body></html>")
+
+    # --- prelims detection ---
+
+    def test_parse_prelims_raises_prelims_error(self):
+        """A DanceEvent JSON-LD with empty results should raise PrelimsError."""
+        prelims_json_ld = json.dumps({
+            "@context": "https://schema.org",
+            "@type": "DanceEvent",
+            "name": "Some Event 2026",
+            "round": {"id": 1, "name": "Novice Prelims"},
+            "result": [],
+        })
+        html = (
+            f'<html><head>'
+            f'<script type="application/ld+json">{prelims_json_ld}</script>'
+            f'</head><body></body></html>'
+        )
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, html.encode("utf-8"))
+
+    def test_parse_prelims_results_without_judges_placements(self):
+        """A DanceEvent with results but no judges_placements is a prelims."""
+        prelims_json_ld = json.dumps({
+            "@context": "https://schema.org",
+            "@type": "DanceEvent",
+            "name": "Some Event 2026",
+            "round": {"id": 1, "name": "Novice Semis"},
+            "result": [
+                {"dancer": {"leader": {"fullname": "A"}, "follower": {"fullname": "B"}}, "placement": 1},
+            ],
+        })
+        html = (
+            f'<html><head>'
+            f'<script type="application/ld+json">{prelims_json_ld}</script>'
+            f'</head><body></body></html>'
+        )
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, html.encode("utf-8"))
+
+    def test_can_parse_content_prelims(self):
+        """can_parse_content should return True for prelims (so we get PrelimsError, not generic)."""
+        prelims_json_ld = json.dumps({
+            "@context": "https://schema.org",
+            "@type": "DanceEvent",
+            "name": "Some Event",
+            "result": [],
+        })
+        html = (
+            f'<html><head>'
+            f'<script type="application/ld+json">{prelims_json_ld}</script>'
+            f'</head><body></body></html>'
+        )
+        assert self.parser.can_parse_content(html.encode("utf-8"), "prelims.html")

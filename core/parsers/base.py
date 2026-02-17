@@ -5,6 +5,14 @@ from abc import ABC, abstractmethod
 from core.models import Scoresheet
 
 
+class PrelimsError(ValueError):
+    """Raised when a scoresheet is detected as a prelims/callback round.
+
+    This tool only supports finals scoresheets where judges give rankings.
+    """
+    pass
+
+
 class ScoresheetParser(ABC):
     """Abstract base class for parsing competition scoresheets.
 

@@ -104,3 +104,44 @@ def mock_pdfplumber_ru(danceconvention_ru_json, monkeypatch):
     mock_pdf = _make_mock_pdf(danceconvention_ru_json)
     monkeypatch.setattr(pdfplumber, "open", lambda *args, **kwargs: mock_pdf)
     return mock_pdf
+
+
+def _make_prelims_page_data(use_alternates=False):
+    """Create synthetic prelims PDF page data with callback scores."""
+    judges = ["AB", "CD", "EF"]
+    text = (
+        "Some Event 2026\nNovice Prelims\n"
+        "AB Alice Baker\nCD Carol Davis\nEF Eve Foster\n"
+    )
+    header = ["#", "Name", "AB", "CD", "EF", "Sum", "Result"]
+    rows = []
+    for i in range(1, 6):
+        name = f"Leader {i}\nFollower {i}"
+        if use_alternates and i == 3:
+            rows.append([str(i), name, "4.5", "10", "0", "14.5", "Alt 1"])
+        else:
+            yes_no = ["10", "0", "10"] if i % 2 == 1 else ["0", "10", "0"]
+            total = str(sum(int(v) for v in yes_no))
+            rows.append([str(i), name, *yes_no, total, "Yes" if i % 2 == 1 else ""])
+    table = [header] + rows
+    return [{"text": text, "tables": [table]}]
+
+
+@pytest.fixture
+def mock_pdfplumber_prelims(monkeypatch):
+    """Monkeypatch pdfplumber.open to return synthetic prelims PDF data."""
+    import pdfplumber
+
+    mock_pdf = _make_mock_pdf(_make_prelims_page_data(use_alternates=False))
+    monkeypatch.setattr(pdfplumber, "open", lambda *args, **kwargs: mock_pdf)
+    return mock_pdf
+
+
+@pytest.fixture
+def mock_pdfplumber_prelims_alt(monkeypatch):
+    """Monkeypatch pdfplumber.open to return prelims data with alternate scores."""
+    import pdfplumber
+
+    mock_pdf = _make_mock_pdf(_make_prelims_page_data(use_alternates=True))
+    monkeypatch.setattr(pdfplumber, "open", lambda *args, **kwargs: mock_pdf)
+    return mock_pdf

@@ -7,7 +7,7 @@ import pdfplumber
 
 from core.models import Scoresheet
 from core.parsers import register_parser
-from core.parsers.base import ScoresheetParser
+from core.parsers.base import PrelimsError, ScoresheetParser
 
 
 @register_parser
@@ -203,16 +203,15 @@ class DanceConventionParser(ScoresheetParser):
         # Use full names if available, otherwise use initials
         judges = [judge_key.get(init, init) for init in judge_initials]
 
-        # Parse data rows from all matching tables
-        competitors = []
-        rankings = {judge: {} for judge in judges}
+        # Collect all judge cell values from data rows to detect prelims
+        all_judge_values = []
+        parsed_rows = []  # (competitor_name, [(col_idx, initials, value_str)])
 
         for results_table in results_tables:
             for row in results_table[1:]:
                 if not row or len(row) <= name_idx:
                     continue
 
-                # Get competitor name (may have leader/follower on separate lines)
                 name_cell = row[name_idx] if name_idx < len(row) else None
                 if not name_cell:
                     continue
@@ -221,19 +220,35 @@ class DanceConventionParser(ScoresheetParser):
                 if not competitor:
                     continue
 
-                competitors.append(competitor)
-
-                # Get judge placements
+                row_judge_values = []
                 for i, initials in enumerate(judge_initials):
                     col_idx = judge_start + i
                     if col_idx < len(row) and row[col_idx]:
-                        placement_str = str(row[col_idx]).strip()
-                        try:
-                            placement = int(placement_str)
-                            judge_name = judge_key.get(initials, initials)
-                            rankings[judge_name][competitor] = placement
-                        except ValueError:
-                            pass  # Skip non-numeric placements
+                        value_str = str(row[col_idx]).strip()
+                        row_judge_values.append((col_idx, initials, value_str))
+                        all_judge_values.append(value_str)
+
+                parsed_rows.append((competitor, row_judge_values))
+
+        # Detect prelims: callback scores are 0, 10, or alternates like 4.5
+        if all_judge_values and self._looks_like_callbacks(all_judge_values):
+            raise PrelimsError(
+                "This looks like a prelims scoresheet from danceconvention.net."
+            )
+
+        # Build competitors list and rankings dict
+        competitors = []
+        rankings = {judge: {} for judge in judges}
+
+        for competitor, row_judge_values in parsed_rows:
+            competitors.append(competitor)
+            for _col_idx, initials, value_str in row_judge_values:
+                try:
+                    placement = int(value_str)
+                    judge_name = judge_key.get(initials, initials)
+                    rankings[judge_name][competitor] = placement
+                except ValueError:
+                    pass  # Skip non-numeric placements
 
         if not competitors:
             raise ValueError("No competitors found in table")
@@ -278,11 +293,31 @@ class DanceConventionParser(ScoresheetParser):
                 indices["number"] = i
                 indices["name"] = i + 1
                 indices["judge_start"] = i + 2
-            elif cell_str.startswith("1-"):
-                # Found cumulative columns, judges end before this
+            elif cell_str.startswith("1-") or cell_str == "Sum":
+                # Found cumulative/summary columns, judges end before this
                 indices["judge_end"] = min(indices["judge_end"], i)
 
         return indices
+
+    @staticmethod
+    def _looks_like_callbacks(values: list[str]) -> bool:
+        """Check if judge cell values look like callback scores rather than rankings.
+
+        Callback scores are typically 0 (no), 10 (yes), or alternates like 4.5.
+        Rankings are integers from 1 to N where N is the number of competitors.
+        """
+        callback_values = {"0", "10"}
+        for v in values:
+            if v in callback_values:
+                continue
+            try:
+                f = float(v)
+                if 4.0 <= f <= 5.0 and f != int(f):
+                    continue  # alternate score like 4.5
+            except ValueError:
+                pass
+            return False  # found a value that doesn't look like a callback
+        return True
 
     def _clean_competitor_name(self, name: str) -> str:
         """Clean up competitor name, combining leader/follower if on separate lines."""
