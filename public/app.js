@@ -2,6 +2,20 @@
  * Who Woulda Won? - Frontend JavaScript
  */
 
+// Quickstart URLs — curated scoresheets for first-time users
+const QUICKSTART_URLS = [
+    'https://danceconvention.net/eventdirector/en/roundscores/301006101.pdf', // NZO Novice 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO Intermediate 2022
+    'https://scoring.dance/enCA/events/354/results/4996.html', // Budafest Novice 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/300863133.pdf', // Shakedown Advanced 2025
+    'https://scoring.dance/enCA/events/362/results/5126.html', // Trinity Novice 2026
+    'https://scoring.dance/enCA/events/272/results/4906.html', // Monterey All-Star 2026
+    'https://scoring.dance/enCA/events/312/results/4639.html', // SNOW Sophisticated 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/300946391.pdf', // BOTB Novice 2025
+    'https://danceconvention.net/eventdirector/en/roundscores/301146763.pdf', // TAP Advanced 2025
+    'https://scoring.dance/enCA/events/280/results/4208.html', // German Open All-Star 2025
+];
+
 // DOM elements
 const urlForm = document.getElementById('url-form');
 const fileForm = document.getElementById('file-form');
@@ -19,6 +33,9 @@ const resultsBody = document.getElementById('results-body');
 const votingDetailsContainer = document.getElementById('voting-details-container');
 
 // Tab switching via inline mode toggle links
+const quickstartContainer = document.getElementById('quickstart-container');
+let quickstartUsed = false;
+
 document.querySelectorAll('.mode-toggle').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -26,7 +43,25 @@ document.querySelectorAll('.mode-toggle').forEach(link => {
         document.querySelectorAll('.tab-content').forEach(tc => {
             tc.classList.toggle('active', tc.dataset.tab === targetTab || tc.id === targetTab + '-tab');
         });
+
+        // Hide quickstart on file tab, show on URL tab (if not yet used)
+        if (targetTab === 'file') {
+            quickstartContainer.classList.add('hidden');
+        } else if (!quickstartUsed) {
+            quickstartContainer.classList.remove('hidden');
+        }
     });
+});
+
+// Quickstart link handler
+document.getElementById('quickstart-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (QUICKSTART_URLS.length === 0) return;
+    const url = QUICKSTART_URLS[Math.floor(Math.random() * QUICKSTART_URLS.length)];
+    urlInput.value = url;
+    quickstartUsed = true;
+    quickstartContainer.classList.add('hidden');
+    urlForm.requestSubmit();
 });
 
 // URL form submission
