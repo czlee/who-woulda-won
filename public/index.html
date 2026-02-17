@@ -15,12 +15,14 @@
 
     <main>
         <section class="input-section">
-            <p>Try a scoresheet from a dance competition final to see who would've won under different voting systems:</p>
-
-            <div class="input-tabs">
-                <button class="tab-btn active" data-tab="url">Enter URL</button>
-                <button class="tab-btn" data-tab="file">Upload File</button>
-            </div>
+            <p class="input-lead tab-content active" data-tab="url">
+                Enter the scoresheet URL for a dance competition final to see who would've won under different voting systems:
+                <a href="#" class="mode-toggle" data-switch-to="file">Upload a file instead</a>
+            </p>
+            <p class="input-lead tab-content" data-tab="file">
+                Upload the scoresheet for a dance competition final to see who would've won under different voting systems:
+                <a href="#" class="mode-toggle" data-switch-to="url">Enter a URL instead</a>
+            </p>
 
             <div class="tab-content active" id="url-tab">
                 <form id="url-form">

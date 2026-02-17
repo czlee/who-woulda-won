@@ -18,17 +18,14 @@ const resultsHeader = document.getElementById('results-header');
 const resultsBody = document.getElementById('results-body');
 const votingDetailsContainer = document.getElementById('voting-details-container');
 
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        // Update active tab button
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        // Show corresponding tab content
-        const tabId = btn.dataset.tab + '-tab';
-        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
+// Tab switching via inline mode toggle links
+document.querySelectorAll('.mode-toggle').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetTab = link.dataset.switchTo;
+        document.querySelectorAll('.tab-content').forEach(tc => {
+            tc.classList.toggle('active', tc.dataset.tab === targetTab || tc.id === targetTab + '-tab');
+        });
     });
 });
 
