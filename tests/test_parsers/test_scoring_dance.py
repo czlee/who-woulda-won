@@ -157,6 +157,22 @@ class TestScoringDanceParser:
         with pytest.raises(PrelimsError):
             self.parser.parse(self.VALID_URL, html.encode("utf-8"))
 
+    def test_parse_prelims_no_result_key(self):
+        """A DanceEvent JSON-LD with no result key at all should raise PrelimsError."""
+        prelims_json_ld = json.dumps({
+            "@context": "https://schema.org",
+            "@type": "DanceEvent",
+            "name": "Some Event 2026",
+            "round": {"id": 1, "name": "Novice Prelims"},
+        })
+        html = (
+            f'<html><head>'
+            f'<script type="application/ld+json">{prelims_json_ld}</script>'
+            f'</head><body></body></html>'
+        )
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, html.encode("utf-8"))
+
     def test_parse_prelims_results_without_judges_placements(self):
         """A DanceEvent with results but no judges_placements is a prelims."""
         prelims_json_ld = json.dumps({

@@ -67,7 +67,7 @@ class ScoringDanceParser(ScoresheetParser):
         for script in json_ld_scripts:
             try:
                 data = json.loads(script.string)
-                if data.get("@type") == "DanceEvent" and "result" in data:
+                if data.get("@type") == "DanceEvent":
                     has_dance_event = True
                     results = data.get("result", [])
                     if results and "judges_placements" in results[0]:
