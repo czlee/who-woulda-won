@@ -50,6 +50,8 @@ class SchulzeSystem(VotingSystem):
         # Step 2: Calculate strongest path strengths
         # Using "winning votes" as the strength measure
         p = [[0] * n for _ in range(n)]
+        # via[i][j] tracks the intermediate node used; None means direct edge
+        via: list[list[int | None]] = [[None] * n for _ in range(n)]
 
         # Initialize with direct defeats
         for i in range(n):
@@ -69,7 +71,9 @@ class SchulzeSystem(VotingSystem):
                         continue
                     # Strength of path through k is min of the two links
                     strength_via_k = min(p[i][k], p[k][j])
-                    p[i][j] = max(p[i][j], strength_via_k)
+                    if strength_via_k > p[i][j]:
+                        p[i][j] = strength_via_k
+                        via[i][j] = k
 
         # Step 3: Count Schulze wins
         # A beats B if p[A][B] > p[B][A]
@@ -135,6 +139,35 @@ class SchulzeSystem(VotingSystem):
 
         final_ranking = Placement.build_ranking(ordered)
 
+        # Build beatpath reconstruction
+        def reconstruct_path(i: int, j: int) -> list[int]:
+            """Return the full path from i to j as a list of node indices."""
+            if p[i][j] == 0:
+                return []
+            k = via[i][j]
+            if k is None:
+                return [i, j]
+            return reconstruct_path(i, k)[:-1] + reconstruct_path(k, j)
+
+        beatpaths: dict[str, dict[str, list[dict]]] = {}
+        for i in range(n):
+            comp_i = competitors[i]
+            beatpaths[comp_i] = {}
+            for j in range(n):
+                if i == j or p[i][j] == 0:
+                    continue
+                path_indices = reconstruct_path(i, j)
+                path_info = []
+                for step in range(len(path_indices) - 1):
+                    a, b = path_indices[step], path_indices[step + 1]
+                    path_info.append({
+                        "node": competitors[a],
+                        "strength": d[a][b],
+                    })
+                # Add the final node without a strength
+                path_info.append({"node": competitors[j]})
+                beatpaths[comp_i][competitors[j]] = path_info
+
         # Build readable matrices for details
         pairwise_matrix = {
             competitors[i]: {
@@ -155,6 +188,7 @@ class SchulzeSystem(VotingSystem):
         details: dict = {
             "pairwise_preferences": pairwise_matrix,
             "path_strengths": path_strengths,
+            "beatpaths": beatpaths,
             "schulze_wins": wins_map,
             "ties": ties,
             "tiebreak_used": tiebreak_used,

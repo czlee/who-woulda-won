@@ -832,7 +832,7 @@ function renderSchulzeDetails(container, result, data) {
     container.appendChild(sDesc);
 
     container.appendChild(
-        buildSchulzeMatrix(competitors, compInitialsMap, details.path_strengths, details.schulze_wins, extraCols)
+        buildSchulzeMatrix(competitors, compInitialsMap, details.path_strengths, details.schulze_wins, extraCols, details.beatpaths)
     );
 }
 
@@ -840,7 +840,7 @@ function renderSchulzeDetails(container, result, data) {
  * Build a Schulze matrix table (pairwise or path strengths).
  * Cells are coloured green (row beats column) or red (column beats row).
  */
-function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extraCols) {
+function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extraCols, beatpaths) {
     extraCols = extraCols || [];
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
@@ -903,6 +903,18 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extra
                     td.classList.add('cell-loses');
                 } else if (value == opposite) {
                     td.classList.add('cell-ties');
+                }
+                if (beatpaths && beatpaths[rowComp] && beatpaths[rowComp][colComp]) {
+                    const path = beatpaths[rowComp][colComp];
+                    const parts = path.map((step, idx) => {
+                        const initials = compInitialsMap[step.node] || step.node;
+                        if (step.strength != null) {
+                            return initials + ' \u2500[' + step.strength + ']\u2192 ';
+                        }
+                        return initials;
+                    });
+                    td.setAttribute('data-tooltip', parts.join(''));
+                    td.classList.add('has-tooltip');
                 }
             }
             tr.appendChild(td);
