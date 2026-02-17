@@ -491,6 +491,12 @@ details.learn-more[open] > summary::before {
     background-color: #e9ecef;
 }
 
+.cell-beatpath-highlight {
+    background-color: #b3d9ff !important;
+    outline: 2px solid #3399ff;
+    outline-offset: -2px;
+}
+
 .schulze-wins-col {
     font-weight: 600;
     border-left: 3px solid var(--color-primary);

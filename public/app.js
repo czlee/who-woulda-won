@@ -799,9 +799,8 @@ function renderSchulzeDetails(container, result, data) {
     pDesc.textContent = 'Cell (row, column) = number of judges who prefer row over column.';
     container.appendChild(pDesc);
 
-    container.appendChild(
-        buildSchulzeMatrix(competitors, compInitialsMap, details.pairwise_preferences, null)
-    );
+    const pairwiseTable = buildSchulzeMatrix(competitors, compInitialsMap, details.pairwise_preferences, null);
+    container.appendChild(pairwiseTable);
 
     // Strongest Beatpath Strengths
     const h4b = document.createElement('h4');
@@ -832,7 +831,7 @@ function renderSchulzeDetails(container, result, data) {
     container.appendChild(sDesc);
 
     container.appendChild(
-        buildSchulzeMatrix(competitors, compInitialsMap, details.path_strengths, details.schulze_wins, extraCols, details.beatpaths)
+        buildSchulzeMatrix(competitors, compInitialsMap, details.path_strengths, details.schulze_wins, extraCols, details.beatpaths, pairwiseTable)
     );
 }
 
@@ -840,7 +839,7 @@ function renderSchulzeDetails(container, result, data) {
  * Build a Schulze matrix table (pairwise or path strengths).
  * Cells are coloured green (row beats column) or red (column beats row).
  */
-function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extraCols, beatpaths) {
+function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extraCols, beatpaths, pairwiseTable) {
     extraCols = extraCols || [];
     const wrapper = document.createElement('div');
     wrapper.className = 'detail-table-wrapper';
@@ -890,6 +889,8 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extra
         competitors.forEach(colComp => {
             const td = document.createElement('td');
             td.classList.add('col-matrix');
+            td.setAttribute('data-row', rowComp);
+            td.setAttribute('data-col', colComp);
             if (rowComp === colComp) {
                 td.textContent = '\u2014';
                 td.classList.add('cell-diagonal');
@@ -915,6 +916,26 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extra
                     });
                     td.setAttribute('data-tooltip', parts.join(''));
                     td.classList.add('has-tooltip');
+
+                    if (pairwiseTable) {
+                        // Build list of (row, col) pairs along the beatpath
+                        const steps = [];
+                        for (let s = 0; s < path.length - 1; s++) {
+                            steps.push([path[s].node, path[s + 1].node]);
+                        }
+                        td.addEventListener('mouseenter', () => {
+                            steps.forEach(([r, c]) => {
+                                const cell = pairwiseTable.querySelector(
+                                    `td[data-row="${r}"][data-col="${c}"]`
+                                );
+                                if (cell) cell.classList.add('cell-beatpath-highlight');
+                            });
+                        });
+                        td.addEventListener('mouseleave', () => {
+                            pairwiseTable.querySelectorAll('.cell-beatpath-highlight')
+                                .forEach(el => el.classList.remove('cell-beatpath-highlight'));
+                        });
+                    }
                 }
             }
             tr.appendChild(td);
