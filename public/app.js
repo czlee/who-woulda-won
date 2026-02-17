@@ -70,6 +70,9 @@ urlForm.addEventListener('submit', async (e) => {
     const url = urlInput.value.trim();
     if (!url) return;
 
+    quickstartUsed = true;
+    quickstartContainer.classList.add('hidden');
+
     await analyzeScoresheet({ url });
 });
 
