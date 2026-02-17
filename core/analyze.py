@@ -5,6 +5,7 @@ from typing import Any
 
 from core.models import Scoresheet, VotingResult
 from core.parsers import detect_parser, detect_parser_by_content, get_supported_url_formats
+from core.parsers.base import PrelimsError
 from core.voting import get_all_voting_systems
 
 
@@ -66,6 +67,12 @@ def analyze_scoresheet(source: str, content: bytes) -> AnalysisResult:
     # Parse the scoresheet
     try:
         scoresheet = parser.parse(source, content)
+    except PrelimsError:
+        raise AnalysisError(
+            "That looks like a prelims scoresheet with callbacks. "
+            "This tool only works with finals scoresheets, where judges "
+            "give each competitor a ranking."
+        )
     except Exception as e:
         raise AnalysisError(f"Failed to parse scoresheet: {e}") from e
 

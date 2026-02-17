@@ -1,6 +1,7 @@
 """Tests for danceconvention.net PDF parser."""
 
 import pytest
+from core.parsers.base import PrelimsError
 from core.parsers.danceconvention import DanceConventionParser
 
 
@@ -176,3 +177,15 @@ class TestDanceConventionParser:
         comp_319 = [c for c in result.competitors if "Субботин" in c]
         assert len(comp_319) == 1
         assert result.rankings["Лавр Пахомова"][comp_319[0]] == 2
+
+    # --- prelims detection ---
+
+    def test_parse_prelims_raises_prelims_error(self, mock_pdfplumber_prelims):
+        """A PDF with callback scores (0/10) should raise PrelimsError."""
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, b"%PDF")
+
+    def test_parse_prelims_with_alternates_raises_prelims_error(self, mock_pdfplumber_prelims_alt):
+        """A PDF with callback scores including alternates (4.5) should raise PrelimsError."""
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, b"%PDF")

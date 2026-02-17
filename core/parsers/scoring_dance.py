@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 
 from core.models import Scoresheet
 from core.parsers import register_parser
-from core.parsers.base import ScoresheetParser
+from core.parsers.base import PrelimsError, ScoresheetParser
 
 
 @register_parser
@@ -52,7 +52,6 @@ class ScoringDanceParser(ScoresheetParser):
         return (
             "application/ld+json" in html
             and '"DanceEvent"' in html
-            and "judges_placements" in html
         )
 
     def parse(self, source: str, content: bytes) -> Scoresheet:
@@ -64,11 +63,12 @@ class ScoringDanceParser(ScoresheetParser):
         json_ld_scripts = soup.find_all("script", {"type": "application/ld+json"})
 
         event_data = None
+        has_dance_event = False
         for script in json_ld_scripts:
             try:
                 data = json.loads(script.string)
-                # Look for DanceEvent with judges_placements in result
-                if data.get("@type") == "DanceEvent" and "result" in data:
+                if data.get("@type") == "DanceEvent":
+                    has_dance_event = True
                     results = data.get("result", [])
                     if results and "judges_placements" in results[0]:
                         event_data = data
@@ -77,6 +77,10 @@ class ScoringDanceParser(ScoresheetParser):
                 continue
 
         if event_data is None:
+            if has_dance_event:
+                raise PrelimsError(
+                    "This looks like a prelims scoresheet from scoring.dance."
+                )
             raise ValueError(
                 "Could not find DanceEvent JSON-LD with judges_placements in HTML"
             )
