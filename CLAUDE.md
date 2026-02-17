@@ -17,7 +17,12 @@ poetry run pytest
 
 # Run a specific test file
 poetry run pytest tests/test_voting/test_borda.py
+
+# Run a python command
+poetry run python3 ...
 ```
+
+Anything involving python must be run via `poetry`.
 
 CI runs `pytest` via GitHub Actions on every push.
 
@@ -67,3 +72,7 @@ Hosted on Vercel: Python serverless functions in `api/`, static files in `public
 ## Git Conventions
 
 Prefix Claude-created branches with `claude/` (not `czlee/`).
+
+## Personally Identifiable Information
+
+The `examples/` directory may contain real examples of scoresheets with personal data. While they're technically publicly accessible, we should treat them as sensitive and never commit them to the repository.
