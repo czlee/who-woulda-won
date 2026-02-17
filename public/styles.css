@@ -654,4 +654,10 @@ footer a {
     .detail-table td {
         padding: 0.3rem 0.4rem;
     }
+
+    .mode-toggle {
+        float: none;
+        display: block;
+        text-align: right;
+    }
 }
