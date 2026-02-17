@@ -194,6 +194,73 @@ class TestSchulze:
         }
         assert ranking_names(result) == ["B", "C", "A"]
 
+    # --- beatpath tests ---
+
+    def test_beatpaths_in_details(self, clear_winner):
+        """Verify that beatpaths key exists in details."""
+        result = self.system.calculate(clear_winner)
+        assert "beatpaths" in result.details
+
+    def test_beatpaths_direct_only(self, clear_winner):
+        """No cycles: all beatpaths are direct (two-node paths)."""
+        result = self.system.calculate(clear_winner)
+        bp = result.details["beatpaths"]
+        # A beats B directly with strength 2
+        assert bp["A"]["B"] == [
+            {"node": "A", "strength": 2},
+            {"node": "B"},
+        ]
+        # No path from D to anyone (D loses all)
+        assert bp["D"] == {}
+
+    def test_beatpaths_indirect_paths(self):
+        """Indirect paths through a cycle produce multi-step beatpaths.
+
+        Uses the same 9-judge scenario from test_indirect_path_beats_direct_defeat.
+        A>B(5), B>C(6), C>A(6). After Floyd-Warshall:
+        - B→A goes via C: B ─[6]→ C ─[6]→ A (strength 6)
+        - A→C goes via B: A ─[5]→ B ─[6]→ C (strength 5)
+        - C→B goes via A: C ─[6]→ A ─[5]→ B (strength 5)
+        """
+        scoresheet = make_scoresheet("Indirect Paths", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 1, "B": 2, "C": 3},
+            "J3": {"A": 2, "B": 1, "C": 3},
+            "J4": {"A": 3, "B": 1, "C": 2},
+            "J5": {"A": 3, "B": 1, "C": 2},
+            "J6": {"A": 3, "B": 1, "C": 2},
+            "J7": {"A": 2, "B": 3, "C": 1},
+            "J8": {"A": 2, "B": 3, "C": 1},
+            "J9": {"A": 2, "B": 3, "C": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        bp = result.details["beatpaths"]
+
+        # B→A via C (indirect): B ─[6]→ C ─[6]→ A
+        assert bp["B"]["A"] == [
+            {"node": "B", "strength": 6},
+            {"node": "C", "strength": 6},
+            {"node": "A"},
+        ]
+        # A→C via B (indirect): A ─[5]→ B ─[6]→ C
+        assert bp["A"]["C"] == [
+            {"node": "A", "strength": 5},
+            {"node": "B", "strength": 6},
+            {"node": "C"},
+        ]
+        # C→B via A (indirect): C ─[6]→ A ─[5]→ B
+        assert bp["C"]["B"] == [
+            {"node": "C", "strength": 6},
+            {"node": "A", "strength": 5},
+            {"node": "B"},
+        ]
+
+        # Direct paths still exist too
+        assert bp["A"]["B"] == [
+            {"node": "A", "strength": 5},
+            {"node": "B"},
+        ]
+
     # --- tie handling tests ---
 
     def test_half_integer_wins(self):

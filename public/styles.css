@@ -432,6 +432,14 @@ details.learn-more[open] > summary::before {
 .detail-table tbody tr:hover .cell-diagonal { background-color: #e3e6ea; }
 .detail-table tbody tr:hover .rp-first-majority { background: #cbe9d2; }
 .detail-table tbody tr:hover .rp-highlight { background: #cbe9d2; }
+.detail-table tbody tr:hover th { background: var(--color-primary-dark); }
+
+/* Column highlight for Schulze matrix tables */
+th.col-highlight { background: var(--color-primary-dark); }
+td.col-highlight.cell-wins     { background-color: #cbe9d2; }
+td.col-highlight.cell-loses    { background-color: #f4ccd0; }
+td.col-highlight.cell-ties     { background-color: #ffeeb9; }
+td.col-highlight.cell-diagonal { background-color: #e3e6ea; }
 
 /* RP table: separator between judge and cumulative columns */
 .detail-table .rp-separator {
@@ -489,6 +497,12 @@ details.learn-more[open] > summary::before {
 
 .cell-diagonal {
     background-color: #e9ecef;
+}
+
+.cell-beatpath-highlight {
+    background-color: #b3d9ff !important;
+    outline: 2px solid #3399ff;
+    outline-offset: -2px;
 }
 
 .schulze-wins-col {
