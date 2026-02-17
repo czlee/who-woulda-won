@@ -958,6 +958,21 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extra
     });
 
     table.appendChild(tbody);
+
+    // Column highlighting on hover for matrix cells
+    table.querySelectorAll('td.col-matrix').forEach(cell => {
+        cell.addEventListener('mouseenter', () => {
+            const col = cell.getAttribute('data-col');
+            table.querySelectorAll(`td[data-col="${col}"]`).forEach(el => el.classList.add('col-highlight'));
+            table.querySelectorAll(`th.col-matrix`).forEach(th => {
+                if (th.textContent === compInitialsMap[col]) th.classList.add('col-highlight');
+            });
+        });
+        cell.addEventListener('mouseleave', () => {
+            table.querySelectorAll('.col-highlight').forEach(el => el.classList.remove('col-highlight'));
+        });
+    });
+
     wrapper.appendChild(table);
     return wrapper;
 }
