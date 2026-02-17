@@ -881,10 +881,10 @@ function buildSchulzeMatrix(competitors, compInitialsMap, matrix, winsCol, extra
         tr.appendChild(labelTd);
 
         // Initials column
-        const initialsTd = document.createElement('td');
-        initialsTd.textContent = compInitialsMap[rowComp];
-        initialsTd.style.fontWeight = '600';
-        tr.appendChild(initialsTd);
+        const initialsTh = document.createElement('th');
+        initialsTh.textContent = compInitialsMap[rowComp];
+        initialsTh.style.fontWeight = '600';
+        tr.appendChild(initialsTh);
 
         competitors.forEach(colComp => {
             const td = document.createElement('td');
