@@ -652,6 +652,68 @@ footer a {
     display: none !important;
 }
 
+/* Share icons */
+.share-icons {
+    float: right;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.share-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: #999;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, color 0.2s;
+    text-decoration: none;
+    position: relative;
+}
+
+.share-btn:hover {
+    background: #f0f0f0;
+}
+
+#share-copy:hover {
+    color: var(--color-primary);
+}
+
+#share-facebook:hover {
+    color: #1877F2;
+}
+
+#share-whatsapp:hover {
+    color: #25D366;
+}
+
+.share-copied-msg {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.25rem 0.5rem;
+    background: #333;
+    color: #fff;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    border-radius: 3px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    margin-bottom: 4px;
+}
+
+.share-copied-msg.visible {
+    opacity: 1;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
     body {
@@ -688,5 +750,16 @@ footer a {
         float: none;
         display: block;
         text-align: right;
+    }
+
+    .share-icons {
+        float: none;
+        display: flex;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+
+    .share-icons.hidden {
+        display: none;
     }
 }
