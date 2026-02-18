@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512"><svg viewBox="0 0 512 512" width="512" height="512" version="1.1" id="svg3" sodipodi:docname="favicon-inkscape-path.svg" inkscape:version="1.4.3 (0d15f75, 2025-12-25)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview id="namedview3" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="3.5449219" inkscape:cx="256" inkscape:cy="256" inkscape:window-width="3840" inkscape:window-height="2054" inkscape:window-x="2869" inkscape:window-y="-11" inkscape:window-maximized="1" inkscape:current-layer="svg3"></sodipodi:namedview>
+  <defs id="defs2">
+    <style id="style1">
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@600');
+    </style>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3498DB" id="stop1"></stop>
+      <stop offset="100%" style="stop-color:#2471A3" id="stop2"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="48" ry="48" fill="url(#bg)" id="rect2"></rect>
+  <path d="M 101.84961,232.58203 67.669922,89.417969 H 97.259766 L 118.8418,187.75781 145.01367,89.417969 h 34.375 L 204.48633,189.41797 226.45898,89.417969 h 29.10157 L 220.79492,232.58203 H 190.13086 L 161.61523,125.55078 133.19727,232.58203 Z m 188.76953,0 -34.17969,-143.164061 h 29.58985 l 21.58203,98.339841 26.17187,-98.339841 h 34.375 L 393.25586,189.41797 415.22852,89.417969 h 29.10156 L 409.56445,232.58203 H 378.90039 L 350.38477,125.55078 321.9668,232.58203 Z" id="text2" style="font-weight:600;font-size:200px;font-family:'DM Sans', Arial, sans-serif;dominant-baseline:middle;fill:#ffffff" aria-label="WW"></path>
+  <path d="M 101.84961,422.58203 67.669922,279.41797 h 29.589844 l 21.582034,98.33984 26.17187,-98.33984 h 34.375 l 25.09766,100 21.97265,-100 h 29.10157 L 220.79492,422.58203 H 190.13086 L 161.61523,315.55078 133.19727,422.58203 Z M 329.0957,385.66797 h -24.90234 q -0.0977,-5.3711 -0.0977,-6.54297 0,-12.10938 4.00391,-19.92188 4.00391,-7.8125 16.01562,-17.57812 12.01172,-9.76563 14.35547,-12.79297 3.61328,-4.78516 3.61328,-10.54687 0,-8.00782 -6.44531,-13.67188 -6.34765,-5.76172 -17.1875,-5.76172 -10.44922,0 -17.48047,5.95703 -7.03125,5.95703 -9.66797,18.16407 l -25.19531,-3.125 q 1.07422,-17.48047 14.84375,-29.6875 13.86719,-12.20704 36.32813,-12.20704 23.63281,0 37.59765,12.40235 13.96485,12.30469 13.96485,28.71094 0,9.08203 -5.17578,17.1875 -5.07813,8.10546 -21.875,22.07031 -8.69141,7.22656 -10.83985,11.62109 -2.05078,4.39453 -1.85547,15.72266 z m -24.90234,36.91406 v -27.44141 h 27.44141 v 27.44141 z" id="text3" style="font-weight:600;font-size:200px;font-family:'DM Sans', Arial, sans-serif;dominant-baseline:middle;fill:#ffffff" aria-label="W?"></path>
+</svg></svg><style>@media (prefers-color-scheme: light) { :root { filter: none; } }
+@media (prefers-color-scheme: dark) { :root { filter: none; } }
+</style></svg>
