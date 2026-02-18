@@ -40,6 +40,7 @@ const shareWhatsappLink = document.getElementById('share-whatsapp');
 // Tab switching via inline mode toggle links
 const quickstartContainer = document.getElementById('quickstart-container');
 let quickstartUsed = false;
+let lastAnalysisUrl = null;
 
 document.querySelectorAll('.mode-toggle').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -78,6 +79,7 @@ urlForm.addEventListener('submit', async (e) => {
     quickstartUsed = true;
     quickstartContainer.classList.add('hidden');
 
+    lastAnalysisUrl = url;
     await analyzeScoresheet({ url });
 });
 
@@ -91,6 +93,7 @@ fileForm.addEventListener('submit', async (e) => {
     formData.append('file', file);
     formData.append('filename', file.name);
 
+    lastAnalysisUrl = null;
     await analyzeScoresheet(formData);
 });
 
@@ -1383,14 +1386,14 @@ function hideShareIcons() {
 }
 
 function updateShareUrl() {
-    const url = urlInput.value.trim();
-    if (url) {
+    if (lastAnalysisUrl) {
         const shareUrl = new URL(window.location.pathname, window.location.origin);
-        shareUrl.searchParams.set('url', url);
+        shareUrl.searchParams.set('url', lastAnalysisUrl);
         const shareUrlStr = shareUrl.toString();
         history.replaceState(null, '', shareUrlStr);
         showShareIcons(shareUrlStr);
     } else {
+        history.replaceState(null, '', window.location.pathname);
         hideShareIcons();
     }
 }
