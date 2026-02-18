@@ -666,7 +666,7 @@ footer a {
     justify-content: center;
     width: 28px;
     height: 28px;
-    color: #999;
+    color: #666;
     background: none;
     border: none;
     border-radius: 4px;
@@ -752,14 +752,7 @@ footer a {
         text-align: right;
     }
 
-    .share-icons {
-        float: none;
-        display: flex;
-        justify-content: center;
-        margin-top: 0.5rem;
-    }
-
-    .share-icons.hidden {
+    .share-lead {
         display: none;
     }
 }
