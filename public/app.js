@@ -143,9 +143,17 @@ function displayResults(data) {
 
     // Build header row
     resultsHeader.innerHTML = '<th>Competitor</th>';
+    const SYSTEM_ABBREVIATIONS = {
+        'Relative Placement': 'RP',
+        'Borda Count': 'Bor',
+        'Schulze Method': 'Sch',
+        'Sequential IRV': 'IRV',
+    };
     results.forEach(result => {
         const th = document.createElement('th');
-        th.textContent = result.system_name;
+        const abbrev = SYSTEM_ABBREVIATIONS[result.system_name] || result.system_name;
+        th.innerHTML = `<span class="header-full">${result.system_name}</span><span class="header-abbrev" aria-label="${result.system_name}">${abbrev}</span>`;
+        th.setAttribute('title', result.system_name);
         resultsHeader.appendChild(th);
     });
 

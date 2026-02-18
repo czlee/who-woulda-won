@@ -714,6 +714,9 @@ footer a {
     opacity: 1;
 }
 
+/* Header abbreviations: hide on desktop, show on mobile */
+.header-abbrev { display: none; }
+
 /* Responsive */
 @media (max-width: 600px) {
     body {
@@ -754,5 +757,30 @@ footer a {
 
     .share-lead {
         display: none;
+    }
+
+    /* Abbreviate results table headers */
+    .header-full { display: none; }
+    .header-abbrev { display: inline; }
+
+    /* Tooltip on hover/touch */
+    .results-table th[title] {
+        position: relative;
+    }
+    .results-table th[title]:hover::after,
+    .results-table th[title]:active::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 10;
+        pointer-events: none;
     }
 }
