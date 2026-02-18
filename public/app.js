@@ -31,10 +31,16 @@ const numJudges = document.getElementById('num-judges');
 const resultsHeader = document.getElementById('results-header');
 const resultsBody = document.getElementById('results-body');
 const votingDetailsContainer = document.getElementById('voting-details-container');
+const shareIcons = document.getElementById('share-icons');
+const shareCopyBtn = document.getElementById('share-copy');
+const shareCopiedMsg = document.getElementById('share-copied-msg');
+const shareFacebookLink = document.getElementById('share-facebook');
+const shareWhatsappLink = document.getElementById('share-whatsapp');
 
 // Tab switching via inline mode toggle links
 const quickstartContainer = document.getElementById('quickstart-container');
 let quickstartUsed = false;
+let lastAnalysisUrl = null;
 
 document.querySelectorAll('.mode-toggle').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -73,6 +79,7 @@ urlForm.addEventListener('submit', async (e) => {
     quickstartUsed = true;
     quickstartContainer.classList.add('hidden');
 
+    lastAnalysisUrl = url;
     await analyzeScoresheet({ url });
 });
 
@@ -86,6 +93,7 @@ fileForm.addEventListener('submit', async (e) => {
     formData.append('file', file);
     formData.append('filename', file.name);
 
+    lastAnalysisUrl = null;
     await analyzeScoresheet(formData);
 });
 
@@ -203,6 +211,7 @@ function displayResults(data) {
     // Render expandable detail blocks for each voting system
     renderVotingDetails(results, data);
 
+    updateShareUrl();
     showResults();
 }
 
@@ -1352,6 +1361,7 @@ function showResults() {
 
 function hideResults() {
     resultsSection.classList.add('hidden');
+    hideShareIcons();
     // Clear dynamic content but preserve static HTML structure
     votingDetailsContainer.querySelectorAll('.detail-dynamic-content').forEach(
         el => { el.innerHTML = ''; }
@@ -1361,3 +1371,53 @@ function hideResults() {
         el => { el.removeAttribute('open'); }
     );
 }
+
+// ─── Share icons ─────────────────────────────────────────────────────
+
+function showShareIcons(shareUrl) {
+    shareFacebookLink.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl);
+    shareWhatsappLink.href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(shareUrl);
+    shareCopyBtn.dataset.shareUrl = shareUrl;
+    shareIcons.classList.remove('hidden');
+}
+
+function hideShareIcons() {
+    shareIcons.classList.add('hidden');
+}
+
+function updateShareUrl() {
+    if (lastAnalysisUrl) {
+        const shareUrl = new URL(window.location.pathname, window.location.origin);
+        shareUrl.searchParams.set('url', lastAnalysisUrl);
+        const shareUrlStr = shareUrl.toString();
+        history.replaceState(null, '', shareUrlStr);
+        showShareIcons(shareUrlStr);
+    } else {
+        history.replaceState(null, '', window.location.pathname);
+        hideShareIcons();
+    }
+}
+
+shareCopyBtn.addEventListener('click', async () => {
+    const url = shareCopyBtn.dataset.shareUrl;
+    if (!url) return;
+    try {
+        await navigator.clipboard.writeText(url);
+        shareCopiedMsg.classList.add('visible');
+        setTimeout(() => shareCopiedMsg.classList.remove('visible'), 1500);
+    } catch (err) {
+        console.warn('Clipboard write failed:', err);
+    }
+});
+
+// URL parameter auto-submit
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url');
+    if (url) {
+        urlInput.value = url;
+        quickstartUsed = true;
+        quickstartContainer.classList.add('hidden');
+        urlForm.requestSubmit();
+    }
+})();
