@@ -4,16 +4,23 @@
 
 // Quickstart URLs — curated scoresheets for first-time users
 const QUICKSTART_URLS = [
-    'https://danceconvention.net/eventdirector/en/roundscores/301006101.pdf', // NZO Novice 2025
-    'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO Intermediate 2022
-    'https://scoring.dance/enCA/events/354/results/4996.html', // Budafest Novice 2025
-    'https://danceconvention.net/eventdirector/en/roundscores/300863133.pdf', // Shakedown Advanced 2025
-    'https://scoring.dance/enCA/events/362/results/5126.html', // Trinity Novice 2026
-    'https://scoring.dance/enCA/events/272/results/4906.html', // Monterey All-Star 2026
-    'https://scoring.dance/enCA/events/312/results/4639.html', // SNOW Sophisticated 2025
-    'https://danceconvention.net/eventdirector/en/roundscores/300946391.pdf', // BOTB Novice 2025
-    'https://danceconvention.net/eventdirector/en/roundscores/301146763.pdf', // TAP Advanced 2025
-    'https://scoring.dance/enCA/events/280/results/4208.html', // German Open All-Star 2025
+    'https://scoring.dance/enCA/events/362/results/5126.html', // Trinity 2026 Novice
+    'https://scoring.dance/enCA/events/349/results/5040.html', // SwingVester 2025-26 Novice
+    'https://scoring.dance/enCA/events/354/results/4996.html', // Budafest 2025 Novice
+    'https://scoring.dance/enCA/events/352/results/4943.html', // Westie Gala 2025-26 Advanced
+    'https://scoring.dance/enCA/events/272/results/4906.html', // Monterey 2026 All-Star
+    'https://scoring.dance/enCA/events/328/results/4866.html', // Santa Swing 2025 Newcomer
+    'https://scoring.dance/enCA/events/324/results/4734.html', // Warsaw Halloween 2025 Intermediate
+    'https://scoring.dance/enCA/events/312/results/4639.html', // SNOW 2025 Sophisticated
+    'https://scoring.dance/enCA/events/280/results/4208.html', // German Open 2025 All-Star
+    'https://scoring.dance/enCA/events/280/results/4201.html', // German Open 2025 Novice
+    'https://danceconvention.net/eventdirector/en/roundscores/301146763.pdf', // TAP 2025 Advanced
+    'https://danceconvention.net/eventdirector/en/roundscores/301006101.pdf', // NZO 2025 Novice
+    'https://danceconvention.net/eventdirector/en/roundscores/300946391.pdf', // BOTB 2025 Novice
+    'https://danceconvention.net/eventdirector/en/roundscores/300863133.pdf', // Shakedown 2025 Advanced
+    'https://danceconvention.net/eventdirector/en/roundscores/300732280.pdf', // Mania 2025 Intermediate
+    'https://danceconvention.net/eventdirector/en/roundscores/300732124.pdf', // Mania 2025 Novice
+    'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO 2022 Intermediate
 ];
 
 // DOM elements
