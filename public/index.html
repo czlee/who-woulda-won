@@ -168,7 +168,7 @@
                                     <p>Because dance competitions use a small number of judges (relative to an election), ties are common. This implementation breaks ties as follows:</p>
                                     <ul>
                                         <li>If there is a tie for fewest votes, a <em>restricted vote</em> is taken among those competitors tied for the fewest votes, with each judge voting for their highest preference among those tied. If there is one competitor with the fewest votes in this restricted vote, they are eliminated. Otherwise, this process repeats among those tied for fewest votes until a unique eliminee is found.</li>
-                                        <li>If all competitors are tied, it will not be possible to reduce the field using a restricted vote. Instead, the judges' 2nd preference votes are tallied, and the competitor with the fewest such votes is eliminated. If there is a tie for fewest, a restricted vote is held using 1st preference votes. (The current implementation only does this at the top level; it's not yet implemented within the tiebreak.)</li>
+                                        <li>If all competitors are tied, it will not be possible to reduce the field using a restricted vote. Instead, the judges' 2nd preference votes are tallied, and the competitor with the fewest such votes is eliminated. If all competitors remain tied, 3rd preference votes are taken, and so on. If some but not all competitors remain tied, the next restricted vote returns to 1st preference votes.</li>
                                     </ul>
                                 </div>
                             </details>
