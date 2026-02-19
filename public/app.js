@@ -1236,6 +1236,15 @@ function renderIRVRounds(container, placementRound, compInitialsMap) {
 
         container.appendChild(step);
 
+        // Render nth-preference vote counts when all-tied tiebreak used
+        if (round.tiebreak_choice && round.tiebreak_choice_votes) {
+            const subLine = document.createElement('p');
+            subLine.className = 'irv-round-step irv-note';
+            const choiceVoteStr = buildVoteStr(round.tiebreak_choice_votes, compInitialsMap);
+            subLine.innerHTML = ordinal(round.tiebreak_choice) + '-choice votes: ' + choiceVoteStr;
+            container.appendChild(subLine);
+        }
+
         // Render tiebreak details if present
         if (round.tiebreak) {
             const tbDiv = renderTiebreakDetails(round.tiebreak, compInitialsMap);
@@ -1290,7 +1299,10 @@ function renderRestrictedVoteStep(container, step, compInitialsMap) {
     p.className = 'irv-tiebreak-line';
 
     const voteStr = buildVoteStr(step.votes, compInitialsMap);
-    let text = 'Restricted vote: ' + voteStr + '.';
+    const prefixLabel = (step.preference && step.preference > 1)
+        ? 'Restricted vote (' + ordinal(step.preference) + ' preference): '
+        : 'Restricted vote: ';
+    let text = prefixLabel + voteStr + '.';
 
     if (step.resolved) {
         const elimInit = escapeHtml(compInitialsMap[step.eliminated] || step.eliminated);

@@ -178,6 +178,7 @@ class SequentialIRVSystem(VotingSystem):
                     if len(nth_place_fewest) < len(active):
                         to_eliminate = nth_place_fewest
                         round_info["tiebreak_choice"] = choice
+                        round_info["tiebreak_choice_votes"] = dict(nth_place_votes)
                         break
 
                 else:
@@ -214,8 +215,9 @@ class SequentialIRVSystem(VotingSystem):
 
         Tiebreak procedure: count first-choice votes restricted to only the
         tied candidates. If one has fewest, eliminate. If multiple tied for
-        fewest (but not all), narrow and repeat. If all equal, fall back to
-        random.
+        fewest (but not all), narrow and repeat from first-choice. If all
+        equal at first-choice, try second-choice, third-choice, etc. before
+        falling back to random.
 
         Returns (candidate_to_eliminate, tiebreak_details).
         """
@@ -226,35 +228,39 @@ class SequentialIRVSystem(VotingSystem):
         }
 
         while len(tied) > 1:
-            # Count first-choice votes restricted to tied candidates
-            votes = self._count_votes(scoresheet, set(tied))
+            narrowed = False
+            for choice in range(1, len(tied) + 1):
+                votes = self._count_votes(scoresheet, set(tied), choice)
+                min_votes = min(votes.values())
+                fewest = [c for c in tied if votes[c] == min_votes]
 
-            min_votes = min(votes.values())
-            fewest = [c for c in tied if votes[c] == min_votes]
+                step = {"method": "restricted_vote", "votes": dict(votes), "preference": choice}
 
-            step = {
-                "method": "restricted_vote",
-                "votes": dict(votes),
-            }
+                if len(fewest) == len(tied):
+                    # All equal at this preference level — try next
+                    step["resolved"] = False
+                    step["all_equal"] = True
+                    tiebreak_info["steps"].append(step)
 
-            if len(fewest) == len(tied):
-                # All have equal votes — can't narrow further
-                step["resolved"] = False
-                step["all_equal"] = True
-                tiebreak_info["steps"].append(step)
-                break  # fall through to random
+                elif len(fewest) == 1:
+                    # Resolved!
+                    step["resolved"] = True
+                    step["eliminated"] = fewest[0]
+                    tiebreak_info["steps"].append(step)
+                    return fewest[0], tiebreak_info
 
-            if len(fewest) == 1:
-                step["resolved"] = True
-                step["eliminated"] = fewest[0]
-                tiebreak_info["steps"].append(step)
-                return fewest[0], tiebreak_info
+                else:
+                    # Narrowed but not fully resolved — restart outer loop from choice=1
+                    step["resolved"] = False
+                    step["remaining_tied"] = list(fewest)
+                    tiebreak_info["steps"].append(step)
+                    tied = fewest
+                    narrowed = True
+                    break
 
-            # Multiple tied for fewest, but not all — narrow and continue
-            step["resolved"] = False
-            step["remaining_tied"] = list(fewest)
-            tiebreak_info["steps"].append(step)
-            tied = fewest
+            if not narrowed:
+                # All preference levels exhausted — fall to random
+                break
 
         # Fallback: choose at random
         eliminated = random.choice(tied)

@@ -207,8 +207,8 @@ class TestSequentialIRV:
         assert step["votes"]["C"] == 3
         assert step["votes"]["D"] == 2
 
-    def test_restricted_vote_all_equal_then_random(self):
-        """Restricted vote finds all equal → falls to random.
+    def test_restricted_vote_resolves_with_second_preference(self):
+        """Restricted vote finds all equal at 1st pref → 2nd pref resolves.
 
              J1  J2  J3  J4  J5  J6  J7  J8  J9
         A     1   1   1   2   3   4   4   4   4
@@ -218,7 +218,7 @@ class TestSequentialIRV:
 
         Main round 1: A=3, B=2, C=2, D=2.
         B, C, D tied → restricted vote among {B,C,D}: B=3, C=3, D=3.
-        All equal → random.
+        All equal at 1st pref → 2nd pref: B=1, C=4, D=4. B eliminated.
         """
         scoresheet = make_scoresheet("All Equal Random", {
             "J1": {"A": 1, "B": 2, "C": 3, "D": 4},
@@ -237,22 +237,59 @@ class TestSequentialIRV:
         first_placement = result.details["placement_rounds"][0]
         round1 = first_placement["irv_rounds"][0]
         assert round1["method"] == "elimination"
+        assert round1["eliminated"] == "B"
         tb = round1["tiebreak"]
         assert set(tb["tied_candidates"]) == {"B", "C", "D"}
+        assert len(tb["steps"]) == 2
 
-        # First step: restricted_vote, all equal
+        # First step: restricted_vote at 1st pref, all equal
         step0 = tb["steps"][0]
         assert step0["method"] == "restricted_vote"
         assert step0["resolved"] is False
         assert step0.get("all_equal") is True
-        assert step0["votes"]["B"] == 3
-        assert step0["votes"]["C"] == 3
-        assert step0["votes"]["D"] == 3
 
-        # Second step: random
+        # Second step: restricted_vote at 2nd pref, resolved
         step1 = tb["steps"][1]
-        assert step1["method"] == "random"
-        assert step1["eliminated"] in ["B", "C", "D"]
+        assert step1["method"] == "restricted_vote"
+        assert step1.get("preference") == 2
+        assert step1["resolved"] is True
+        assert step1["eliminated"] == "B"
+
+    def test_restricted_vote_second_preference_details(self):
+        """Verify step details when 2nd-preference restricted vote breaks the tie.
+
+        Uses same scoresheet as test_restricted_vote_resolves_with_second_preference.
+        step[0]: restricted_vote at 1st pref, all_equal, votes={B:3, C:3, D:3}
+        step[1]: restricted_vote at 2nd pref, resolved, eliminated=B, votes={B:1, C:4, D:4}
+        """
+        scoresheet = make_scoresheet("All Equal Random", {
+            "J1": {"A": 1, "B": 2, "C": 3, "D": 4},
+            "J2": {"A": 1, "B": 4, "C": 2, "D": 3},
+            "J3": {"A": 1, "B": 4, "C": 3, "D": 2},
+            "J4": {"A": 2, "B": 1, "C": 4, "D": 3},
+            "J5": {"A": 3, "B": 1, "C": 4, "D": 2},
+            "J6": {"A": 4, "B": 2, "C": 1, "D": 3},
+            "J7": {"A": 4, "B": 3, "C": 1, "D": 2},
+            "J8": {"A": 4, "B": 3, "C": 2, "D": 1},
+            "J9": {"A": 4, "B": 3, "C": 2, "D": 1},
+        })
+        result = self.system.calculate(scoresheet)
+        first_placement = result.details["placement_rounds"][0]
+        round1 = first_placement["irv_rounds"][0]
+        tb = round1["tiebreak"]
+
+        step0 = tb["steps"][0]
+        assert step0["method"] == "restricted_vote"
+        assert step0["resolved"] is False
+        assert step0["all_equal"] is True
+        assert step0["votes"] == {"B": 3, "C": 3, "D": 3}
+
+        step1 = tb["steps"][1]
+        assert step1["method"] == "restricted_vote"
+        assert step1["preference"] == 2
+        assert step1["resolved"] is True
+        assert step1["eliminated"] == "B"
+        assert step1["votes"] == {"B": 1, "C": 4, "D": 4}
 
     def test_restricted_vote_narrows_then_resolves(self):
         """Restricted vote narrows 3-way to 2-way, then resolves.
@@ -333,6 +370,7 @@ class TestSequentialIRV:
         assert round1["method"] == "elimination"
         assert round1["tiebreak_choice"] == 2
         assert round1["eliminated"] == "A"
+        assert round1["tiebreak_choice_votes"] == {"A": 1, "B": 3, "C": 2}
 
     def test_third_choice_vote_count(self):
         """All candidates tied, go to third choice.
@@ -360,6 +398,7 @@ class TestSequentialIRV:
         assert round1["method"] == "elimination"
         assert round1["tiebreak_choice"] == 3
         assert round1["eliminated"] == "D"
+        assert round1["tiebreak_choice_votes"] == {"A": 2, "B": 1, "C": 1, "D": 0}
         assert "tiebreak" not in round1
 
     def test_third_choice_vote_count_restricted_vote_random(self):
@@ -374,7 +413,8 @@ class TestSequentialIRV:
         First choice: A=1, B=1, C=1, D=1. All tied → go to second choice.
         Second choice: A=1, B=1, C=1, D=1. All tied → go to third choice.
         Third choice: A=0, B=2, C=0, D=2. A and C tied → restricted vote.
-        Restricted vote: A=2, C=2 → all equal → fall back to random.
+        Restricted 1st pref: A=2, C=2 → all equal → try 2nd pref.
+        Restricted 2nd pref: A=2, C=2 → all equal → fall back to random.
         """
         scoresheet = make_scoresheet("Third Choice Head-to-Head Random", {
             "J1": {"A": 1, "B": 2, "C": 4, "D": 3},
@@ -388,19 +428,26 @@ class TestSequentialIRV:
 
         assert round1["method"] == "elimination"
         assert round1["tiebreak_choice"] == 3
+        assert round1["tiebreak_choice_votes"] == {"A": 0, "B": 2, "C": 0, "D": 2}
         assert round1["eliminated"] in ["A", "C"]
 
         tiebreak_info = round1["tiebreak"]
         assert set(tiebreak_info["tied_candidates"]) == {"A", "C"}
 
-        assert len(tiebreak_info["steps"]) == 2
+        assert len(tiebreak_info["steps"]) == 3
 
         assert tiebreak_info["steps"][0]["method"] == "restricted_vote"
         assert tiebreak_info["steps"][0]["resolved"] == False
         assert tiebreak_info["steps"][0]["all_equal"] == True
+        assert tiebreak_info["steps"][0]["preference"] == 1
 
-        assert tiebreak_info["steps"][1]["method"] == "random"
-        assert set(tiebreak_info["steps"][1]["remaining_tied"]) == {"A", "C"}
+        assert tiebreak_info["steps"][1]["method"] == "restricted_vote"
+        assert tiebreak_info["steps"][1]["resolved"] == False
+        assert tiebreak_info["steps"][1]["all_equal"] == True
+        assert tiebreak_info["steps"][1]["preference"] == 2
+
+        assert tiebreak_info["steps"][2]["method"] == "random"
+        assert set(tiebreak_info["steps"][2]["remaining_tied"]) == {"A", "C"}
 
     def test_perfect_cycle_has_all_tied_equal(self, perfect_cycle):
         """Perfect cycle has no way to run IRV, so just declare all tied equal."""
