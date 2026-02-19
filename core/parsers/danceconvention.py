@@ -129,6 +129,40 @@ class DanceConventionParser(ScoresheetParser):
         return False
 
     @staticmethod
+    def _has_cumulative_columns(header: list) -> bool:
+        """Check if the header contains cumulative tally columns (1-1, 1-2, etc.).
+
+        Main results tables have these columns; tiebreak tables do not.
+        """
+        return any(
+            cell and str(cell).strip().startswith("1-")
+            for cell in header
+        )
+
+    def _check_if_prelims(self, tables: list) -> None:
+        """Check tables without cumulative columns for prelims characteristics.
+
+        Called when no finals (1-N column) tables are found. Raises PrelimsError
+        if the judge values look like callback scores (0/10/alternates).
+        """
+        header = tables[0][0]
+        col_indices = self._find_column_indices(header)
+        judge_start = col_indices["judge_start"]
+        judge_end = col_indices["judge_end"]
+
+        all_judge_values = []
+        for table in tables:
+            for row in table[1:]:
+                for col_idx in range(judge_start, judge_end):
+                    if col_idx < len(row) and row[col_idx]:
+                        all_judge_values.append(str(row[col_idx]).strip())
+
+        if all_judge_values and self._looks_like_callbacks(all_judge_values):
+            raise PrelimsError(
+                "This looks like a prelims scoresheet from danceconvention.net."
+            )
+
+    @staticmethod
     def _is_judge_initials(s: str) -> bool:
         """Check if a string looks like judge initials (2-4 alphanumeric chars).
 
@@ -167,19 +201,31 @@ class DanceConventionParser(ScoresheetParser):
         judge_key: dict[str, str],
     ) -> Scoresheet:
         """Parse the main results table."""
-        # Find all tables with results (identified by a # column in the
-        # header). Multi-page PDFs have a continuation table on each page
-        # with the same header row, so we merge data rows from all of them.
-        results_tables = []
+        # Find all tables with results (identified by a # column in the header).
+        # Multi-page PDFs have a continuation table on each page with the same
+        # header row, so we merge data rows from all of them.
+        all_results_tables = []
         for table in tables:
             if not table or len(table) < 2:
                 continue
             header = table[0]
             if header and self._is_results_header(header):
-                results_tables.append(table)
+                all_results_tables.append(table)
 
-        if not results_tables:
+        if not all_results_tables:
             raise ValueError("Could not find results table in PDF")
+
+        # Finals scoresheets have cumulative tally columns (1-1, 1-2, ...).
+        # Tiebreak tables on page 2 do not, so if any table has cumulative
+        # columns, restrict to those to exclude tiebreak tables.
+        # Prelims scoresheets also lack cumulative columns: pass them off to
+        # a dedicated checker that raises PrelimsError if appropriate.
+        results_tables = [
+            t for t in all_results_tables if self._has_cumulative_columns(t[0])
+        ]
+        if not results_tables:
+            self._check_if_prelims(all_results_tables)
+            raise ValueError("Could not find finals results table in PDF")
 
         # Use the header from the first table for column detection
         header = results_tables[0][0]
@@ -203,8 +249,7 @@ class DanceConventionParser(ScoresheetParser):
         # Use full names if available, otherwise use initials
         judges = [judge_key.get(init, init) for init in judge_initials]
 
-        # Collect all judge cell values from data rows to detect prelims
-        all_judge_values = []
+        # Collect data rows from all finals tables
         parsed_rows = []  # (competitor_name, [(col_idx, initials, value_str)])
 
         for results_table in results_tables:
@@ -226,15 +271,8 @@ class DanceConventionParser(ScoresheetParser):
                     if col_idx < len(row) and row[col_idx]:
                         value_str = str(row[col_idx]).strip()
                         row_judge_values.append((col_idx, initials, value_str))
-                        all_judge_values.append(value_str)
 
                 parsed_rows.append((competitor, row_judge_values))
-
-        # Detect prelims: callback scores are 0, 10, or alternates like 4.5
-        if all_judge_values and self._looks_like_callbacks(all_judge_values):
-            raise PrelimsError(
-                "This looks like a prelims scoresheet from danceconvention.net."
-            )
 
         # Build competitors list and rankings dict
         competitors = []

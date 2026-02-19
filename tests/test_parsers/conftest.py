@@ -106,6 +106,20 @@ def mock_pdfplumber_ru(danceconvention_ru_json, monkeypatch):
     return mock_pdf
 
 
+@pytest.fixture
+def danceconvention_full_tie_json():
+    path = FIXTURES_DIR / "danceconvention-full-tie.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def mock_pdfplumber_full_tie(danceconvention_full_tie_json, monkeypatch):
+    import pdfplumber
+    mock_pdf = _make_mock_pdf(danceconvention_full_tie_json)
+    monkeypatch.setattr(pdfplumber, "open", lambda *args, **kwargs: mock_pdf)
+    return mock_pdf
+
+
 def _make_prelims_page_data(use_alternates=False):
     """Create synthetic prelims PDF page data with callback scores."""
     judges = ["AB", "CD", "EF"]

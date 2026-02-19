@@ -1,0 +1,142 @@
+[
+  {
+    "text": "Jack'n'Jill All Star - Final\nSwing & Snow 2026\nDC Dorothee Coulon\nABu Aimée Burton\nAB Anthony Burke\nMW Marlis West\nDD Debra Davis\nОбозначения: места от 1 до 5; места, определенные по алгоритму Total Tie Break, помечены как (†)\n# Имя DC ABu AB MW DD 1-1 1-2 1-3 1-4 1-5 Результ. Отметки\nDr Steven Martin\n359 1 5 1 1 1 4 - - - - 1\nAndrew Taylor\nGilbert Courtois\n337 5 2 2 2 4 - 3 - - - 2\nKelsey Smith\nMonique Berger\n223 2 3 4 3 2 - 2 4 (10) 5 (14) 5 (14) 3(†)\nYolanda Hill\nHeike Wiek\n347 3 1 3 4 3 1 1 4 (10) 5 (14) 5 (14) 4(†)\nRonald Morris\nUniv.Prof. Heinz Biggen\n281 4 4 5 5 5 - - - 2 5 5\nJoshua Garrison\ndanceConvention.net",
+    "tables": [
+      [
+        [
+          "#",
+          "Имя",
+          "DC",
+          "ABu",
+          "AB",
+          "MW",
+          "DD",
+          "1-1",
+          "1-2",
+          "1-3",
+          "1-4",
+          "1-5",
+          "Результ.",
+          "Отметки"
+        ],
+        [
+          "359",
+          "Dr Steven Martin\nAndrew Taylor",
+          "1",
+          "5",
+          "1",
+          "1",
+          "1",
+          "4",
+          "-",
+          "-",
+          "-",
+          "-",
+          "1",
+          ""
+        ],
+        [
+          "337",
+          "Gilbert Courtois\nKelsey Smith",
+          "5",
+          "2",
+          "2",
+          "2",
+          "4",
+          "-",
+          "3",
+          "-",
+          "-",
+          "-",
+          "2",
+          ""
+        ],
+        [
+          "223",
+          "Monique Berger\nYolanda Hill",
+          "2",
+          "3",
+          "4",
+          "3",
+          "2",
+          "-",
+          "2",
+          "4 (10)",
+          "5 (14)",
+          "5 (14)",
+          "3(†)",
+          ""
+        ],
+        [
+          "347",
+          "Heike Wiek\nRonald Morris",
+          "3",
+          "1",
+          "3",
+          "4",
+          "3",
+          "1",
+          "1",
+          "4 (10)",
+          "5 (14)",
+          "5 (14)",
+          "4(†)",
+          ""
+        ],
+        [
+          "281",
+          "Univ.Prof. Heinz Biggen\nJoshua Garrison",
+          "4",
+          "4",
+          "5",
+          "5",
+          "5",
+          "-",
+          "-",
+          "-",
+          "2",
+          "5",
+          "5",
+          ""
+        ]
+      ]
+    ]
+  },
+  {
+    "text": "(†) Применение алгоритма Total Tie Break\n# Имя DC ABu AB MW DD Результ.\nMonique Berger\n223 1 (2) 2 (3) 2 (4) 1 (3) 1 (2) 1 (3)\nYolanda Hill\nHeike Wiek\n347 2 (3) 1 (1) 1 (3) 2 (4) 2 (3) 2 (4)\nRonald Morris\ndanceConvention.net",
+    "tables": [
+      [
+        [
+          "#",
+          "Имя",
+          "DC",
+          "ABu",
+          "AB",
+          "MW",
+          "DD",
+          "Результ."
+        ],
+        [
+          "223",
+          "Monique Berger\nYolanda Hill",
+          "1 (2)",
+          "2 (3)",
+          "2 (4)",
+          "1 (3)",
+          "1 (2)",
+          "1 (3)"
+        ],
+        [
+          "347",
+          "Heike Wiek\nRonald Morris",
+          "2 (3)",
+          "1 (1)",
+          "1 (3)",
+          "2 (4)",
+          "2 (3)",
+          "2 (4)"
+        ]
+      ]
+    ]
+  }
+]
