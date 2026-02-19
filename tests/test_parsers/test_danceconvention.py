@@ -189,3 +189,21 @@ class TestDanceConventionParser:
         """A PDF with callback scores including alternates (4.5) should raise PrelimsError."""
         with pytest.raises(PrelimsError):
             self.parser.parse(self.VALID_URL, b"%PDF")
+
+    # --- full tie (tiebreak table on page 2) ---
+
+    def test_parse_full_tie_competitor_count(self, mock_pdfplumber_full_tie):
+        """Tiebreak table on page 2 should not inflate competitor count."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        assert result.num_competitors == 5
+
+    def test_parse_full_tie_no_duplicates(self, mock_pdfplumber_full_tie):
+        """No competitor should appear twice."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        assert len(result.competitors) == len(set(result.competitors))
+
+    def test_parse_full_tie_rankings_complete(self, mock_pdfplumber_full_tie):
+        """All judges have rankings for all 5 competitors."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        for judge in result.judges:
+            assert len(result.rankings[judge]) == 5
