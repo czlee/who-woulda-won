@@ -178,6 +178,7 @@ class SequentialIRVSystem(VotingSystem):
                     if len(nth_place_fewest) < len(active):
                         to_eliminate = nth_place_fewest
                         round_info["tiebreak_choice"] = choice
+                        round_info["tiebreak_choice_votes"] = dict(nth_place_votes)
                         break
 
                 else:

@@ -370,6 +370,7 @@ class TestSequentialIRV:
         assert round1["method"] == "elimination"
         assert round1["tiebreak_choice"] == 2
         assert round1["eliminated"] == "A"
+        assert round1["tiebreak_choice_votes"] == {"A": 1, "B": 3, "C": 2}
 
     def test_third_choice_vote_count(self):
         """All candidates tied, go to third choice.
@@ -397,6 +398,7 @@ class TestSequentialIRV:
         assert round1["method"] == "elimination"
         assert round1["tiebreak_choice"] == 3
         assert round1["eliminated"] == "D"
+        assert round1["tiebreak_choice_votes"] == {"A": 2, "B": 1, "C": 1, "D": 0}
         assert "tiebreak" not in round1
 
     def test_third_choice_vote_count_restricted_vote_random(self):
@@ -426,6 +428,7 @@ class TestSequentialIRV:
 
         assert round1["method"] == "elimination"
         assert round1["tiebreak_choice"] == 3
+        assert round1["tiebreak_choice_votes"] == {"A": 0, "B": 2, "C": 0, "D": 2}
         assert round1["eliminated"] in ["A", "C"]
 
         tiebreak_info = round1["tiebreak"]
