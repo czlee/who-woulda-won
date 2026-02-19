@@ -65,6 +65,10 @@ To add a new parser or voting system, implement the base class and apply the reg
 3. Orchestrator runs all registered voting systems → returns `AnalysisResult` as JSON
 4. Frontend renders comparison of all voting outcomes
 
+## Writing Tests
+
+Sometimes, test cases for rare tiebreak situations can be difficult to construct. If it takes more than five attempts to generate a scoresheet that would trigger a planned test case, STOP, instead write notes of your thinking so far to a Markdown file, and inform the user. The user will take over constructing the test case from there.
+
 ## Mobile Responsiveness
 
 Mobile layout is handled with a single `@media (max-width: 600px)` breakpoint at the bottom of `styles.css`. It reduces padding, font sizes, and adjusts minor layout details (e.g., floated elements become block-level). The main results table uses `width: 100%` with `table-layout: fixed`, so it compresses columns to fit the screen. Detail tables (RP, Borda, Schulze working tables) use `white-space: nowrap` without a fixed width, so they scroll horizontally via `overflow-x: auto` wrappers on narrow screens.
