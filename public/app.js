@@ -905,9 +905,10 @@ function renderSchulzeDetails(container, result, data) {
         '\u201cWins\u201d = number of Schulze wins (ties count as half).',
     ];
     const extraCols = [];
-    if (details.tiebreak_used === 'winning') {
+    const winCounts = Object.values(details.schulze_wins);
+    const hasSharedWins = winCounts.some(w => winCounts.filter(x => x === w).length > 1);
+    if (hasSharedWins) {
         // Show Win Str only for competitors whose win count matches another's
-        const winCounts = Object.values(details.schulze_wins);
         const winStrRelevant = new Set(Object.keys(details.schulze_wins).filter(c => {
             const myWins = details.schulze_wins[c];
             return winCounts.filter(w => w === myWins).length > 1;

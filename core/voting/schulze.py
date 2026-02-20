@@ -107,7 +107,6 @@ class SchulzeSystem(VotingSystem):
         # Scan sorted list to build ordered ranking and detect tiebreak usage
         ordered: list[str | list[str]] = []
         ties = []
-        used_winning = False
         i = 0
         while i < n:
             # Collect group with identical (wins, ws) tuples
@@ -124,18 +123,6 @@ class SchulzeSystem(VotingSystem):
                 ordered.append(group)
                 ties.append(group)
             i = j
-
-        # Detect whether tiebreaks were needed by checking if any competitors
-        # share wins but differ on winning_strength
-        for a in range(n):
-            for b in range(a + 1, n):
-                ca, cb = sorted_comps[a], sorted_comps[b]
-                if wins_map[ca] != wins_map[cb]:
-                    continue
-                if winning_strength[ca] != winning_strength[cb]:
-                    used_winning = True
-
-        tiebreak_used = "winning" if used_winning else "none"
 
         final_ranking = Placement.build_ranking(ordered)
 
@@ -190,22 +177,9 @@ class SchulzeSystem(VotingSystem):
             "path_strengths": path_strengths,
             "beatpaths": beatpaths,
             "schulze_wins": wins_map,
+            "winning_beatpath_sums": winning_strength,
             "ties": ties,
-            "tiebreak_used": tiebreak_used,
-            "explanation": (
-                "Each cell d[A][B] shows judges preferring A over B. "
-                "Path strengths use Floyd-Warshall to find strongest "
-                "indirect paths. A beats B if path A→B > path B→A. "
-                "Ties (equal path strengths) count as half a win for each side."
-            ),
         }
-
-        if tiebreak_used == "winning":
-            details["winning_beatpath_sums"] = winning_strength
-            details["explanation"] += (
-                " Ties in win count are broken by the sum of winning "
-                "beatpath strengths."
-            )
 
         return VotingResult(
             system_name=self.name,

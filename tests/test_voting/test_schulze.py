@@ -86,7 +86,7 @@ class TestSchulze:
         assert "path_strengths" in result.details
         assert "schulze_wins" in result.details
         assert "ties" in result.details
-        assert "tiebreak_used" in result.details
+        assert "winning_beatpath_sums" in result.details
 
     # --- path_strengths tests ---
 
@@ -294,18 +294,12 @@ class TestSchulze:
         result = self.system.calculate(clear_winner)
         assert result.details["ties"] == []
 
-    def test_perfect_cycle_tiebreak_none(self, perfect_cycle):
-        """Perfect cycle: all strengths equal, tiebreak can't resolve anything."""
+    def test_perfect_cycle_winning_beatpath_sums(self, perfect_cycle):
+        """Perfect cycle: all strengths equal, winning_beatpath_sums are all equal."""
         result = self.system.calculate(perfect_cycle)
-        assert result.details["tiebreak_used"] == "none"
-        # All winning and total strengths are equal
-        assert "winning_beatpath_sums" not in result.details
-        assert "total_beatpath_sums" not in result.details
-
-    def test_clear_winner_tiebreak_none(self, clear_winner):
-        """No ties means no tiebreak needed."""
-        result = self.system.calculate(clear_winner)
-        assert result.details["tiebreak_used"] == "none"
+        assert "winning_beatpath_sums" in result.details
+        sums = result.details["winning_beatpath_sums"]
+        assert len(set(sums.values())) == 1  # all equal
 
     # --- tiebreak tests ---
 
@@ -367,7 +361,6 @@ class TestSchulze:
 
         names = ranking_names(result)
         assert names == ["A", "B", "C", "D"]
-        assert result.details["tiebreak_used"] == "winning"
 
         beatpath_sums = result.details["winning_beatpath_sums"]
         assert beatpath_sums["A"] == 6
@@ -407,8 +400,6 @@ class TestSchulze:
         assert all(r.tied == True for r in result.final_ranking[0:2])
         assert result.final_ranking[2].to_dict() == {"name": "C", "rank": 3, "tied": False}
         assert result.final_ranking[3].to_dict() == {"name": "D", "rank": 4, "tied": False}
-
-        assert result.details["tiebreak_used"] == "winning"
 
         beatpath_sums = result.details["winning_beatpath_sums"]
         assert beatpath_sums["A"] == 6
