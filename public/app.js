@@ -660,7 +660,7 @@ function renderRPDetails(container, result, data) {
 
     if (hasH2H) {
         const note = document.createElement('p');
-        note.className = 'rp-h2h-note';
+        note.className = 'detail-description';
         note.innerHTML = 'H2H: As a tiebreak of last resort, the couple preferred in a <strong>head-to-head vote</strong> wins the higher placing.';
         container.appendChild(note);
     }
