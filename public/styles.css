@@ -467,6 +467,10 @@ td.col-highlight.cell-diagonal { background-color: #e3e6ea; }
     background: #d4edda !important;
 }
 
+/* RP table: H2H tiebreak hover highlights */
+.rp-h2h-win { background-color: #d4edda !important; }
+.rp-h2h-lose { background-color: #f8d7da !important; }
+
 /* Borda tiebreak section header within unified table */
 /* Need specificity to override .detail-table td and .detail-table td:first-child */
 .detail-table td.borda-section-header:first-child,

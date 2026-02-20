@@ -248,6 +248,101 @@ class TestRelativePlacement:
         assert set(cutoff_step3["with_majority"]) == {"A", "B"}
 
 
+    # --- head-to-head tiebreak tests ---
+
+    def test_head_to_head_resolved(self):
+        """B beats A via head-to-head tiebreak when all other tiebreakers are
+        exhausted.
+
+             J1  J2  J3  J4  J5
+        A     1   2   2   3   1
+        B     2   1   1   2   3
+        C     3   3   3   1   2
+
+        Cumulative counts (A and B identical):
+            cutoff 1: A=2, B=2
+            cutoff 2: A=4, B=4
+            cutoff 3: A=5, B=5
+
+        Majority = 3. At cutoff 2, A and B both have majority (4).
+        Greater majority tied, quality of majority tied (both sum to 6).
+        At cutoff 3, still tied (both 5, sum 9).
+        H2H: J1→A, J2→B, J3→B, J4→B, J5→A → B wins 3-2.
+        """
+        scoresheet = make_scoresheet("H2H Resolved Test", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 2, "B": 1, "C": 3},
+            "J3": {"A": 2, "B": 1, "C": 3},
+            "J4": {"A": 3, "B": 2, "C": 1},
+            "J5": {"A": 1, "B": 3, "C": 2},
+        })
+        result = self.system.calculate(scoresheet)
+        assert ranking_names(result) == ["B", "A", "C"]
+
+        place1 = result.details["rounds"][0]
+        resolution = place1["resolution"]
+        assert resolution["method"] == "head_to_head"
+        assert set(resolution["h2h_pair"]) == {"A", "B"}
+        assert resolution["h2h_counts"] == {"A": 2, "B": 3}
+
+    def test_three_way_unresolved_tie(self, perfect_cycle):
+        """Three-way tie after all tiebreakers → unresolved, no H2H attempted.
+
+        Uses the perfect_cycle fixture (3 judges, 3 competitors, perfectly
+        symmetric). All cumulative counts, quality scores are identical.
+        With 3 candidates, H2H should not be attempted.
+        """
+        result = self.system.calculate(perfect_cycle)
+        assert len(result.final_ranking) == 3
+        assert set(ranking_names(result)) == {"A", "B", "C"}
+
+        # All three should be in a single tied round
+        place1 = result.details["rounds"][0]
+        assert place1["tied"] is True
+        resolution = place1["resolution"]
+        assert resolution["method"] == "unresolved_tie"
+        assert "h2h_pair" not in resolution
+        assert "h2h_counts" not in resolution
+
+    def test_head_to_head_tied(self):
+        """H2H itself is tied (even number of judges, even split).
+
+             J1  J2  J3  J4
+        A     1   1   2   2
+        B     2   2   1   1
+        C     3   3   3   3
+
+        Majority = 3. At cutoff 2, A and B both have 4 (majority).
+        Greater majority tied, quality tied (both sum to 6).
+        At cutoff 3, still tied.
+        H2H: J1→A, J2→A, J3→B, J4→B → 2-2 tie.
+        Result: A and B tied at 1st place.
+        """
+        scoresheet = make_scoresheet("H2H Tied Test", {
+            "J1": {"A": 1, "B": 2, "C": 3},
+            "J2": {"A": 1, "B": 2, "C": 3},
+            "J3": {"A": 2, "B": 1, "C": 3},
+            "J4": {"A": 2, "B": 1, "C": 3},
+        })
+        result = self.system.calculate(scoresheet)
+
+        # A and B should be tied (order among them is unspecified)
+        names = ranking_names(result)
+        assert set(names[:2]) == {"A", "B"}
+        assert names[2] == "C"
+        # Both should have rank 1 (tied)
+        a_rank = next(p.rank for p in result.final_ranking if p.name == "A")
+        b_rank = next(p.rank for p in result.final_ranking if p.name == "B")
+        assert a_rank == b_rank == 1
+
+        place1 = result.details["rounds"][0]
+        assert place1["tied"] is True
+        resolution = place1["resolution"]
+        assert resolution["method"] == "head_to_head"
+        assert set(resolution["h2h_pair"]) == {"A", "B"}
+        assert resolution["h2h_counts"] == {"A": 2, "B": 2}
+
+
 class TestRelativePlacementRealData:
     """Integration tests using real competition data to verify correctness."""
 
