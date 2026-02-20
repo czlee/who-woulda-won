@@ -635,7 +635,7 @@ function renderRPDetails(container, result, data) {
         // H2H column
         if (hasH2H) {
             const h2hTd = document.createElement('td');
-            h2hTd.classList.add('col-h2h');
+            h2hTd.classList.add('col-h2h', 'rp-separator');
             if (h2hMap[competitor]) {
                 h2hTd.textContent = String(h2hMap[competitor].count);
                 h2hTd.addEventListener('mouseenter', makeH2HMouseEnter(competitor));
