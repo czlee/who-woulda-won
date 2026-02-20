@@ -490,6 +490,18 @@ function renderRPDetails(container, result, data) {
     // Determine which cumulative cells to display
     const cellDisplay = buildRPCellDisplay(details, n);
 
+    // Build H2H map from rounds
+    const h2hMap = {};
+    for (const round of details.rounds) {
+        const res = round.resolution;
+        if (res && res.method === 'head_to_head') {
+            const [a, b] = res.h2h_pair;
+            h2hMap[a] = { count: res.h2h_counts[a], opponent: b };
+            h2hMap[b] = { count: res.h2h_counts[b], opponent: a };
+        }
+    }
+    const hasH2H = Object.keys(h2hMap).length > 0;
+
     // Sort competitors by final ranking
     const sorted = result.final_ranking.map(e => e.name);
 
@@ -514,6 +526,11 @@ function renderRPDetails(container, result, data) {
         if (p === 1) th.classList.add('rp-separator');
         headerRow.appendChild(th);
     }
+    if (hasH2H) {
+        const h2hTh = createThWithTooltip('H2H', 'head-to-head tiebreak');
+        h2hTh.classList.add('col-h2h', 'rp-separator');
+        headerRow.appendChild(h2hTh);
+    }
     const resultTh = createTh('Result');
     resultTh.classList.add('rp-result');
     headerRow.appendChild(resultTh);
@@ -522,6 +539,36 @@ function renderRPDetails(container, result, data) {
 
     // Body
     const tbody = document.createElement('tbody');
+
+    // H2H hover handlers (close over rankings, h2hMap, tbody, judges)
+    function makeH2HMouseEnter(competitor) {
+        return function() {
+            const opponent = h2hMap[competitor].opponent;
+            const rows = {};
+            tbody.querySelectorAll('tr').forEach(row => {
+                const name = row.cells[0].textContent;
+                if (name === competitor || name === opponent) rows[name] = row;
+            });
+            judges.forEach((judge, jIdx) => {
+                const rankA = rankings[judge][competitor];
+                const rankB = rankings[judge][opponent];
+                const compCell = rows[competitor]?.querySelectorAll('.rp-judge-cell')[jIdx];
+                const oppCell = rows[opponent]?.querySelectorAll('.rp-judge-cell')[jIdx];
+                if (rankA < rankB) {
+                    compCell?.classList.add('rp-h2h-win');
+                    oppCell?.classList.add('rp-h2h-lose');
+                } else {
+                    compCell?.classList.add('rp-h2h-lose');
+                    oppCell?.classList.add('rp-h2h-win');
+                }
+            });
+        };
+    }
+    function h2hMouseLeave() {
+        tbody.querySelectorAll('.rp-judge-cell').forEach(cell => {
+            cell.classList.remove('rp-h2h-win', 'rp-h2h-lose');
+        });
+    }
 
     // Competitor rows
     const rpPlacements = result.final_ranking;
@@ -585,6 +632,20 @@ function renderRPDetails(container, result, data) {
             tr.appendChild(td);
         }
 
+        // H2H column
+        if (hasH2H) {
+            const h2hTd = document.createElement('td');
+            h2hTd.classList.add('col-h2h');
+            if (h2hMap[competitor]) {
+                h2hTd.textContent = String(h2hMap[competitor].count);
+                h2hTd.addEventListener('mouseenter', makeH2HMouseEnter(competitor));
+                h2hTd.addEventListener('mouseleave', h2hMouseLeave);
+            } else {
+                h2hTd.textContent = '\u2013';
+            }
+            tr.appendChild(h2hTd);
+        }
+
         // Result column
         const resultTd = document.createElement('td');
         resultTd.textContent = formatPlacement(rpPlacements[idx]);
@@ -597,6 +658,12 @@ function renderRPDetails(container, result, data) {
     table.appendChild(tbody);
     wrapper.appendChild(table);
 
+    if (hasH2H) {
+        const note = document.createElement('p');
+        note.className = 'rp-h2h-note';
+        note.innerHTML = 'H2H: As a tiebreak of last resort, the couple preferred in a <strong>head-to-head vote</strong> wins the higher placing.';
+        container.appendChild(note);
+    }
     container.appendChild(wrapper);
 }
 

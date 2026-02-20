@@ -251,12 +251,17 @@ class RelativePlacementSystem(VotingSystem):
             details["cutoff_progression"].append(cutoff_info)
             current_cutoff += 1
 
-        # Final fallback: head-to-head among remaining
+        # Final fallback: head-to-head for exactly 2 candidates only
         if len(candidates) > 1:
-            winner = self._head_to_head_tiebreak(candidates, scoresheet)
-            details["method"] = "head_to_head"
-            if winner:
-                return winner, details
+            if len(candidates) == 2:
+                winner, h2h_counts = self._head_to_head_tiebreak(candidates, scoresheet)
+                details["method"] = "head_to_head"
+                details["h2h_pair"] = candidates
+                details["h2h_counts"] = h2h_counts
+                if winner:
+                    return winner, details
+                else:
+                    return candidates, details
             else:
                 details["method"] = "unresolved_tie"
                 return candidates, details
@@ -266,32 +271,24 @@ class RelativePlacementSystem(VotingSystem):
 
     def _head_to_head_tiebreak(
         self, candidates: list[str], scoresheet: Scoresheet
-    ) -> str | None:
-        """Compare tied competitors head-to-head.
+    ) -> tuple[str | None, dict]:
+        """Compare two tied competitors head-to-head.
 
-        Returns the winner, or None if still tied.
+        Returns (winner, counts) where counts is {A: n_A, B: n_B} and
+        winner is the competitor preferred by more judges, or None if tied.
+        Only valid for exactly 2 candidates.
         """
-        if len(candidates) <= 1:
-            return candidates[0] if candidates else None
-
-        # Count pairwise wins
-        wins = {c: 0 for c in candidates}
-
-        for i, a in enumerate(candidates):
-            for b in candidates[i + 1:]:
-                a_better = sum(
-                    1 for j in scoresheet.judges
-                    if scoresheet.get_placement(j, a) < scoresheet.get_placement(j, b)
-                )
-                if a_better > scoresheet.num_judges / 2:
-                    wins[a] += 1
-                elif a_better < scoresheet.num_judges / 2:
-                    wins[b] += 1
-
-        max_wins = max(wins.values())
-        best = [c for c in candidates if wins[c] == max_wins]
-
-        if len(best) == 1:
-            return best[0]
-
-        return None  # Still tied
+        assert len(candidates) == 2
+        a, b = candidates
+        a_better = sum(
+            1 for j in scoresheet.judges
+            if scoresheet.get_placement(j, a) < scoresheet.get_placement(j, b)
+        )
+        b_better = scoresheet.num_judges - a_better
+        counts = {a: a_better, b: b_better}
+        if a_better > b_better:
+            return a, counts
+        elif b_better > a_better:
+            return b, counts
+        else:
+            return None, counts
