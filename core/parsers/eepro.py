@@ -68,6 +68,7 @@ class EeproParser(ScoresheetParser):
         tables = soup.find_all("table")
         division_tables = []
         division_names = []
+        found_prelims = False
 
         for table in tables:
             first_row = table.find("tr")
@@ -75,6 +76,9 @@ class EeproParser(ScoresheetParser):
                 continue
             cells = first_row.find_all("td")
             if len(cells) == 1 and cells[0].get("colspan"):
+                if self._table_is_prelims(table):
+                    found_prelims = True
+                    continue  # skip prelims tables
                 division_tables.append(table)
                 name = cells[0].get_text(strip=True)
                 if name.startswith("Division:"):
@@ -82,6 +86,11 @@ class EeproParser(ScoresheetParser):
                 division_names.append(name)
 
         if not division_tables:
+            if found_prelims:
+                raise PrelimsError(
+                    "This looks like a prelims scoresheet from eepro.com. "
+                    "Judge cells contain callback votes (Y/N/A1) rather than numeric placements."
+                )
             raise ValueError("No division tables found in HTML")
 
         # Select the division
@@ -200,6 +209,22 @@ class EeproParser(ScoresheetParser):
             rankings=rankings,
         )
 
+    def _table_is_prelims(self, table) -> bool:
+        """Return True if this table contains callback-style prelims data."""
+        rows = table.find_all("tr")
+        if len(rows) < 3:
+            return False
+        headers = [cell.get_text(strip=True) for cell in rows[1].find_all("td")]
+        try:
+            competitor_idx = next(i for i, h in enumerate(headers) if "competitor" in h.lower())
+            bib_idx = next(i for i, h in enumerate(headers) if "bib" in h.lower())
+        except StopIteration:
+            return False
+        judge_indices = list(range(competitor_idx + 1, bib_idx))
+        if not judge_indices:
+            return False
+        return self._looks_like_callbacks(rows, judge_indices)
+
     def _looks_like_callbacks(self, rows, judge_indices) -> bool:
         """Return True if judge cells look like callback votes (Y/N/A1) rather than placements."""
         callback_pattern = re.compile(r"^(Y|N|A\d+)$", re.IGNORECASE)
@@ -235,6 +260,8 @@ class EeproParser(ScoresheetParser):
                 continue
             cells = first_row.find_all("td")
             if len(cells) == 1 and cells[0].get("colspan"):
+                if self._table_is_prelims(table):
+                    continue  # skip prelims tables
                 name = cells[0].get_text(strip=True)
                 if name.startswith("Division:"):
                     name = name[9:].strip()

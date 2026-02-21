@@ -208,6 +208,30 @@ class TestEeproParser:
         with pytest.raises(PrelimsError):
             self.parser.parse(self.VALID_URL, self.PRELIMS_HTML_ALTERNATES)
 
+    # --- mixed prelims+finals page ---
+
+    def test_parse_mixed_page_with_finals_division(self, eepro_mixed_html):
+        """Selecting a finals division on a mixed page succeeds."""
+        result = self.parser.parse(self.VALID_URL, eepro_mixed_html, division="Advanced Finals")
+        assert result is not None
+        assert "Advanced" in result.competition_name
+        assert result.num_competitors == 10
+
+    def test_parse_mixed_page_no_division_lists_only_finals(self, eepro_mixed_html):
+        """Error message when no division specified lists only finals, not prelims."""
+        with pytest.raises(ValueError, match="6 divisions") as exc_info:
+            self.parser.parse(self.VALID_URL, eepro_mixed_html)
+        error_msg = str(exc_info.value)
+        assert "Finals" in error_msg
+        assert "Prelims" not in error_msg
+
+    def test_parse_mixed_page_count_finals_only(self, eepro_mixed_html):
+        """get_division_names() on a mixed page returns only finals names."""
+        names = self.parser.get_division_names(eepro_mixed_html)
+        assert len(names) == 6
+        assert all("Finals" in n for n in names)
+        assert all("Prelims" not in n for n in names)
+
     def test_parse_finals_not_prelims(self):
         """Finals scoresheets do not raise PrelimsError."""
         html = b"""<html><head><title>Event Express Pro</title></head>
