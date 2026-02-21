@@ -56,6 +56,8 @@ const quickstartContainer = document.getElementById('quickstart-container');
 let quickstartUsed = false;
 let lastAnalysisUrl = null;
 let lastAnalysisDivision = null;
+let currentSortColumnIndex = 0;   // index into results array; 0 = RP (default)
+let currentSortData = null;        // {results, rankings, competitors} for re-sort
 
 document.querySelectorAll('.mode-toggle').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -204,11 +206,17 @@ function displayResults(data) {
         'Schulze Method': 'Sch',
         'Sequential IRV': 'IRV',
     };
-    results.forEach(result => {
+    results.forEach((result, i) => {
         const th = document.createElement('th');
         const abbrev = SYSTEM_ABBREVIATIONS[result.system_name] || result.system_name;
         th.innerHTML = `<span class="header-full">${result.system_name}</span><span class="header-abbrev" aria-label="${result.system_name}">${abbrev}</span>`;
         th.setAttribute('title', result.system_name);
+        th.classList.add('sortable-header');
+        th.addEventListener('click', () => {
+            currentSortColumnIndex = i;
+            updateSortHeaders(resultsHeader, i, results.length);
+            renderResultsBody(currentSortData.competitors, currentSortData.rankings, currentSortData.results, i);
+        });
         resultsHeader.appendChild(th);
     });
 
@@ -227,9 +235,37 @@ function displayResults(data) {
     const competitors = data.competitors;
     const rankings = buildRankingsMap(results, competitors);
 
-    // Build data rows
+    // Build data rows (default: sort by RP, reset on every new load)
+    currentSortData = { results, rankings, competitors };
+    currentSortColumnIndex = 0;
+    updateSortHeaders(resultsHeader, 0, results.length);
+    renderResultsBody(competitors, rankings, results, 0);
+
+    // Render expandable detail blocks for each voting system
+    renderVotingDetails(results, data);
+
+    updateShareUrl();
+    showResults();
+}
+
+/**
+ * Render the results table body, sorting competitors by the given column index.
+ * sortColumnIndex is the reference column for triangles (no triangles on that column).
+ */
+function renderResultsBody(competitors, rankings, results, sortColumnIndex) {
+    // Sort a copy by sort column rank (ascending; nulls last; ties broken by name)
+    const sorted = [...competitors].sort((a, b) => {
+        const pa = rankings[a][sortColumnIndex];
+        const pb = rankings[b][sortColumnIndex];
+        if (pa === null && pb === null) return a.localeCompare(b);
+        if (pa === null) return 1;
+        if (pb === null) return -1;
+        if (pa.rank !== pb.rank) return pa.rank - pb.rank;
+        return a.localeCompare(b);
+    });
+
     resultsBody.innerHTML = '';
-    competitors.forEach(competitor => {
+    sorted.forEach(competitor => {
         const tr = document.createElement('tr');
 
         // Competitor name cell
@@ -239,20 +275,20 @@ function displayResults(data) {
 
         // Placement cells for each voting system
         const placements = rankings[competitor];
-        const rpPlacement = placements[0]; // Relative Placement is first
+        const refPlacement = placements[sortColumnIndex];
 
         placements.forEach((placement, i) => {
             const td = document.createElement('td');
             td.textContent = formatPlacement(placement);
 
-            // For non-RP columns, show triangle relative to RP placement
-            if (i > 0 && placement !== null && rpPlacement !== null) {
-                if (placement.rank < rpPlacement.rank) {
+            // For non-sort columns, show triangle relative to the sort column
+            if (i !== sortColumnIndex && placement !== null && refPlacement !== null) {
+                if (placement.rank < refPlacement.rank) {
                     const arrow = document.createElement('span');
                     arrow.className = 'placement-up';
                     arrow.textContent = ' \u25B2';
                     td.appendChild(arrow);
-                } else if (placement.rank > rpPlacement.rank) {
+                } else if (placement.rank > refPlacement.rank) {
                     const arrow = document.createElement('span');
                     arrow.className = 'placement-down';
                     arrow.textContent = ' \u25BC';
@@ -270,12 +306,14 @@ function displayResults(data) {
 
         resultsBody.appendChild(tr);
     });
+}
 
-    // Render expandable detail blocks for each voting system
-    renderVotingDetails(results, data);
-
-    updateShareUrl();
-    showResults();
+/**
+ * Update sort-active class on result column headers.
+ */
+function updateSortHeaders(headerRow, activeIndex, numResultCols) {
+    const ths = [...headerRow.querySelectorAll('th')].slice(1); // skip "Competitor"
+    ths.forEach((th, i) => th.classList.toggle('sort-active', i === activeIndex));
 }
 
 /**

@@ -304,6 +304,20 @@ button[type="submit"]:disabled {
     font-weight: 600;
 }
 
+/* Sortable result column headers */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable-header:hover {
+    background: var(--color-primary-hover);
+}
+
+.sortable-header.sort-active {
+    background: var(--color-primary-dark);
+}
+
 /* Voting system detail blocks */
 .voting-details {
     margin-top: 1.5rem;
