@@ -29,7 +29,7 @@ class EeproParser(ScoresheetParser):
         r"/results/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+\.html$"
     )
 
-    EXAMPLE_URL = "https://eepro.com/results/event-name/division-name.html"
+    EXAMPLE_URL = "https://eepro.com/results/eventname2026/competitionfinals.html"
 
     def can_parse(self, source: str) -> bool:
         """Check if this is a valid eepro.com results URL."""
