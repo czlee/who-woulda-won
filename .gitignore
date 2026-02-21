@@ -5,5 +5,4 @@ __pycache__/
 .claude/
 
 # Example files with real personal data (anonymized fixtures are in tests/)
-examples/*.pdf
-examples/*.html
+examples/
