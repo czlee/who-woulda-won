@@ -55,6 +55,7 @@ const shareWhatsappLink = document.getElementById('share-whatsapp');
 const quickstartContainer = document.getElementById('quickstart-container');
 let quickstartUsed = false;
 let lastAnalysisUrl = null;
+let lastAnalysisDivision = null;
 
 document.querySelectorAll('.mode-toggle').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -125,8 +126,10 @@ urlForm.addEventListener('submit', async (e) => {
 
     lastAnalysisUrl = url;
     const payload = { url };
+    lastAnalysisDivision = null;
     if (!urlDivisionField.classList.contains('hidden') && urlDivisionInput.value.trim()) {
         payload.division = urlDivisionInput.value.trim();
+        lastAnalysisDivision = urlDivisionInput.value.trim();
     }
     await analyzeScoresheet(payload);
 });
@@ -145,6 +148,7 @@ fileForm.addEventListener('submit', async (e) => {
     }
 
     lastAnalysisUrl = null;
+    lastAnalysisDivision = null;
     await analyzeScoresheet(formData);
 });
 
@@ -1531,6 +1535,9 @@ function updateShareUrl() {
     if (lastAnalysisUrl) {
         const shareUrl = new URL(window.location.pathname, window.location.origin);
         shareUrl.searchParams.set('url', lastAnalysisUrl);
+        if (lastAnalysisDivision) {
+            shareUrl.searchParams.set('division', lastAnalysisDivision);
+        }
         const shareUrlStr = shareUrl.toString();
         history.replaceState(null, '', shareUrlStr);
         showShareIcons(shareUrlStr);
@@ -1558,6 +1565,13 @@ shareCopyBtn.addEventListener('click', async () => {
     const url = params.get('url');
     if (url) {
         urlInput.value = url;
+        // Trigger input event to show/hide division field based on URL
+        urlInput.dispatchEvent(new Event('input'));
+        // Set division if provided in URL
+        const division = params.get('division');
+        if (division) {
+            urlDivisionInput.value = division;
+        }
         quickstartUsed = true;
         quickstartContainer.classList.add('hidden');
         urlForm.requestSubmit();
