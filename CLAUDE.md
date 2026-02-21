@@ -69,6 +69,14 @@ To add a new parser or voting system, implement the base class and apply the reg
 
 Sometimes, test cases for rare tiebreak situations can be difficult to construct. If it takes more than five attempts to generate a scoresheet that would trigger a planned test case, STOP, instead write notes of your thinking so far to a Markdown file, and inform the user. The user will take over constructing the test case from there.
 
+When adding parser tests that need HTML/PDF fixtures derived from example files, use the anonymize scripts in `scripts/` to generate anonymized fixtures. For eepro.com HTML:
+
+```bash
+poetry run python scripts/anonymize_eepro.py examples/<input>.html -o tests/test_parsers/fixtures/<output>.html
+```
+
+Then add a fixture in `tests/test_parsers/conftest.py` loading the new file.
+
 ## Mobile Responsiveness
 
 Mobile layout is handled with a single `@media (max-width: 600px)` breakpoint at the bottom of `styles.css`. It reduces padding, font sizes, and adjusts minor layout details (e.g., floated elements become block-level). The main results table uses `width: 100%` with `table-layout: fixed`, so it compresses columns to fit the screen. Detail tables (RP, Borda, Schulze working tables) use `white-space: nowrap` without a fixed width, so they scroll horizontally via `overflow-x: auto` wrappers on narrow screens.

@@ -23,11 +23,18 @@ const QUICKSTART_URLS = [
     'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO 2022 Intermediate
 ];
 
+// Eepro URL detection regex
+const EEPRO_URL_PATTERN = /^https?:\/\/eepro\.com\/results\//;
+
 // DOM elements
 const urlForm = document.getElementById('url-form');
 const fileForm = document.getElementById('file-form');
 const urlInput = document.getElementById('url-input');
 const fileInput = document.getElementById('file-input');
+const urlDivisionField = document.getElementById('url-division-field');
+const urlDivisionInput = document.getElementById('url-division-input');
+const fileDivisionField = document.getElementById('file-division-field');
+const fileDivisionInput = document.getElementById('file-division-input');
 const loadingSection = document.getElementById('loading');
 const errorSection = document.getElementById('error');
 const errorMessage = document.getElementById('error-message');
@@ -48,6 +55,7 @@ const shareWhatsappLink = document.getElementById('share-whatsapp');
 const quickstartContainer = document.getElementById('quickstart-container');
 let quickstartUsed = false;
 let lastAnalysisUrl = null;
+let lastAnalysisDivision = null;
 
 document.querySelectorAll('.mode-toggle').forEach(link => {
     link.addEventListener('click', (e) => {
@@ -77,6 +85,36 @@ document.getElementById('quickstart-link').addEventListener('click', (e) => {
     urlForm.requestSubmit();
 });
 
+// Show/hide division field based on URL
+urlInput.addEventListener('input', () => {
+    if (EEPRO_URL_PATTERN.test(urlInput.value.trim())) {
+        urlDivisionField.classList.remove('hidden');
+    } else {
+        urlDivisionField.classList.add('hidden');
+    }
+});
+
+// Show/hide division field based on file content
+fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) {
+        fileDivisionField.classList.add('hidden');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+        if (reader.result.includes('Event Express Pro')) {
+            fileDivisionField.classList.remove('hidden');
+        } else {
+            fileDivisionField.classList.add('hidden');
+        }
+    };
+    reader.onerror = () => {
+        fileDivisionField.classList.add('hidden');
+    };
+    reader.readAsText(file);
+});
+
 // URL form submission
 urlForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -87,7 +125,13 @@ urlForm.addEventListener('submit', async (e) => {
     quickstartContainer.classList.add('hidden');
 
     lastAnalysisUrl = url;
-    await analyzeScoresheet({ url });
+    const payload = { url };
+    lastAnalysisDivision = null;
+    if (!urlDivisionField.classList.contains('hidden') && urlDivisionInput.value.trim()) {
+        payload.division = urlDivisionInput.value.trim();
+        lastAnalysisDivision = urlDivisionInput.value.trim();
+    }
+    await analyzeScoresheet(payload);
 });
 
 // File form submission
@@ -99,8 +143,12 @@ fileForm.addEventListener('submit', async (e) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('filename', file.name);
+    if (!fileDivisionField.classList.contains('hidden') && fileDivisionInput.value.trim()) {
+        formData.append('division', fileDivisionInput.value.trim());
+    }
 
     lastAnalysisUrl = null;
+    lastAnalysisDivision = null;
     await analyzeScoresheet(formData);
 });
 
@@ -334,16 +382,19 @@ function buildJudgeInitials(judges) {
 
 /**
  * Generate a short form for a competitor name:
- * - "Kevin Rocher & Alexandra Pasti" → "KR-AP"
- * - "Alvaro Hilario Garcia & Charlie Fournier" → "AG-CF"
- * - "Kevin Rocher" → "KR"
+ * - "Meghan Gilbert & Maurice Wilson" → "MG-MW"
+ * - "Justin Schmidt and Robert Morales" → "JS-RM"
+ * - "Michelle Collins" → "MC"
  *
  * For pairs: first + last initial of each person, joined by hyphen.
+ * Supports both "&" and word "and" (case-sensitive, whole word) as separators.
  * For singles: all initials.
  */
 function competitorInitial(name) {
-    if (name.includes('&')) {
-        const parts = name.split('&').map(s => s.trim());
+    // Check if this is a couple (separated by & or word "and")
+    if (name.includes('&') || /\s+and\s+/.test(name)) {
+        // Split by & or word "and" (case-sensitive, whole word), allowing optional spaces around &
+        const parts = name.split(/\s*&\s*|\s+and\s+/).map(s => s.trim());
         return parts.map(p => {
             const words = p.split(/\s+/);
             const first = (words[0] || '')[0] || '';
@@ -1484,6 +1535,9 @@ function updateShareUrl() {
     if (lastAnalysisUrl) {
         const shareUrl = new URL(window.location.pathname, window.location.origin);
         shareUrl.searchParams.set('url', lastAnalysisUrl);
+        if (lastAnalysisDivision) {
+            shareUrl.searchParams.set('division', lastAnalysisDivision);
+        }
         const shareUrlStr = shareUrl.toString();
         history.replaceState(null, '', shareUrlStr);
         showShareIcons(shareUrlStr);
@@ -1511,6 +1565,13 @@ shareCopyBtn.addEventListener('click', async () => {
     const url = params.get('url');
     if (url) {
         urlInput.value = url;
+        // Trigger input event to show/hide division field based on URL
+        urlInput.dispatchEvent(new Event('input'));
+        // Set division if provided in URL
+        const division = params.get('division');
+        if (division) {
+            urlDivisionInput.value = division;
+        }
         quickstartUsed = true;
         quickstartContainer.classList.add('hidden');
         urlForm.requestSubmit();

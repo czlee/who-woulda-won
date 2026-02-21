@@ -40,12 +40,13 @@ class AnalysisError(Exception):
     pass
 
 
-def analyze_scoresheet(source: str, content: bytes) -> AnalysisResult:
+def analyze_scoresheet(source: str, content: bytes, division: str | None = None) -> AnalysisResult:
     """Parse a scoresheet and run all voting systems on it.
 
     Args:
         source: URL or filename (used to detect the appropriate parser)
         content: Raw bytes of the scoresheet file/page
+        division: Optional division name (or substring) to select
 
     Returns:
         AnalysisResult with the parsed scoresheet and all voting results
@@ -66,7 +67,7 @@ def analyze_scoresheet(source: str, content: bytes) -> AnalysisResult:
 
     # Parse the scoresheet
     try:
-        scoresheet = parser.parse(source, content)
+        scoresheet = parser.parse(source, content, division=division)
     except PrelimsError:
         raise AnalysisError(
             "That looks like a prelims scoresheet with callbacks. "

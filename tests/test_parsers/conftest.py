@@ -25,6 +25,12 @@ def eepro_html():
     return path.read_bytes()
 
 
+@pytest.fixture
+def eepro_mixed_html():
+    path = FIXTURES_DIR / "eepro-prelims-finals-same-page.html"
+    return path.read_bytes()
+
+
 # --- PDF fixtures ---
 
 @pytest.fixture

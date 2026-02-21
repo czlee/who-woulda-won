@@ -54,7 +54,7 @@ class ScoringDanceParser(ScoresheetParser):
             and '"DanceEvent"' in html
         )
 
-    def parse(self, source: str, content: bytes) -> Scoresheet:
+    def parse(self, source: str, content: bytes, division: str | None = None) -> Scoresheet:
         """Parse scoring.dance HTML content into a Scoresheet."""
         html = content.decode("utf-8", errors="replace")
         soup = BeautifulSoup(html, "lxml")

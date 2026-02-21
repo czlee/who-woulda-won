@@ -5,20 +5,20 @@ from bs4 import BeautifulSoup
 
 from core.models import Scoresheet
 from core.parsers import register_parser
-from core.parsers.base import ScoresheetParser
+from core.parsers.base import PrelimsError, ScoresheetParser
 
 
-# @register_parser
+@register_parser
 class EeproParser(ScoresheetParser):
     """Parser for eepro.com (Event Express Pro) competition results.
 
     eepro.com pages contain simple HTML tables, one per division.
     Each table has:
-    - Header row with orange background containing division name
+    - Header row with a single cell spanning the table width (division name)
     - Second row with column headers: Place, Competitor, [Judge Names], BIB, Marks Sorted
     - Data rows with placements
 
-    Note: Pages may contain multiple divisions. By default, parses the first one.
+    Note: Pages may contain multiple divisions.
 
     Expected URL format:
         https://eepro.com/results/<slug>/<slug>.html
@@ -29,7 +29,7 @@ class EeproParser(ScoresheetParser):
         r"/results/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+\.html$"
     )
 
-    EXAMPLE_URL = "https://eepro.com/results/event-name/division-name.html"
+    EXAMPLE_URL = "https://eepro.com/results/eventname2026/competitionfinals.html"
 
     def can_parse(self, source: str) -> bool:
         """Check if this is a valid eepro.com results URL."""
@@ -38,25 +38,24 @@ class EeproParser(ScoresheetParser):
     def can_parse_content(self, content: bytes, filename: str) -> bool:
         """Check if this looks like an eepro.com HTML page.
 
-        Tell-tale sign: HTML table with the distinctive orange (#ffae5e)
-        division header row that eepro uses.
+        Tell-tale sign: The <title> tag contains "Event Express Pro".
         """
         try:
             html = content.decode("utf-8", errors="replace")
         except Exception:
             return False
-        # The orange background colour on the division header row is
-        # distinctive to eepro.  Check for it as a fast string test
-        # before pulling in BeautifulSoup.
-        return 'bgcolor="#ffae5e"' in html.lower() or "bgcolor='#ffae5e'" in html.lower()
+        return "event express pro" in html.lower()
 
-    def parse(self, source: str, content: bytes, division_index: int = 0) -> Scoresheet:
+    def parse(self, source: str, content: bytes, division: str | None = None) -> Scoresheet:
         """Parse eepro.com HTML content into a Scoresheet.
 
         Args:
             source: URL or filename
             content: Raw HTML bytes
-            division_index: Which division to parse (0-indexed). Default is first.
+            division: Optional division name substring (case-insensitive).
+                      If None and there is exactly one division, parses it.
+                      If None and there are multiple divisions, raises an error
+                      listing all available divisions.
 
         Returns:
             Scoresheet for the specified division.
@@ -64,23 +63,62 @@ class EeproParser(ScoresheetParser):
         html = content.decode("utf-8", errors="replace")
         soup = BeautifulSoup(html, "lxml")
 
-        # Find all division tables (identified by orange header row)
+        # Find all division tables. A division table has a first row
+        # containing a single cell with a colspan (the division header).
         tables = soup.find_all("table")
         division_tables = []
+        division_names = []
+        found_prelims = False
 
         for table in tables:
-            # Look for the orange header row that indicates a division
-            header_row = table.find("tr", bgcolor="#ffae5e")
-            if header_row:
+            first_row = table.find("tr")
+            if not first_row:
+                continue
+            cells = first_row.find_all("td")
+            if len(cells) == 1 and cells[0].get("colspan"):
+                if self._table_is_prelims(table):
+                    found_prelims = True
+                    continue  # skip prelims tables
                 division_tables.append(table)
+                name = cells[0].get_text(strip=True)
+                if name.startswith("Division:"):
+                    name = name[9:].strip()
+                division_names.append(name)
 
         if not division_tables:
+            if found_prelims:
+                raise PrelimsError(
+                    "This looks like a prelims scoresheet from eepro.com. "
+                    "Judge cells contain callback votes (Y/N/A1) rather than numeric placements."
+                )
             raise ValueError("No division tables found in HTML")
 
-        if division_index >= len(division_tables):
+        # Select the division
+        if division is not None:
+            # Find the first division whose name contains the search string
+            division_lower = division.lower()
+            match_index = None
+            for i, name in enumerate(division_names):
+                if division_lower in name.lower():
+                    match_index = i
+                    break
+
+            if match_index is None:
+                division_list = "\n".join(f"  - {name}" for name in division_names)
+                raise ValueError(
+                    f"No division matching \"{division}\" was found. "
+                    f"Available divisions:\n{division_list}"
+                )
+
+            selected_index = match_index
+        elif len(division_tables) == 1:
+            selected_index = 0
+        else:
+            division_list = "\n".join(f"  - {name}" for name in division_names)
             raise ValueError(
-                f"Division index {division_index} out of range. "
-                f"Found {len(division_tables)} divisions."
+                f"This page contains {len(division_tables)} divisions. "
+                f"Please specify which division to analyse.\n\n"
+                f"Available divisions:\n{division_list}"
             )
 
         # Get event name from page title or H2
@@ -89,7 +127,7 @@ class EeproParser(ScoresheetParser):
         if h2:
             event_name = h2.get_text(strip=True)
 
-        return self._parse_division_table(division_tables[division_index], event_name)
+        return self._parse_division_table(division_tables[selected_index], event_name)
 
     def _parse_division_table(self, table, event_name: str) -> Scoresheet:
         """Parse a single division table into a Scoresheet."""
@@ -130,6 +168,13 @@ class EeproParser(ScoresheetParser):
         if not judges:
             raise ValueError("No judge columns found")
 
+        # Check for prelims (callback) scoresheets
+        if self._looks_like_callbacks(rows, judge_indices):
+            raise PrelimsError(
+                "This looks like a prelims scoresheet from eepro.com. "
+                "Judge cells contain callback votes (Y/N/A1) rather than numeric placements."
+            )
+
         # Parse data rows
         competitors = []
         rankings = {judge: {} for judge in judges}
@@ -164,6 +209,34 @@ class EeproParser(ScoresheetParser):
             rankings=rankings,
         )
 
+    def _table_is_prelims(self, table) -> bool:
+        """Return True if this table contains callback-style prelims data."""
+        rows = table.find_all("tr")
+        if len(rows) < 3:
+            return False
+        headers = [cell.get_text(strip=True) for cell in rows[1].find_all("td")]
+        try:
+            competitor_idx = next(i for i, h in enumerate(headers) if "competitor" in h.lower())
+            bib_idx = next(i for i, h in enumerate(headers) if "bib" in h.lower())
+        except StopIteration:
+            return False
+        judge_indices = list(range(competitor_idx + 1, bib_idx))
+        if not judge_indices:
+            return False
+        return self._looks_like_callbacks(rows, judge_indices)
+
+    def _looks_like_callbacks(self, rows, judge_indices) -> bool:
+        """Return True if judge cells look like callback votes (Y/N/A1) rather than placements."""
+        callback_pattern = re.compile(r"^(Y|N|A\d+)$", re.IGNORECASE)
+        for row in rows[2:5]:
+            cells = row.find_all("td")
+            for idx in judge_indices:
+                if idx < len(cells):
+                    value = cells[idx].get_text(strip=True)
+                    if callback_pattern.match(value):
+                        return True
+        return False
+
     def _extract_placement(self, text: str) -> int:
         """Extract numeric placement from text, handling cases like '6-DQ'."""
         # Try to extract the first number
@@ -181,10 +254,15 @@ class EeproParser(ScoresheetParser):
         soup = BeautifulSoup(html, "lxml")
 
         division_names = []
-        for row in soup.find_all("tr", bgcolor="#ffae5e"):
-            cell = row.find("td")
-            if cell:
-                name = cell.get_text(strip=True)
+        for table in soup.find_all("table"):
+            first_row = table.find("tr")
+            if not first_row:
+                continue
+            cells = first_row.find_all("td")
+            if len(cells) == 1 and cells[0].get("colspan"):
+                if self._table_is_prelims(table):
+                    continue  # skip prelims tables
+                name = cells[0].get_text(strip=True)
                 if name.startswith("Division:"):
                     name = name[9:].strip()
                 division_names.append(name)

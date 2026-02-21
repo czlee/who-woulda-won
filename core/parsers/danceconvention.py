@@ -68,7 +68,7 @@ class DanceConventionParser(ScoresheetParser):
         except Exception:
             return False
 
-    def parse(self, source: str, content: bytes) -> Scoresheet:
+    def parse(self, source: str, content: bytes, division: str | None = None) -> Scoresheet:
         """Parse danceconvention.net PDF content into a Scoresheet."""
         pdf_file = BytesIO(content)
 
