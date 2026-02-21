@@ -23,11 +23,18 @@ const QUICKSTART_URLS = [
     'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO 2022 Intermediate
 ];
 
+// Eepro URL detection regex
+const EEPRO_URL_PATTERN = /^https?:\/\/eepro\.com\/results\//;
+
 // DOM elements
 const urlForm = document.getElementById('url-form');
 const fileForm = document.getElementById('file-form');
 const urlInput = document.getElementById('url-input');
 const fileInput = document.getElementById('file-input');
+const urlDivisionField = document.getElementById('url-division-field');
+const urlDivisionInput = document.getElementById('url-division-input');
+const fileDivisionField = document.getElementById('file-division-field');
+const fileDivisionInput = document.getElementById('file-division-input');
 const loadingSection = document.getElementById('loading');
 const errorSection = document.getElementById('error');
 const errorMessage = document.getElementById('error-message');
@@ -77,6 +84,36 @@ document.getElementById('quickstart-link').addEventListener('click', (e) => {
     urlForm.requestSubmit();
 });
 
+// Show/hide division field based on URL
+urlInput.addEventListener('input', () => {
+    if (EEPRO_URL_PATTERN.test(urlInput.value.trim())) {
+        urlDivisionField.classList.remove('hidden');
+    } else {
+        urlDivisionField.classList.add('hidden');
+    }
+});
+
+// Show/hide division field based on file content
+fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) {
+        fileDivisionField.classList.add('hidden');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+        if (reader.result.includes('Event Express Pro')) {
+            fileDivisionField.classList.remove('hidden');
+        } else {
+            fileDivisionField.classList.add('hidden');
+        }
+    };
+    reader.onerror = () => {
+        fileDivisionField.classList.add('hidden');
+    };
+    reader.readAsText(file);
+});
+
 // URL form submission
 urlForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -87,7 +124,11 @@ urlForm.addEventListener('submit', async (e) => {
     quickstartContainer.classList.add('hidden');
 
     lastAnalysisUrl = url;
-    await analyzeScoresheet({ url });
+    const payload = { url };
+    if (!urlDivisionField.classList.contains('hidden') && urlDivisionInput.value.trim()) {
+        payload.division = urlDivisionInput.value.trim();
+    }
+    await analyzeScoresheet(payload);
 });
 
 // File form submission
@@ -99,6 +140,9 @@ fileForm.addEventListener('submit', async (e) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('filename', file.name);
+    if (!fileDivisionField.classList.contains('hidden') && fileDivisionInput.value.trim()) {
+        formData.append('division', fileDivisionInput.value.trim());
+    }
 
     lastAnalysisUrl = null;
     await analyzeScoresheet(formData);

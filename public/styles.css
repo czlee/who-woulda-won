@@ -131,6 +131,29 @@ input[type="url"]:focus {
     margin: 0;
 }
 
+.division-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.division-field label {
+    white-space: nowrap;
+}
+
+.division-field input[type="text"] {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+.division-field input[type="text"]:focus {
+    border-color: var(--color-primary);
+    outline: none;
+}
+
 button {
     font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }

@@ -50,12 +50,14 @@ class ScoresheetParser(ABC):
         return False
 
     @abstractmethod
-    def parse(self, source: str, content: bytes) -> Scoresheet:
+    def parse(self, source: str, content: bytes, division: str | None = None) -> Scoresheet:
         """Parse the content into a Scoresheet.
 
         Args:
             source: Original URL or filename (for context)
             content: Raw bytes of the file/page content
+            division: Optional division name (or substring) to select.
+                      Only used by parsers that support multiple divisions.
 
         Returns:
             Parsed Scoresheet object

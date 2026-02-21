@@ -40,7 +40,11 @@
                 <form id="url-form">
                     <input type="url" id="url-input" name="url"
                            placeholder="https://scoring.dance/..." required>
-                    <p class="hint">Supported: scoring.dance, danceconvention.net</p>
+                    <div class="division-field hidden" id="url-division-field">
+                        <label for="url-division-input">Division:</label>
+                        <input type="text" id="url-division-input" placeholder='e.g. "intermediate" or "novice"'>
+                    </div>
+                    <p class="hint">Supported: scoring.dance, eepro.com, danceconvention.net</p>
                     <button type="submit" id="url-submit">Let's see!</button>
                     <p class="quickstart-link" id="quickstart-container">First time here? <a href="#" id="quickstart-link">Just show me an interesting scoresheet</a></p>
                 </form>
@@ -50,7 +54,11 @@
                 <form id="file-form">
                     <input type="file" id="file-input" name="file"
                            accept=".html,.htm,.pdf" required>
-                    <p class="hint">Supported formats: HTML from scoring.dance, PDF from danceconvention.net</p>
+                    <div class="division-field hidden" id="file-division-field">
+                        <label for="file-division-input">Division:</label>
+                        <input type="text" id="file-division-input" placeholder='e.g. "intermediate" or "novice"'>
+                    </div>
+                    <p class="hint">Supported formats: HTML from scoring.dance or eepro.com, PDF from danceconvention.net</p>
                     <button type="submit" id="file-submit">Let's see!</button>
                 </form>
             </div>

@@ -43,6 +43,7 @@ def analyze():
         if "application/json" in content_type:
             data = request.get_json()
             url = data.get("url") if data else None
+            division = data.get("division") if data else None
 
             if not url:
                 return jsonify({"error": "Missing 'url' in request body"}), 400
@@ -63,13 +64,18 @@ def analyze():
                 return jsonify({"error": "Missing 'file' in form data"}), 400
 
             filename = request.form.get("filename", file_data.filename or "upload")
+            division = request.form.get("division")
             source = filename
             content = file_data.read()
 
         else:
             return jsonify({"error": f"Unsupported content type: {content_type}"}), 400
 
-        result = analyze_scoresheet(source, content)
+        # Treat empty string as no division
+        if division is not None and division.strip() == "":
+            division = None
+
+        result = analyze_scoresheet(source, content, division=division)
         return jsonify(result.to_dict())
 
     except AnalysisError as e:
