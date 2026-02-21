@@ -311,11 +311,11 @@ button[type="submit"]:disabled {
 }
 
 .sortable-header:hover {
-    background: var(--color-primary-dark);
+    background: var(--color-primary-hover);
 }
 
-.sort-active {
-    border-bottom: 3px solid rgba(255, 255, 255, 0.85);
+.sortable-header.sort-active {
+    background: var(--color-primary-dark);
 }
 
 /* Voting system detail blocks */
