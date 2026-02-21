@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 
 from core.models import Scoresheet
 from core.parsers import register_parser
-from core.parsers.base import ScoresheetParser
+from core.parsers.base import PrelimsError, ScoresheetParser
 
 
 @register_parser
@@ -159,6 +159,13 @@ class EeproParser(ScoresheetParser):
         if not judges:
             raise ValueError("No judge columns found")
 
+        # Check for prelims (callback) scoresheets
+        if self._looks_like_callbacks(rows, judge_indices):
+            raise PrelimsError(
+                "This looks like a prelims scoresheet from eepro.com. "
+                "Judge cells contain callback votes (Y/N/A1) rather than numeric placements."
+            )
+
         # Parse data rows
         competitors = []
         rankings = {judge: {} for judge in judges}
@@ -192,6 +199,18 @@ class EeproParser(ScoresheetParser):
             judges=judges,
             rankings=rankings,
         )
+
+    def _looks_like_callbacks(self, rows, judge_indices) -> bool:
+        """Return True if judge cells look like callback votes (Y/N/A1) rather than placements."""
+        callback_pattern = re.compile(r"^(Y|N|A\d+)$", re.IGNORECASE)
+        for row in rows[2:5]:
+            cells = row.find_all("td")
+            for idx in judge_indices:
+                if idx < len(cells):
+                    value = cells[idx].get_text(strip=True)
+                    if callback_pattern.match(value):
+                        return True
+        return False
 
     def _extract_placement(self, text: str) -> int:
         """Extract numeric placement from text, handling cases like '6-DQ'."""

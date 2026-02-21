@@ -1,6 +1,7 @@
 """Tests for eepro.com parser."""
 
 import pytest
+from core.parsers.base import PrelimsError
 from core.parsers.eepro import EeproParser
 
 
@@ -165,3 +166,56 @@ class TestEeproParser:
     def test_parse_invalid_html(self):
         with pytest.raises(ValueError):
             self.parser.parse(self.VALID_URL, b"<html><body>No tables</body></html>")
+
+    # --- prelims detection ---
+
+    PRELIMS_HTML = b"""<html><head><title>Event Express Pro</title></head>
+<body><h2>Test Event</h2>
+<table border="1"><tr bgcolor='#ffae5e'><td colspan='8'>Advanced Prelims - 10 competed</td></tr>
+<tr><td>Count</td><td>Competitor</td><td>Judge A</td><td>BIB</td>
+    <td>Counts (Y-A-N)</td><td>Sum</td><td>Promote</td><td>Alt</td></tr>
+<tr><td>1</td><td>Alice and Bob</td><td>Y</td><td>101</td>
+    <td>1-0-0</td><td>10</td><td>X</td><td></td></tr>
+<tr><td>2</td><td>Carol and Dave</td><td>N</td><td>102</td>
+    <td>0-0-1</td><td>0</td><td></td><td></td></tr>
+</table></body></html>"""
+
+    PRELIMS_HTML_ALTERNATES = b"""<html><head><title>Event Express Pro</title></head>
+<body><h2>Test Event</h2>
+<table border="1"><tr bgcolor='#ffae5e'><td colspan='10'>Novice Prelims - 8 competed</td></tr>
+<tr><td>Count</td><td>Competitor</td><td>Judge A</td><td>Judge B</td><td>BIB</td>
+    <td>Counts (Y-A-N)</td><td>Sum</td><td>Promote</td><td>Alt</td></tr>
+<tr><td>1</td><td>Alice and Bob</td><td>A1</td><td>Y</td><td>101</td>
+    <td>1-1-0</td><td>10</td><td>X</td><td>X</td></tr>
+<tr><td>2</td><td>Carol and Dave</td><td>A2</td><td>N</td><td>102</td>
+    <td>0-1-1</td><td>0</td><td></td><td></td></tr>
+<tr><td>3</td><td>Eve and Frank</td><td>A3</td><td>Y</td><td>103</td>
+    <td>1-1-0</td><td>10</td><td>X</td><td></td></tr>
+</table></body></html>"""
+
+    def test_parse_prelims_single_division_raises(self):
+        """Prelims scoresheet with no division arg raises PrelimsError."""
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, self.PRELIMS_HTML)
+
+    def test_parse_prelims_with_division_specified_raises(self):
+        """Prelims scoresheet with division arg still raises PrelimsError."""
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, self.PRELIMS_HTML, division="Prelims")
+
+    def test_parse_prelims_with_alternates_raises(self):
+        """Prelims scoresheet with A1/A2/A3 alternate votes raises PrelimsError."""
+        with pytest.raises(PrelimsError):
+            self.parser.parse(self.VALID_URL, self.PRELIMS_HTML_ALTERNATES)
+
+    def test_parse_finals_not_prelims(self):
+        """Finals scoresheets do not raise PrelimsError."""
+        html = b"""<html><head><title>Event Express Pro</title></head>
+        <body><h2>Test Event</h2>
+        <table border="1"><tr bgcolor='#ffae5e'><td colspan='5'>Division: Solo Finals</td></tr>
+        <tr><td>Place</td><td>Competitor</td><td>Judge A</td><td>BIB</td><td>Marks Sorted</td></tr>
+        <tr><td>1</td><td>Alice</td><td>1</td><td>101</td><td>1</td></tr>
+        <tr><td>2</td><td>Bob</td><td>2</td><td>102</td><td>2</td></tr>
+        </table></body></html>"""
+        result = self.parser.parse(self.VALID_URL, html)
+        assert result is not None
