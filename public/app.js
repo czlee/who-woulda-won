@@ -378,16 +378,19 @@ function buildJudgeInitials(judges) {
 
 /**
  * Generate a short form for a competitor name:
- * - "Kevin Rocher & Alexandra Pasti" → "KR-AP"
- * - "Alvaro Hilario Garcia & Charlie Fournier" → "AG-CF"
- * - "Kevin Rocher" → "KR"
+ * - "Meghan Gilbert & Maurice Wilson" → "MG-MW"
+ * - "Justin Schmidt and Robert Morales" → "JS-RM"
+ * - "Michelle Collins" → "MC"
  *
  * For pairs: first + last initial of each person, joined by hyphen.
+ * Supports both "&" and word "and" (case-sensitive, whole word) as separators.
  * For singles: all initials.
  */
 function competitorInitial(name) {
-    if (name.includes('&')) {
-        const parts = name.split('&').map(s => s.trim());
+    // Check if this is a couple (separated by & or word "and")
+    if (name.includes('&') || /\s+and\s+/.test(name)) {
+        // Split by & or word "and" (case-sensitive, whole word), allowing optional spaces around &
+        const parts = name.split(/\s*&\s*|\s+and\s+/).map(s => s.trim());
         return parts.map(p => {
             const words = p.split(/\s+/);
             const first = (words[0] || '')[0] || '';
