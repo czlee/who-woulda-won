@@ -754,6 +754,31 @@ footer a {
     opacity: 1;
 }
 
+/* h1 as home link (about page) */
+.home-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.home-link:hover {
+    opacity: 0.85;
+}
+
+/* Permalink anchors on about page h3s */
+.permalink {
+    color: #aaa;
+    font-size: 0.75em;
+    font-weight: 400;
+    text-decoration: none;
+    margin-left: 0.3em;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+h3:hover .permalink {
+    opacity: 1;
+}
+
 /* Header abbreviations: hide on desktop, show on mobile */
 .header-abbrev { display: none; }
 
