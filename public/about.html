@@ -13,51 +13,79 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="about-body">
     <header>
         <h1><a href="/" class="home-link">Who Woulda Won?</a></h1>
         <p class="subtitle">Compare voting systems on dance competition scoresheets</p>
     </header>
 
-    <main>
+    <main class="about-info">
         <section>
             <h2>About</h2>
-
-            <h3 id="why-did-i-write-this">
-                Why did I write this app?
-                <a href="#why-did-i-write-this" class="permalink">#</a>
-            </h3>
-            <p>[Your answer here. E.g.: I was curious whether different voting systems would have produced different outcomes at competitions I'd attended or competed in, so I built a tool to check.]</p>
-
-            <h3 id="what-is-a-voting-system">
-                What is a voting system?
-                <a href="#what-is-a-voting-system" class="permalink">#</a>
-            </h3>
-            <p>[Your answer here. E.g.: A voting system is a method for aggregating individual preferences — in this case, judges' rankings of competitors — into an overall result. Different systems can produce different winners from the same set of ballots.]</p>
-
-            <h3 id="is-rp-a-bad-system">
-                Is Relative Placement a bad system?
-                <a href="#is-rp-a-bad-system" class="permalink">#</a>
-            </h3>
-            <p>[Your answer here. E.g.: Not necessarily. RP was designed with dance competitions in mind, and it has properties that work well in that context. But like all voting systems, it can behave unexpectedly in edge cases — which is part of what makes comparing systems interesting.]</p>
-
-            <h3 id="which-system-is-best">
-                Which voting system is best?
-                <a href="#which-system-is-best" class="permalink">#</a>
-            </h3>
-            <p>[Your answer here. E.g.: There's no universally "best" system — Arrow's impossibility theorem shows that no ranked voting system can satisfy all desirable criteria simultaneously. Each system makes different trade-offs.]</p>
-
-            <h3 id="how-often-do-systems-disagree">
-                How often do the systems disagree?
-                <a href="#how-often-do-systems-disagree" class="permalink">#</a>
-            </h3>
-            <p>[Your answer here. E.g.: In practice, the systems agree on the winner more often than not, especially when judging panels are large. Disagreements are more common further down the results, and become more likely with smaller panels.]</p>
 
             <h3 id="who-made-this">
                 Who made this?
                 <a href="#who-made-this" class="permalink">#</a>
             </h3>
-            <p>[Your answer here. E.g.: I'm Chuan-Zheng Lee, a West Coast Swing dancer and software engineer. Source code is on <a href="https://github.com/czlee/who-woulda-won" target="_blank">GitHub</a>.]</p>
+            <p>Hi! I'm Chuan-Zheng Lee. I've been doing West Coast Swing since 2018. I'm also a voting systems geek — like, the type who writes long submissions to national <a href="https://www.elections.nz/democracy-in-nz/what-is-new-zealands-system-of-government/what-is-mmp/2012-mmp-review/">voting systems reviews</a> for fun.</p>
+
+            <h3 id="why-did-i-write-this">
+                Why did I write this app?
+                <a href="#why-did-i-write-this" class="permalink">#</a>
+            </h3>
+            <p>I was into voting systems long before I started WCS. Relative placement is a voting system, so I've always been fascinated by it. But there are lots of different voting systems out there, and I'm not sure that the dance community has considered them. Of course, the community has put <a href="https://www.worldsdc.com/wp-content/uploads/2016/04/Relative_placement.pdf">a lot</a> <a href="https://www.rp-scoring.com/compare-tabulation-methods">of thought</a> into why it adopted relative placement over its predecessors, in particular why judges' scores should be converted to rankings first (rather than e.g. adding raw scores). The voting system is the next step, where judges' rankings are combined into a single overall ranking.</p>
+            <p>I've had this idea for a long time, but never had the time or energy to make it. The recent advent of vibe-coding made this less tedious and more fun, so I thought I'd give it a go. This is the result. I used Claude Code to write this, and the source code is on <a href="https://github.com/czlee/who-woulda-won">GitHub</a>.</p>
+
+            <h3 id="what-is-a-voting-system">
+                What is a voting system?
+                <a href="#what-is-a-voting-system" class="permalink">#</a>
+            </h3>
+            <p>A voting system is a method of combining many individual preferences into a single collective preference. You're probably most familiar with this in elections, where voters express their preferences on a ballot, and they get counted to decide who becomes public leaders. But a method of combining individual judges' rankings into a single overall result is also a voting system. This includes relative placement, and the alternative voting systems shown in this app.</p>
+
+            <h3 id="which-system-is-best">
+                Which voting system is best?
+                <a href="#which-system-is-best" class="permalink">#</a>
+            </h3>
+            <p>I'm sorry to report that there is no single "best" system. This isn't just a platitude about subjectivity. A famous theorem from 1951, <a href="https://en.wikipedia.org/wiki/Arrow%27s_impossibility_theorem">Arrow's impossibility theorem</a>, proves mathematically that no ranked voting system can satisfy even modest desirable criteria. Every system must make trade-offs, and this is a large <a href="https://en.wikipedia.org/wiki/Comparison_of_electoral_systems">area of study</a>.</p>
+
+            <h3 id="what-is-known-rp-theory">
+                What is known about the theory of relative placement?
+                <a href="#what-is-known-rp-theory" class="permalink">#</a>
+            </h3>
+            <p>Relative placement has very clear and laudable principles behind its design. (You can read about them <a href="https://www.worldsdc.com/wp-content/uploads/2016/04/Relative_placement.pdf">here</a>.) Relative placement is also very similar to <a href="https://en.wikipedia.org/wiki/Bucklin_voting">Bucklin voting</a>, which is quite well studied.</p>
+            <p>Otherwise, as far as I can tell, the academic study of voting systems (known as social choice theory) hasn't really crossed paths with relative placement. Or <em>hadn't</em> — until November 2025. I found <a href="https://www.arxiv.org/abs/2511.22384">this paper</a> by researchers at Heinrich-Heine-Universität Düsseldorf, which appears to be the first formal study of the Skating System, which is what ballroom calls relative placement (see below).</p>
+            <p>Like most voting systems, relative placement satisfies some common desirable criteria and fails others.</p>
+
+            <h3 id="is-same-as-skating-system">
+                Is relative placement the same as the Skating System?
+                <a href="#is-same-as-skating-system" class="permalink">#</a>
+            </h3>
+            <p>The <a href="https://www.worlddancesport.org/Document/99473179446/The-Skating-System.pdf">Skating System</a> is the system used in ballroom dance competitions. As best I can tell, rules 2 to 8 of the Skating System are essentially identical to relative placement as understood by swing dance communities. The only difference is that the Skating System doesn't use head-to-head tiebreaks as a last resort — if the tie is unresolved after the last cumulative count, the ranking is shared among the tied competitors (for the single dance).</p>
+
+            <h3 id="how-do-systems-work">
+                How does each voting system work?
+                <a href="#how-do-systems-work" class="permalink">#</a>
+            </h3>
+            <p>If you run any scoresheet through <a href="/">the app</a>, then expand the details sections at the bottom, each one has an expandable "How does [this system] work?" box that explains how that system works.</p>
+
+            <h3 id="are-there-others">
+                Are there other voting systems?
+                <a href="#are-there-others" class="permalink">#</a>
+            </h3>
+            <p>
+                Yes, plenty! I've only implemented four of the major ones. That said, most of the systems I've seen are single-winner systems, designed to elect a single winner rather than produce a full ranking. To make them a full ranking system we'd have to "sequentialise" them, like how sequential IRV is implemented in this app.
+            </p>
+
+            <h3 id="how-often-do-systems-disagree">
+                How often do the systems disagree?
+                <a href="#how-often-do-systems-disagree" class="permalink">#</a>
+            </h3>
+            <p>I don't know. Someone would have to run an analysis on lots of competitions, and I'm not game to mass-query danceconvention.net or scoring.dance with a bot without their consent. Of course, where the overall result looks intuitively obvious, all reasonable systems (including these four) will agree. But as all competitive dancers will know, judge ballots can differ significantly from each other, and in these cases different voting systems can yield different results.</p>
+
+            <h3>
+                Do I just have an axe to grind?
+            </h3>
+            <p>What, me, salty about losing? <a href="/?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Froundscores%2F6563621.pdf">No</a>, <a href="/?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Froundscores%2F7260111.pdf">never</a>! 😇</p>
         </section>
     </main>
 
