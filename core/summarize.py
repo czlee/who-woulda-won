@@ -214,6 +214,33 @@ def _detect_polariser(
     return max(polarisers, key=lambda p: p["stdev"])
 
 
+def _detect_one_short_majority(
+    analysis_result: AnalysisResult, candidates: frozenset[str],
+) -> dict | None:
+    """Check if any candidate has exactly one fewer 1st-place vote than majority.
+
+    This catches the case where a competitor wins every other system but loses
+    RP because they fell one first-place vote short of the majority threshold.
+
+    Returns info about the first such competitor found, or None.
+    """
+    scoresheet = analysis_result.scoresheet
+    n = scoresheet.num_judges
+    majority = n // 2 + 1
+    one_short = majority - 1
+
+    if one_short < 2:  # not meaningful with very small panels
+        return None
+
+    for name in candidates:
+        placements = scoresheet.get_competitor_placements(name)
+        num_first = sum(1 for p in placements if p == 1)
+        if num_first == one_short:
+            return {"name": name, "num_first": num_first, "majority": majority, "total": n}
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Sentence generators
 # ---------------------------------------------------------------------------
@@ -248,6 +275,20 @@ def _shakeup_sentence(
             f"as {best} but as low as {worst} \u2014 yet won under every "
             f"method except relative placement, which produced "
             f"{rp_winner_name} instead."
+        )
+
+    # Check if the alternative winner fell one first-place vote short of majority
+    one_short = _detect_one_short_majority(analysis_result, alt_winners)
+    if one_short:
+        num_first = one_short["num_first"]
+        majority = one_short["majority"]
+        total = one_short["total"]
+        return (
+            f"{alt_winner_name} had {num_first} of {total} first-place votes "
+            f"\u2014 one short of the majority of {majority} needed to win "
+            f"under relative placement \u2014 allowing {rp_winner_name} to "
+            f"prevail instead. Every other method produced {alt_winner_name} "
+            f"as the winner."
         )
 
     # Default shakeup sentence
