@@ -57,7 +57,7 @@ def summarize(analysis_result: AnalysisResult) -> dict:
     agreeing = []
     disagreeing = []
     for r in other_results:
-        if _get_winners(r) == rp_winners:
+        if rp_winners <= _get_winners(r):  # also handles ties that include the RP winner
             agreeing.append(r)
         else:
             disagreeing.append(r)
