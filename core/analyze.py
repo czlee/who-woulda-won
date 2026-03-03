@@ -17,6 +17,8 @@ class AnalysisResult:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to a JSON-serializable dictionary."""
+        from core.summarize import summarize
+
         return {
             "competition_name": self.scoresheet.competition_name,
             "competitors": self.scoresheet.competitors,
@@ -32,6 +34,7 @@ class AnalysisResult:
                 }
                 for r in self.results
             ],
+            "summary": summarize(self),
         }
 
 

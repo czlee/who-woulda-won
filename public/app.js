@@ -24,6 +24,9 @@ const QUICKSTART_URLS = [
     'https://danceconvention.net/eventdirector/en/roundscores/300732280.pdf', // Mania 2025 Intermediate
     'https://danceconvention.net/eventdirector/en/roundscores/300732124.pdf', // Mania 2025 Novice
     'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO 2022 Intermediate
+    'https://scoring.dance/enCA/events/297/results/5300.html', // Rose City 2026 Intermediate
+    'https://scoring.dance/enCA/events/366/results/5259.html', // Winter Coast 2026 Novice
+    'https://scoring.dance/enCA/events/335/results/5210.html', // Euro Dance 2026 Novice
 ];
 
 // Eepro URL detection regex
@@ -53,6 +56,9 @@ const shareCopyBtn = document.getElementById('share-copy');
 const shareCopiedMsg = document.getElementById('share-copied-msg');
 const shareFacebookLink = document.getElementById('share-facebook');
 const shareWhatsappLink = document.getElementById('share-whatsapp');
+const summaryContainer = document.getElementById('summary');
+const summaryLabel = document.getElementById('summary-label');
+const summarySentence = document.getElementById('summary-sentence');
 
 // Tab switching via inline mode toggle links
 const quickstartContainer = document.getElementById('quickstart-container');
@@ -197,6 +203,16 @@ function displayResults(data) {
     competitionName.textContent = data.competition_name;
     numCompetitors.textContent = data.num_competitors;
     numJudges.textContent = data.num_judges;
+
+    // Display summary if available
+    if (data.summary && data.summary.sentence) {
+        summaryLabel.textContent = data.summary.label;
+        summarySentence.textContent = data.summary.sentence;
+        summaryContainer.className = 'summary summary-' + data.summary.level;
+        summaryContainer.classList.remove('hidden');
+    } else {
+        summaryContainer.classList.add('hidden');
+    }
 
     // Reorder results so Relative Placement is first
     const results = reorderResults(data.results);
