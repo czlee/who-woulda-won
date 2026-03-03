@@ -260,11 +260,10 @@ def _shakeup_sentence(
         majority = one_short["majority"]
         total = one_short["total"]
         return (
-            f"{alt_winner_name} had {num_first} of {total} first-place votes "
-            f"\u2014 one short of the majority of {majority} needed under "
-            f"relative placement \u2014 allowing {rp_winner_name} to prevail "
-            f"instead. Every other system produced {alt_winner_name} "
-            f"as the winner."
+            f"{alt_winner_name} won under every system except relative "
+            f"placement, where their {num_first} of {total} first-place votes "
+            f"were one short of the majority of {majority} required \u2014 "
+            f"and {rp_winner_name} prevailed under that system instead."
         )
 
     # Check if the RP winner is a polariser
