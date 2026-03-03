@@ -67,9 +67,13 @@ def summarize(analysis_result: AnalysisResult) -> dict:
     # --- All agree ---
     if num_disagreeing == 0:
         if _is_dominant_winner(analysis_result, rp_winners):
+            winner = next(iter(rp_winners))
+            placements = analysis_result.scoresheet.get_competitor_placements(winner)
+            num_first = sum(1 for p in placements if p == 1)
+            total = len(placements)
             sentence = (
-                f"A dominant performance \u2014 {rp_winner_name} was the "
-                f"clear winner under every system."
+                f"A majority of judges ({num_first} of {total}) ranked "
+                f"{rp_winner_name} 1st, giving them the win under every system."
             )
         else:
             sentence = f"All systems produced {rp_winner_name} as the winner."
