@@ -253,6 +253,20 @@ def _shakeup_sentence(
     alt_winners: frozenset[str],
 ) -> str:
     """Sentence for shakeup: every other method picks a different winner."""
+    # Check if the alternative winner fell one first-place vote short of majority
+    one_short = _detect_one_short_majority(analysis_result, alt_winners)
+    if one_short:
+        num_first = one_short["num_first"]
+        majority = one_short["majority"]
+        total = one_short["total"]
+        return (
+            f"{alt_winner_name} had {num_first} of {total} first-place votes, "
+            f"\u2014 one short of the majority of {majority} needed under "
+            f"relative placement \u2014 allowing {rp_winner_name} to prevail"
+            f"instead. Every other method produced {alt_winner_name} "
+            f"as the winner."
+        )
+
     # Check if the RP winner is a polariser
     rp_polariser = _detect_polariser(analysis_result, rp_winners)
     if rp_polariser:
@@ -275,20 +289,6 @@ def _shakeup_sentence(
             f"as {best} but as low as {worst} \u2014 yet won under every "
             f"method except relative placement, which produced "
             f"{rp_winner_name} instead."
-        )
-
-    # Check if the alternative winner fell one first-place vote short of majority
-    one_short = _detect_one_short_majority(analysis_result, alt_winners)
-    if one_short:
-        num_first = one_short["num_first"]
-        majority = one_short["majority"]
-        total = one_short["total"]
-        return (
-            f"{alt_winner_name} had {num_first} of {total} first-place votes "
-            f"\u2014 one short of the majority of {majority} needed to win "
-            f"under relative placement \u2014 allowing {rp_winner_name} to "
-            f"prevail instead. Every other method produced {alt_winner_name} "
-            f"as the winner."
         )
 
     # Default shakeup sentence
