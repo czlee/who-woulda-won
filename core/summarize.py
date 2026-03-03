@@ -260,9 +260,9 @@ def _shakeup_sentence(
         majority = one_short["majority"]
         total = one_short["total"]
         return (
-            f"{alt_winner_name} had {num_first} of {total} first-place votes, "
+            f"{alt_winner_name} had {num_first} of {total} first-place votes "
             f"\u2014 one short of the majority of {majority} needed under "
-            f"relative placement \u2014 allowing {rp_winner_name} to prevail"
+            f"relative placement \u2014 allowing {rp_winner_name} to prevail "
             f"instead. Every other method produced {alt_winner_name} "
             f"as the winner."
         )
