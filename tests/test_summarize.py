@@ -66,11 +66,15 @@ def _simple_scoresheet(
 def _polariser_scoresheet(
     polariser: str = "A",
     competitors: list[str] | None = None,
+    polariser_rankings: list[int] | None = None,
 ) -> Scoresheet:
     """Build a scoresheet where one competitor has extreme, polarising rankings.
 
     The polariser gets rankings like [1, 1, 1, 12, 12, 11, 10] to trigger
     stdev > 4.0 and spread > 60% of field size.
+
+    Pass custom polariser_rankings to control first-place vote count (e.g. to
+    avoid triggering the one-short-of-majority condition).
     """
     if competitors is None:
         competitors = [
@@ -85,7 +89,8 @@ def _polariser_scoresheet(
         rankings[judge] = {c: i + 1 for i, c in enumerate(competitors)}
 
     # Override the polariser's rankings
-    polariser_rankings = [1, 1, 1, 12, 12, 11, 10]
+    if polariser_rankings is None:
+        polariser_rankings = [1, 1, 1, 12, 12, 11, 10]
     for j, judge in enumerate(judges):
         rankings[judge][polariser] = polariser_rankings[j]
         # Bump others down if needed to avoid duplicate ranks (simplified)
@@ -251,12 +256,27 @@ class TestShakeup:
         assert "B" in result["sentence"]
 
     def test_polariser_alt_winner(self):
-        """Alternative winner is a polariser."""
-        scoresheet = _polariser_scoresheet(polariser="B")
+        """Alternative winner is a polariser (without one-short-of-majority)."""
+        # Use 2 first-place votes so one-short-of-majority (= 3 in 7-judge panel)
+        # doesn't fire, letting the polariser check take precedence.
+        scoresheet = _polariser_scoresheet(
+            polariser="B", polariser_rankings=[1, 1, 12, 12, 11, 10, 9],
+        )
         analysis = _make_analysis(scoresheet, "A", "B", "B", "B")
         result = summarize(analysis)
         assert result["level"] == "shakeup"
         assert "polarising" in result["sentence"].lower()
+
+    def test_one_short_beats_polariser_alt_winner(self):
+        """One-short-of-majority takes precedence over polariser alt winner."""
+        # B has 3 first-place votes (one short of majority=4 in a 7-judge panel)
+        # and is also a polariser; the one-short check fires first.
+        scoresheet = _polariser_scoresheet(polariser="B")
+        analysis = _make_analysis(scoresheet, "A", "B", "B", "B")
+        result = summarize(analysis)
+        assert result["level"] == "shakeup"
+        assert "one short" in result["sentence"]
+        assert "polarising" not in result["sentence"].lower()
 
     def test_polariser_sentence_includes_ordinals(self):
         """Polariser sentence should mention ranking extremes."""
