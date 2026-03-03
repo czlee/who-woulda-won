@@ -4,6 +4,9 @@
 
 // Quickstart URLs — curated scoresheets for first-time users
 const QUICKSTART_URLS = [
+    'https://scoring.dance/enCA/events/297/results/5300.html', // Rose City 2026 Intermediate
+    'https://scoring.dance/enCA/events/366/results/5259.html', // Winter Coast 2026 Novice
+    'https://scoring.dance/enCA/events/335/results/5210.html', // Euro Dance 2026 Novice
     'https://scoring.dance/enCA/events/362/results/5126.html', // Trinity 2026 Novice
     'https://scoring.dance/enCA/events/349/results/5040.html', // SwingVester 2025-26 Novice
     'https://scoring.dance/enCA/events/354/results/4996.html', // Budafest 2025 Novice
