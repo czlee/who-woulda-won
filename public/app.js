@@ -1597,7 +1597,10 @@ function updateShareUrl() {
             shareUrl.searchParams.set('division', lastAnalysisDivision);
         }
         const shareUrlStr = shareUrl.toString();
-        history.replaceState(null, '', shareUrlStr);
+        // Only pushState if the URL has changed (avoids duplicate entry on initial load with ?url= params)
+        if (window.location.href !== shareUrlStr) {
+            history.pushState(null, '', shareUrlStr);
+        }
         showShareIcons(shareUrlStr);
     } else {
         history.replaceState(null, '', window.location.pathname);
@@ -1633,5 +1636,29 @@ shareCopyBtn.addEventListener('click', async () => {
         quickstartUsed = true;
         quickstartContainer.classList.add('hidden');
         urlForm.requestSubmit();
+    } else {
+        // Tag the clean initial state so back-navigation can return here
+        history.replaceState({ clean: true }, '', window.location.pathname);
     }
 })();
+
+window.addEventListener('popstate', () => {
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url');
+    if (url) {
+        const division = params.get('division') || null;
+        lastAnalysisUrl = url;
+        lastAnalysisDivision = division;
+        urlInput.value = url;
+        if (division) {
+            urlDivisionInput.value = division;
+        }
+        analyzeScoresheet({ url, ...(division ? { division } : {}) });
+    } else {
+        // Return to clean state
+        lastAnalysisUrl = null;
+        lastAnalysisDivision = null;
+        hideResults();
+        hideError();
+    }
+});
