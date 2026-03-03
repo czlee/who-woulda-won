@@ -76,7 +76,7 @@ def summarize(analysis_result: AnalysisResult) -> dict:
                 f"{rp_winner_name} 1st, giving them the win under every system."
             )
         else:
-            sentence = f"All systems produced {rp_winner_name} as the winner."
+            sentence = f"All systems produced {rp_winner_name} as the {_winner_noun(rp_winner_name)}."
         return _make_summary("consistent", sentence)
 
     # --- RP has tied winners with some disagreement ---
@@ -144,6 +144,11 @@ def _find_rp_result(analysis_result: AnalysisResult) -> VotingResult | None:
 def _get_winners(result: VotingResult) -> frozenset[str]:
     """Get the set of rank-1 competitors from a voting result."""
     return frozenset(p.name for p in result.final_ranking if p.rank == 1)
+
+
+def _winner_noun(name: str) -> str:
+    """Return 'winners' if name represents multiple people (couple or tied entries)."""
+    return "winners" if (" & " in name or " and " in name) else "winner"
 
 
 def _format_names(names: frozenset[str] | set[str]) -> str:
@@ -279,7 +284,7 @@ def _shakeup_sentence(
             f"{rp_winner_name} won under relative placement, but their "
             f"polarising scores \u2014 ranked as high as {best} but as low "
             f"as {worst} \u2014 meant every other system produced "
-            f"{alt_winner_name} as the winner instead."
+            f"{alt_winner_name} as the {_winner_noun(alt_winner_name)} instead."
         )
 
     # Check if the alternative winner is a polariser
@@ -297,7 +302,7 @@ def _shakeup_sentence(
     # Default shakeup sentence
     return (
         f"Under relative placement {rp_winner_name} won, but every other "
-        f"system produced {alt_winner_name} as the winner instead."
+        f"system produced {alt_winner_name} as the {_winner_noun(alt_winner_name)} instead."
     )
 
 
@@ -312,7 +317,7 @@ def _close_call_sentence(
         system_name = disagreeing[0].system_name
         return (
             f"{rp_winner_name} won under most systems, but {system_name} "
-            f"produced {alt_winner_name} as the winner instead."
+            f"produced {alt_winner_name} as the {_winner_noun(alt_winner_name)} instead."
         )
     else:
         # 2-2 split: RP + one agree vs two disagree
@@ -321,7 +326,7 @@ def _close_call_sentence(
             agreeing_name = " and ".join(r.system_name for r in agreeing)
             return (
                 f"Relative placement and {agreeing_name} produced "
-                f"{rp_winner_name} as the winner, but {disagreeing_names} "
+                f"{rp_winner_name} as the {_winner_noun(rp_winner_name)}, but {disagreeing_names} "
                 f"produced {alt_winner_name} instead."
             )
         else:

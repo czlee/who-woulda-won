@@ -162,7 +162,7 @@ class TestConsistent:
         analysis = _make_analysis(scoresheet, "A", "A", "A", "A")
         result = summarize(analysis)
         assert result["level"] == "consistent"
-        assert "dominant" in result["sentence"].lower()
+        assert "majority" in result["sentence"].lower()
         assert "A" in result["sentence"]
 
     def test_not_dominant_if_half(self):
