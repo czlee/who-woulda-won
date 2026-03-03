@@ -69,10 +69,10 @@ def summarize(analysis_result: AnalysisResult) -> dict:
         if _is_dominant_winner(analysis_result, rp_winners):
             sentence = (
                 f"A dominant performance \u2014 {rp_winner_name} was the "
-                f"clear winner under every method."
+                f"clear winner under every system."
             )
         else:
-            sentence = f"All methods produced {rp_winner_name} as the winner."
+            sentence = f"All systems produced {rp_winner_name} as the winner."
         return _make_summary("consistent", sentence)
 
     # --- RP has tied winners with some disagreement ---
@@ -252,7 +252,7 @@ def _shakeup_sentence(
     rp_winners: frozenset[str],
     alt_winners: frozenset[str],
 ) -> str:
-    """Sentence for shakeup: every other method picks a different winner."""
+    """Sentence for shakeup: every other system picks a different winner."""
     # Check if the alternative winner fell one first-place vote short of majority
     one_short = _detect_one_short_majority(analysis_result, alt_winners)
     if one_short:
@@ -263,7 +263,7 @@ def _shakeup_sentence(
             f"{alt_winner_name} had {num_first} of {total} first-place votes "
             f"\u2014 one short of the majority of {majority} needed under "
             f"relative placement \u2014 allowing {rp_winner_name} to prevail "
-            f"instead. Every other method produced {alt_winner_name} "
+            f"instead. Every other system produced {alt_winner_name} "
             f"as the winner."
         )
 
@@ -275,7 +275,7 @@ def _shakeup_sentence(
         return (
             f"{rp_winner_name} won under relative placement, but their "
             f"polarising scores \u2014 ranked as high as {best} but as low "
-            f"as {worst} \u2014 meant every other method produced "
+            f"as {worst} \u2014 meant every other system produced "
             f"{alt_winner_name} as the winner instead."
         )
 
@@ -287,14 +287,14 @@ def _shakeup_sentence(
         return (
             f"{alt_winner_name} had polarising scores \u2014 ranked as high "
             f"as {best} but as low as {worst} \u2014 yet won under every "
-            f"method except relative placement, which produced "
+            f"system except relative placement, which produced "
             f"{rp_winner_name} instead."
         )
 
     # Default shakeup sentence
     return (
         f"Under relative placement {rp_winner_name} won, but every other "
-        f"method produced {alt_winner_name} as the winner instead."
+        f"system produced {alt_winner_name} as the winner instead."
     )
 
 
@@ -306,9 +306,9 @@ def _close_call_sentence(
 ) -> str:
     """Sentence for close_call: 1 or 2 other systems disagree."""
     if len(disagreeing) == 1:
-        method_name = disagreeing[0].system_name
+        system_name = disagreeing[0].system_name
         return (
-            f"{rp_winner_name} won under most methods, but {method_name} "
+            f"{rp_winner_name} won under most systems, but {system_name} "
             f"produced {alt_winner_name} as the winner instead."
         )
     else:
@@ -357,7 +357,7 @@ def _drama_sentence(
         parts_text = ", ".join(parts[:-1]) + f", and {parts[-1]}"
 
     return (
-        f"No consensus \u2014 the methods split "
+        f"No consensus \u2014 the systems split "
         f"{_number_word(total_winners)} ways: {parts_text}."
     )
 
@@ -373,7 +373,7 @@ def _summarize_rp_tie(
     if not disagreeing:
         sentence = (
             f"Relative placement couldn't separate {rp_winner_name}, "
-            f"and the other methods agreed on the tie."
+            f"and the other systems agreed on the tie."
         )
         return _make_summary("close_call", sentence)
 
@@ -385,11 +385,11 @@ def _summarize_rp_tie(
         alt_winner = _format_names(unique_sets[0])
         sentence = (
             f"Relative placement couldn't separate {rp_winner_name}, "
-            f"but the other methods broke the tie in favour of {alt_winner}."
+            f"but the other systems broke the tie in favour of {alt_winner}."
         )
     else:
         sentence = (
             f"Relative placement couldn't separate {rp_winner_name}, "
-            f"and the other methods were equally divided."
+            f"and the other systems were equally divided."
         )
     return _make_summary("close_call", sentence)

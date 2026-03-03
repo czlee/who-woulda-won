@@ -121,7 +121,7 @@ class TestConsistent:
         assert "A" in result["sentence"]
 
     def test_all_agree_non_dominant_sentence(self):
-        """Non-dominant winner gets the plain 'all methods' sentence."""
+        """Non-dominant winner gets the plain 'all systems' sentence."""
         competitors = ["A", "B", "C", "D", "E"]
         judges = ["J1", "J2", "J3", "J4", "J5", "J6", "J7"]
         # A gets 1st from only 3 of 7 judges (not more than half)
@@ -140,7 +140,7 @@ class TestConsistent:
         )
         analysis = _make_analysis(scoresheet, "A", "A", "A", "A")
         result = summarize(analysis)
-        assert result["sentence"] == "All methods produced A as the winner."
+        assert result["sentence"] == "All systems produced A as the winner."
 
     def test_dominant_winner(self):
         """Winner ranked 1st by more than half the judges."""
@@ -204,7 +204,7 @@ class TestCloseCall:
         analysis = _make_analysis(scoresheet, "A", "A", "A", "B")
         result = summarize(analysis)
         assert "Sequential IRV" in result["sentence"]
-        assert "most methods" in result["sentence"]
+        assert "most systems" in result["sentence"]
 
     def test_two_two_split(self):
         """2-2 split: RP + one agree, two disagree (same alt winner)."""
@@ -243,7 +243,7 @@ class TestShakeup:
         scoresheet = _simple_scoresheet()
         analysis = _make_analysis(scoresheet, "A", "B", "B", "B")
         result = summarize(analysis)
-        assert "every other method" in result["sentence"]
+        assert "every other system" in result["sentence"]
 
     def test_polariser_rp_winner(self):
         """RP's winner is a polariser — sentence mentions polarising scores."""
