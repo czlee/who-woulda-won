@@ -247,6 +247,32 @@ button[type="submit"]:disabled {
     margin-bottom: 1rem;
 }
 
+/* Summary display */
+.summary {
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #ccc;
+    background: #f9f9f9;
+}
+
+.summary-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.summary-sentence {
+    font-size: 0.95rem;
+    color: #444;
+    line-height: 1.5;
+}
+
+.summary-consistent { border-left-color: #27ae60; background: #eafaf1; }
+.summary-close_call { border-left-color: #f39c12; background: #fef9e7; }
+.summary-shakeup    { border-left-color: #e67e22; background: #fdf2e9; }
+.summary-drama      { border-left-color: #e74c3c; background: #fdedec; }
+
 .results-table-wrapper {
     margin-bottom: 1.5rem;
 }
