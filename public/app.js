@@ -202,6 +202,7 @@ async function analyzeScoresheet(data) {
 function displayResults(data) {
     // Set metadata
     competitionName.textContent = data.competition_name;
+    document.title = data.competition_name + ' – Who Woulda Won?';
     numCompetitors.textContent = data.num_competitors;
     numJudges.textContent = data.num_judges;
 
@@ -1658,6 +1659,7 @@ window.addEventListener('popstate', () => {
         // Return to clean state
         lastAnalysisUrl = null;
         lastAnalysisDivision = null;
+        document.title = 'Who Woulda Won? - Dance Voting System Comparison';
         hideResults();
         hideError();
     }
