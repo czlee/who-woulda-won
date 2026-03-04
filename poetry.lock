@@ -1334,6 +1334,21 @@ files = [
 ]
 
 [[package]]
+name = "upstash-redis"
+version = "1.6.0"
+description = "Serverless Redis SDK from Upstash"
+optional = false
+python-versions = "<4.0,>=3.8"
+groups = ["main"]
+files = [
+    {file = "upstash_redis-1.6.0-py3-none-any.whl", hash = "sha256:2f717f1fdc01c5f93a0fb30e0979c37c926d7810f14d7e207531d6858de259c7"},
+    {file = "upstash_redis-1.6.0.tar.gz", hash = "sha256:23ae31acac3c95e5a9c1e732657c9b195ddda511c687021f9e9fd4a795606925"},
+]
+
+[package.dependencies]
+httpx = ">=0.23.0,<1"
+
+[[package]]
 name = "wcwidth"
 version = "0.6.0"
 description = "Measures the displayed width of unicode strings in a terminal"
@@ -1365,5 +1380,5 @@ watchdog = ["watchdog (>=2.3)"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.11"
-content-hash = "25cad430ff927ea712857c17b8b11f785767b0058893ca2f3874d03dbcea1cdd"
+python-versions = ">=3.11,<4.0"
+content-hash = "d165759e8436edaef3809d89cb7294f534e0806e2014f243ce53a8596bc43319"
