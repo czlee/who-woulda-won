@@ -1,4 +1,11 @@
 {
   "version": 2,
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{"type": "query", "key": "url"}],
+      "destination": "/api/page"
+    }
+  ]
 }

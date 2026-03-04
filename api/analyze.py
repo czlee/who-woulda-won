@@ -23,6 +23,7 @@ from core.voting import sequential_irv  # noqa: F401
 
 from core.analyze import analyze_scoresheet, AnalysisError
 from core.parsers import detect_parser, get_supported_url_formats
+from core import kv
 
 app = Flask(__name__)
 
@@ -76,6 +77,10 @@ def analyze():
             division = None
 
         result = analyze_scoresheet(source, content, division=division)
+
+        if "application/json" in content_type:
+            kv.set_meta(url, division, result.scoresheet.competition_name)
+
         return jsonify(result.to_dict())
 
     except AnalysisError as e:
