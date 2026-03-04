@@ -27,8 +27,8 @@ def normalize_url(url: str, division: str | None = None) -> str:
 
 def _get_client():
     """Return an Upstash Redis client, or None if env vars are not set."""
-    url = os.environ.get("UPSTASH_REDIS_REST_URL")
-    token = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+    url = os.environ.get("KV_REST_API_URL") or os.environ.get("UPSTASH_REDIS_REST_URL")
+    token = os.environ.get("KV_REST_API_TOKEN") or os.environ.get("UPSTASH_REDIS_REST_TOKEN")
     if not url or not token:
         return None
     from upstash_redis import Redis
