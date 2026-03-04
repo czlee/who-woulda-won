@@ -2,7 +2,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
-.claude/
+.claude/*
+!.claude/skills/
 
 # Example files with real personal data (anonymized fixtures are in tests/)
 examples/
