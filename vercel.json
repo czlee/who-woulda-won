@@ -4,7 +4,6 @@
   "rewrites": [
     {
       "source": "/",
-      "has": [{"type": "query", "key": "url"}],
       "destination": "/api/page"
     }
   ]

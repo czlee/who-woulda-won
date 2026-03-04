@@ -13,7 +13,7 @@ from core import kv  # noqa: E402
 
 app = Flask(__name__)
 
-INDEX_HTML = Path(__file__).parent.parent / "public" / "index.html"
+INDEX_HTML = Path(__file__).parent.parent / "templates" / "index.html"
 
 
 @app.route("/")
