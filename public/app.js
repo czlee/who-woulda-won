@@ -825,8 +825,11 @@ function buildRPCellDisplay(details, n) {
         }
 
         // Fill in cumulative counts from cutoff 1 through final_cutoff
-        // for the competitor(s) placed in this round.
-        const finalCutoff = resolution.final_cutoff;
+        // for the competitor(s) placed in this round. For H2H resolutions,
+        // final_cutoff is absent; fall back to the last cutoff in the
+        // progression (which equals n, the total number of competitors).
+        const finalCutoff = resolution.final_cutoff
+            ?? progression?.[progression.length - 1]?.cutoff;
         if (finalCutoff === undefined) continue;
 
         const winners = round.tied ? (round.winners || []) : [round.winner];
