@@ -10,6 +10,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.analyze import app
+from core.analyze import AnalysisResult
+from core.models import Scoresheet
 
 
 @pytest.fixture
@@ -20,11 +22,11 @@ def client():
 
 
 def _make_mock_result(competition_name="Test Competition 2025"):
-    mock_scoresheet = MagicMock()
+    mock_scoresheet = MagicMock(spec=Scoresheet)
     mock_scoresheet.competition_name = competition_name
-    mock_result = MagicMock()
+    mock_result = MagicMock(spec=AnalysisResult)
     mock_result.scoresheet = mock_scoresheet
-    mock_result.voting_results = []
+    mock_result.results = []
     mock_result.to_dict.return_value = {
         "competition_name": competition_name,
         "competitors": [],

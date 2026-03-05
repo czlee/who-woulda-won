@@ -98,7 +98,7 @@ _SYSTEM_ORDER = [
 def _build_og_rows(result) -> list:
     rank_lookup = {
         vr.system_name: {p.name: p.rank for p in vr.final_ranking}
-        for vr in result.voting_results
+        for vr in result.results
     }
     rp_ranking = sorted(
         rank_lookup.get("Relative Placement", {}).items(), key=lambda x: x[1]
