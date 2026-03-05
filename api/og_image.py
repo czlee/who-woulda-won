@@ -45,10 +45,11 @@ UP_COLOR = (40, 167, 69)         # #28a745
 DOWN_COLOR = (220, 53, 69)       # #dc3545
 BODY_TEXT = (51, 51, 51)         # #333
 HEADER_TEXT = (255, 255, 255)
-MUTED_TEXT = (255, 255, 255, 204)  # white 80% opacity
+MUTED_TEXT = (200, 225, 245)  # white-ish, slightly dimmed (approximates white 80% on blue)
 
 FONT_DIR = Path(__file__).parent.parent / "assets" / "fonts" / "DM_Sans"
-SYSTEM_LABELS = ["Rel.\nPlacement", "Borda\nCount", "Schulze\nMethod", "Seq.\nIRV"]
+SYSTEM_LABELS = ["Relative\nPlacement", "Borda\nCount", "Schulze\nMethod", "Sequential\nIRV"]
+ARROW_SIZE = 10  # triangle half-width; height = ARROW_SIZE * 1.2
 
 
 def _load_fonts():
@@ -57,20 +58,24 @@ def _load_fonts():
     return {
         "title": ImageFont.truetype(str(semibold_path), 44),
         "subtitle": ImageFont.truetype(str(regular_path), 26),
-        "table_header": ImageFont.truetype(str(semibold_path), 22),
-        "table_header_small": ImageFont.truetype(str(semibold_path), 18),
+        "table_header": ImageFont.truetype(str(semibold_path), 24),
+        "table_header_small": ImageFont.truetype(str(semibold_path), 20),
         "name": ImageFont.truetype(str(regular_path), 26),
         "rank": ImageFont.truetype(str(semibold_path), 26),
         "rank_small": ImageFont.truetype(str(regular_path), 20),
     }
 
 
-def _draw_gradient_rect(draw, x1, y1, x2, y2, c1, c2):
+def _draw_gradient_rect(draw, img, x1, y1, x2, y2, c1, c2):
+    """Draw a diagonal (135°, top-left→bottom-right) gradient rectangle."""
     w = x2 - x1
-    for i in range(w):
-        t = i / w
-        color = tuple(int(a + t * (b - a)) for a, b in zip(c1, c2))
-        draw.line([(x1 + i, y1), (x1 + i, y2)], fill=color)
+    h = y2 - y1
+    pixels = img.load()
+    for py in range(y1, y2):
+        for px in range(x1, x2):
+            t = ((px - x1) / w + (py - y1) / h) / 2
+            color = tuple(int(a + t * (b - a)) for a, b in zip(c1, c2))
+            pixels[px, py] = color
 
 
 def _truncate(draw, text, font, max_width):
@@ -92,8 +97,16 @@ def _ordinal(n: int) -> str:
     return f"{n}" + {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
 
-def _draw_rounded_rect(draw, x1, y1, x2, y2, radius, fill):
-    draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=fill)
+def _draw_up_triangle(draw, cx, cy, size, fill):
+    """Draw a filled upward-pointing triangle centered at (cx, cy)."""
+    h = int(size * 1.2)
+    draw.polygon([(cx, cy - h), (cx - size, cy + h // 2), (cx + size, cy + h // 2)], fill=fill)
+
+
+def _draw_down_triangle(draw, cx, cy, size, fill):
+    """Draw a filled downward-pointing triangle centered at (cx, cy)."""
+    h = int(size * 1.2)
+    draw.polygon([(cx, cy + h), (cx - size, cy - h // 2), (cx + size, cy - h // 2)], fill=fill)
 
 
 def _draw_text_centered(draw, text, font, x, y, w, h, fill):
@@ -123,15 +136,9 @@ def render_og_image(competition_name: str | None, og_rows: list | None) -> Image
     fonts = _load_fonts()
 
     # --- Header card ---
-    _draw_gradient_rect(draw, PADDING, HEADER_Y, IMG_W - PADDING, HEADER_Y + HEADER_H,
-                        HEADER_GRAD_L, HEADER_GRAD_R)
-    # Rounded corners via rounded_rectangle overlay
-    draw.rounded_rectangle([PADDING, HEADER_Y, IMG_W - PADDING, HEADER_Y + HEADER_H],
-                            radius=8, outline=None, fill=None)
-    # Re-draw as rounded
+    # Draw gradient into a temp image, then paste with a rounded mask
     img2 = Image.new("RGB", (IMG_W, IMG_H), BG_COLOR)
-    draw2 = ImageDraw.Draw(img2)
-    _draw_gradient_rect(draw2, PADDING, HEADER_Y, IMG_W - PADDING, HEADER_Y + HEADER_H,
+    _draw_gradient_rect(draw, img2, PADDING, HEADER_Y, IMG_W - PADDING, HEADER_Y + HEADER_H,
                         HEADER_GRAD_L, HEADER_GRAD_R)
     mask = Image.new("L", (IMG_W, IMG_H), 0)
     mask_draw = ImageDraw.Draw(mask)
@@ -152,12 +159,15 @@ def render_og_image(competition_name: str | None, og_rows: list | None) -> Image
     total_text_h = title_h + gap + subtitle_h
     text_y = HEADER_Y + (HEADER_H - total_text_h) // 2
 
-    draw.text((PADDING + 24, text_y), title_text, font=fonts["title"], fill=HEADER_TEXT)
+    title_w = title_bbox[2] - title_bbox[0]
+    draw.text(((IMG_W - title_w) // 2, text_y), title_text, font=fonts["title"], fill=HEADER_TEXT)
 
     subtitle_max_w = IMG_W - 2 * PADDING - 48
     subtitle_text = _truncate(draw, subtitle_text, fonts["subtitle"], subtitle_max_w)
-    draw.text((PADDING + 24, text_y + title_h + gap), subtitle_text,
-              font=fonts["subtitle"], fill=(255, 255, 255, 204))
+    sub_bbox = draw.textbbox((0, 0), subtitle_text, font=fonts["subtitle"])
+    sub_w = sub_bbox[2] - sub_bbox[0]
+    draw.text(((IMG_W - sub_w) // 2, text_y + title_h + gap), subtitle_text,
+              font=fonts["subtitle"], fill=MUTED_TEXT)
 
     if og_rows is None:
         return img
@@ -203,10 +213,10 @@ def render_og_image(competition_name: str | None, og_rows: list | None) -> Image
             _draw_text_centered(draw, label, fonts["table_header"],
                                 cx, TABLE_Y, cw, TABLE_HEADER_H, HEADER_TEXT)
 
-    # Vertical column dividers in header
+    # Vertical column dividers in header (semi-transparent white approximated as light blue)
     for i in range(1, 5):
         dx = _col_x(i)
-        draw.line([(dx, TABLE_Y), (dx, TABLE_Y + TABLE_HEADER_H)], fill=(255, 255, 255, 80))
+        draw.line([(dx, TABLE_Y), (dx, TABLE_Y + TABLE_HEADER_H)], fill=(100, 170, 220))
 
     # Data rows
     rp_rank_lookup = {row["name"]: row["ranks"][0] for row in rows if row["ranks"][0] is not None}
@@ -227,8 +237,8 @@ def render_og_image(competition_name: str | None, og_rows: list | None) -> Image
         # Horizontal divider above row
         draw.line([(TABLE_X, ry), (TABLE_X + TABLE_W, ry)], fill=TABLE_BORDER)
 
-        # Competitor name (first names only)
-        name_text = _truncate(draw, _first_name(row["name"]), fonts["name"],
+        # Competitor name (truncated to fit column)
+        name_text = _truncate(draw, row["name"], fonts["name"],
                                COL_COMPETITOR - 24)
         name_bbox = draw.textbbox((0, 0), name_text, font=fonts["name"])
         name_h = name_bbox[3] - name_bbox[1]
@@ -254,38 +264,37 @@ def render_og_image(competition_name: str | None, og_rows: list | None) -> Image
 
             ordinal_text = _ordinal(rank)
 
-            # Determine arrow based on comparison to RP rank (col 0)
+            # Determine arrow direction based on comparison to RP rank (col 0)
             rp_rank = row["ranks"][0]
-            arrow = ""
+            arrow_dir = 0  # -1 = up (better), +1 = down (worse)
             arrow_color = BODY_TEXT
             if sys_i > 0 and rp_rank is not None:
                 if rank < rp_rank:
-                    arrow = "▲"
+                    arrow_dir = -1
                     arrow_color = UP_COLOR
                 elif rank > rp_rank:
-                    arrow = "▼"
+                    arrow_dir = 1
                     arrow_color = DOWN_COLOR
 
             rank_font = fonts["rank"]
-            arrow_font = fonts["rank_small"]
-
             ord_bbox = draw.textbbox((0, 0), ordinal_text, font=rank_font)
             ord_w = ord_bbox[2] - ord_bbox[0]
             ord_h = ord_bbox[3] - ord_bbox[1]
 
-            if arrow:
-                arr_bbox = draw.textbbox((0, 0), arrow, font=arrow_font)
-                arr_w = arr_bbox[2] - arr_bbox[0]
-                total_w = ord_w + 3 + arr_w
-                start_x = cx + (cw - total_w) // 2
-                text_y = ry + (actual_row_h - ord_h) // 2
-                draw.text((start_x, text_y), ordinal_text, font=rank_font, fill=BODY_TEXT)
-                arr_h = arr_bbox[3] - arr_bbox[1]
-                arr_y = ry + (actual_row_h - arr_h) // 2 + (ord_h - arr_h) // 2
-                draw.text((start_x + ord_w + 3, arr_y), arrow, font=arrow_font, fill=arrow_color)
-            else:
-                _draw_text_centered(draw, ordinal_text, rank_font,
-                                    cx, ry, cw, actual_row_h, BODY_TEXT)
+            gap_arrow = 5
+            arr_w = ARROW_SIZE * 2 if arrow_dir != 0 else 0
+            total_w = ord_w + (gap_arrow + arr_w if arrow_dir != 0 else 0)
+            start_x = cx + (cw - total_w) // 2
+            text_y_pos = ry + (actual_row_h - ord_h) // 2
+            draw.text((start_x, text_y_pos), ordinal_text, font=rank_font, fill=BODY_TEXT)
+
+            if arrow_dir != 0:
+                arr_cx = start_x + ord_w + gap_arrow + ARROW_SIZE
+                arr_cy = ry + actual_row_h // 2
+                if arrow_dir == -1:
+                    _draw_up_triangle(draw, arr_cx, arr_cy, ARROW_SIZE, arrow_color)
+                else:
+                    _draw_down_triangle(draw, arr_cx, arr_cy, ARROW_SIZE, arrow_color)
 
     # Outer border of table
     draw.rounded_rectangle([TABLE_X, TABLE_Y, TABLE_X + TABLE_W, TABLE_Y + TABLE_H],
