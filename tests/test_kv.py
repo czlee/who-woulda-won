@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.kv import normalize_url, get_competition_name, set_meta
+from core.kv import normalize_url, get_competition_name, set_meta, get_og_rows
 
 
 class TestNormalizeUrl:
@@ -140,3 +140,63 @@ class TestSetMeta:
         from datetime import datetime, timezone
         dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
         assert dt is not None
+
+    def test_stores_og_rows_as_json(self):
+        mock_client = MagicMock()
+        mock_client.hget.return_value = None
+        og_rows = [{"name": "Alice & Bob", "ranks": [1, 2, 1, 3]}]
+        with patch("core.kv._get_client", return_value=mock_client):
+            set_meta("https://eepro.com/competitions/scores/123", None, "My Competition",
+                     og_rows=og_rows)
+        values = mock_client.hset.call_args[1]["values"]
+        import json
+        assert json.loads(values["og_rows"]) == og_rows
+
+    def test_og_rows_not_stored_when_none(self):
+        mock_client = MagicMock()
+        mock_client.hget.return_value = None
+        with patch("core.kv._get_client", return_value=mock_client):
+            set_meta("https://eepro.com/competitions/scores/123", None, "My Competition",
+                     og_rows=None)
+        values = mock_client.hset.call_args[1]["values"]
+        assert "og_rows" not in values
+
+
+class TestGetOgRows:
+    def test_returns_parsed_list(self):
+        import json
+        rows = [{"name": "Alice & Bob", "ranks": [1, 2, 1, 3]}]
+        mock_client = MagicMock()
+        mock_client.hget.return_value = json.dumps(rows)
+        with patch("core.kv._get_client", return_value=mock_client):
+            result = get_og_rows("https://eepro.com/competitions/scores/123")
+        assert result == rows
+
+    def test_returns_none_when_not_found(self):
+        mock_client = MagicMock()
+        mock_client.hget.return_value = None
+        with patch("core.kv._get_client", return_value=mock_client):
+            result = get_og_rows("https://eepro.com/competitions/scores/123")
+        assert result is None
+
+    def test_returns_none_when_client_unavailable(self):
+        with patch("core.kv._get_client", return_value=None):
+            result = get_og_rows("https://eepro.com/competitions/scores/123")
+        assert result is None
+
+    def test_returns_none_on_exception(self):
+        mock_client = MagicMock()
+        mock_client.hget.side_effect = Exception("connection refused")
+        with patch("core.kv._get_client", return_value=mock_client):
+            result = get_og_rows("https://eepro.com/competitions/scores/123")
+        assert result is None
+
+    def test_passes_division_to_normalize(self):
+        import json
+        rows = [{"name": "Alice & Bob", "ranks": [1, 1, 1, 1]}]
+        mock_client = MagicMock()
+        mock_client.hget.return_value = json.dumps(rows)
+        with patch("core.kv._get_client", return_value=mock_client):
+            get_og_rows("https://eepro.com/competitions/scores/123", division="novice")
+        key_used = mock_client.hget.call_args[0][0]
+        assert key_used.endswith(":novice")

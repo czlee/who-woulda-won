@@ -79,7 +79,8 @@ def analyze():
         result = analyze_scoresheet(source, content, division=division)
 
         if "application/json" in content_type:
-            kv.set_meta(url, division, result.scoresheet.competition_name)
+            kv.set_meta(url, division, result.scoresheet.competition_name,
+                        og_rows=_build_og_rows(result))
 
         return jsonify(result.to_dict())
 
@@ -87,6 +88,28 @@ def analyze():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": f"Internal error: {e}"}), 500
+
+
+_SYSTEM_ORDER = [
+    "Relative Placement", "Borda Count", "Schulze Method", "Sequential IRV"
+]
+
+
+def _build_og_rows(result) -> list:
+    rank_lookup = {
+        vr.system_name: {p.name: p.rank for p in vr.final_ranking}
+        for vr in result.voting_results
+    }
+    rp_ranking = sorted(
+        rank_lookup.get("Relative Placement", {}).items(), key=lambda x: x[1]
+    )
+    rows = []
+    for name, _ in rp_ranking:
+        rows.append({
+            "name": name,
+            "ranks": [rank_lookup.get(s, {}).get(name) for s in _SYSTEM_ORDER],
+        })
+    return rows
 
 
 def fetch_url(url: str) -> tuple[str, bytes]:

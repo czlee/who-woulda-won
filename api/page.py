@@ -41,5 +41,14 @@ def page():
                 f'property="og:url" content="{page_url}"',
                 1,
             )
+            og_image_params = {"url": url}
+            if division:
+                og_image_params["division"] = division
+            og_image_url = f"https://www.whowouldawon.dance/api/og_image?{urlencode(og_image_params)}"
+            html = html.replace(
+                'property="og:image" content="https://www.whowouldawon.dance/og-image-default.png"',
+                f'property="og:image" content="{og_image_url}"',
+                1,
+            )
 
     return Response(html, content_type="text/html; charset=utf-8")
