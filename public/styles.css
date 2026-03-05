@@ -36,6 +36,7 @@ header {
 header h1 {
     margin: 0;
     font-size: 2rem;
+    font-weight: 600;
 }
 
 header .subtitle {
@@ -62,11 +63,13 @@ h2 {
     color: #444;
     border-bottom: 2px solid var(--color-primary);
     padding-bottom: 0.5rem;
+    font-weight: 600;
 }
 
 h3 {
     color: #555;
     margin-top: 0;
+    font-weight: 600;
 }
 
 /* Input section */
@@ -685,6 +688,7 @@ thead .has-tooltip:hover {
     color: #555;
     margin: 1rem 0 0.5rem 0;
     font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .detail-content h4:first-of-type {

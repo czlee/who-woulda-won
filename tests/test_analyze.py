@@ -4,13 +4,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from core.analyze import AnalysisError, analyze_scoresheet
-from core.parsers.base import PrelimsError
+from core.parsers.base import PrelimsError, ScoresheetParser
 
 
 class TestPrelimsErrorHandling:
     def test_prelims_error_becomes_analysis_error(self):
         """PrelimsError from a parser should become AnalysisError with friendly message."""
-        mock_parser = MagicMock()
+        mock_parser = MagicMock(spec=ScoresheetParser)
         mock_parser.parse.side_effect = PrelimsError("prelims detected")
 
         with patch("core.analyze.detect_parser", return_value=mock_parser):
@@ -19,7 +19,7 @@ class TestPrelimsErrorHandling:
 
     def test_prelims_error_message_mentions_finals(self):
         """The error message should tell the user to use finals scoresheets."""
-        mock_parser = MagicMock()
+        mock_parser = MagicMock(spec=ScoresheetParser)
         mock_parser.parse.side_effect = PrelimsError("prelims detected")
 
         with patch("core.analyze.detect_parser", return_value=mock_parser):
@@ -28,7 +28,7 @@ class TestPrelimsErrorHandling:
 
     def test_prelims_error_not_prefixed_with_failed_to_parse(self):
         """PrelimsError should NOT get the generic 'Failed to parse' prefix."""
-        mock_parser = MagicMock()
+        mock_parser = MagicMock(spec=ScoresheetParser)
         mock_parser.parse.side_effect = PrelimsError("prelims detected")
 
         with patch("core.analyze.detect_parser", return_value=mock_parser):

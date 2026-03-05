@@ -10,6 +10,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.analyze import app
+from core.analyze import AnalysisResult
+from core.models import Scoresheet
 
 
 @pytest.fixture
@@ -20,10 +22,11 @@ def client():
 
 
 def _make_mock_result(competition_name="Test Competition 2025"):
-    mock_scoresheet = MagicMock()
+    mock_scoresheet = MagicMock(spec=Scoresheet)
     mock_scoresheet.competition_name = competition_name
-    mock_result = MagicMock()
+    mock_result = MagicMock(spec=AnalysisResult)
     mock_result.scoresheet = mock_scoresheet
+    mock_result.results = []
     mock_result.to_dict.return_value = {
         "competition_name": competition_name,
         "competitors": [],
@@ -54,6 +57,7 @@ class TestKvCalledForUrlAnalysis:
             "https://scoring.dance/events/1/results/2.html",
             None,
             "Awesome Open 2025",
+            og_rows=[],
         )
 
     def test_set_meta_called_with_division(self, client):
@@ -72,6 +76,7 @@ class TestKvCalledForUrlAnalysis:
             "https://eepro.com/scores/123",
             "novice",
             "Awesome Open 2025 - Novice",
+            og_rows=[],
         )
 
     def test_set_meta_not_called_for_file_upload(self, client):

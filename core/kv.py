@@ -1,5 +1,6 @@
 """Thin wrapper around Upstash Redis for storing competition metadata."""
 
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -48,7 +49,8 @@ def get_competition_name(url: str, division: str | None = None) -> str | None:
         return None
 
 
-def set_meta(url: str, division: str | None, competition_name: str) -> None:
+def set_meta(url: str, division: str | None, competition_name: str,
+             og_rows: list | None = None) -> None:
     """Store competition name and (on first write) first_analyzed_at for a URL."""
     try:
         client = _get_client()
@@ -62,6 +64,21 @@ def set_meta(url: str, division: str | None, competition_name: str) -> None:
             fields["first_analyzed_at"] = datetime.now(timezone.utc).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
             )
+        if og_rows is not None:
+            fields["og_rows"] = json.dumps(og_rows)
         client.hset(key, values=fields)
     except Exception:
         pass
+
+
+def get_og_rows(url: str, division: str | None = None) -> list | None:
+    """Return stored og_rows for the given URL, or None."""
+    try:
+        client = _get_client()
+        if client is None:
+            return None
+        key = normalize_url(url, division)
+        data = client.hget(key, "og_rows")
+        return json.loads(data) if data else None
+    except Exception:
+        return None
