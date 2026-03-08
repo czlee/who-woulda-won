@@ -806,7 +806,14 @@ function buildRPCellDisplay(details, n) {
             for (const [index, step] of progression.entries()) {
                 for (const [competitor, count] of Object.entries(step.counts || {})) {
                     const key = competitor + '|' + step.cutoff;
-                    if (display[key] !== undefined) continue;
+                    if (display[key] !== undefined) {
+                        // A subsequent round may resolve quality scores for a key
+                        // already set in a prior greater_majority step; update if so.
+                        if (step.quality_scores && step.quality_scores[competitor] !== undefined && display[key].quality === undefined) {
+                            display[key].quality = step.quality_scores[competitor];
+                        }
+                        continue;
+                    }
 
                     if (step.quality_scores && step.quality_scores[competitor] !== undefined) {
                         display[key] = {
