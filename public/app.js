@@ -783,9 +783,10 @@ function renderRPDetails(container, result, data) {
  * For each placed competitor, shows cumulative counts from cutoff 1
  * through the cutoff at which they were placed (final_cutoff). Zeros
  * are rendered as dashes by the caller. Quality-of-majority scores
- * are recorded for ALL tiebreak participants (not just the winner),
- * so that the loser's quality is visible when they are placed in a
- * subsequent round.
+ * are recorded for ALL tiebreak participants (not just the winner).
+ * Entries are overwritten if a later round revisits the same cell,
+ * which is safe because cumulative counts are identical and allows
+ * quality scores to be added retroactively.
  *
  * @returns {Object} Map of "competitor|cutoff" -> {count, quality?, first_majority?}
  */
@@ -806,7 +807,6 @@ function buildRPCellDisplay(details, n) {
             for (const [index, step] of progression.entries()) {
                 for (const [competitor, count] of Object.entries(step.counts || {})) {
                     const key = competitor + '|' + step.cutoff;
-                    if (display[key] !== undefined) continue;
 
                     if (step.quality_scores && step.quality_scores[competitor] !== undefined) {
                         display[key] = {
