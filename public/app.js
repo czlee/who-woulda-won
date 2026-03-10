@@ -4,6 +4,7 @@
 
 // Quickstart URLs — curated scoresheets for first-time users
 const QUICKSTART_URLS = [
+    'https://danceconvention.net/eventdirector/en/roundscores/301270140.pdf', // Swingvasion 2026 Novice
     'https://danceconvention.net/eventdirector/en/roundscores/301251952.pdf', // Southern Lights 2026 Intermediate
     'https://scoring.dance/enCA/events/297/results/5300.html', // Rose City 2026 Intermediate
     'https://scoring.dance/enCA/events/366/results/5259.html', // Winter Coast 2026 Novice
@@ -25,9 +26,6 @@ const QUICKSTART_URLS = [
     'https://danceconvention.net/eventdirector/en/roundscores/300732280.pdf', // Mania 2025 Intermediate
     'https://danceconvention.net/eventdirector/en/roundscores/300732124.pdf', // Mania 2025 Novice
     'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO 2022 Intermediate
-    'https://scoring.dance/enCA/events/297/results/5300.html', // Rose City 2026 Intermediate
-    'https://scoring.dance/enCA/events/366/results/5259.html', // Winter Coast 2026 Novice
-    'https://scoring.dance/enCA/events/335/results/5210.html', // Euro Dance 2026 Novice
 ];
 
 // Eepro URL detection regex
