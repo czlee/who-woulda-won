@@ -7,11 +7,15 @@ Prints column divider x-positions, row divider y-positions, and other layout
 boundaries by scanning for #ddd border pixels in the template image.
 """
 
+import sys
 from pathlib import Path
 
 from PIL import Image
 
-TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "og-image-template.png"
+if len(sys.argv) > 1:
+    TEMPLATE_PATH = Path(sys.argv[1])
+else:
+    TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "og-image-template.png"
 BORDER_COLOR = (221, 221, 221)  # #ddd
 TOLERANCE = 5
 
