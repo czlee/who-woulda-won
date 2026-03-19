@@ -4,6 +4,10 @@
 
 // Quickstart URLs — curated scoresheets for first-time users
 const QUICKSTART_URLS = [
+    'https://scoring.dance/enCA/events/321/results/5235.html', // ASSJ 2026 Novice
+    'https://scoring.dance/enCA/events/337/results/5327.html', // West in Lyon 2026 Novice
+    'https://scoring.dance/enCA/events/381/results/5360.html', // Westie Spring Thing 2026 Novice
+    'https://scoring.dance/enCA/events/381/results/5357.html', // Westie Spring Thing 2026 Newcomer
     'https://danceconvention.net/eventdirector/en/roundscores/301270140.pdf', // Swingvasion 2026 Novice
     'https://danceconvention.net/eventdirector/en/roundscores/301251952.pdf', // Southern Lights 2026 Intermediate
     'https://scoring.dance/enCA/events/297/results/5300.html', // Rose City 2026 Intermediate
