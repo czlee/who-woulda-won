@@ -4,6 +4,8 @@
 
 // Quickstart URLs — curated scoresheets for first-time users
 const QUICKSTART_URLS = [
+    'https://scoring.dance/enCA/events/382/results/5396.html', // UKWCSC 2026 Sophisticated
+    'https://scoring.dance/enCA/events/382/results/5384.html', // UKWCSC 2026 Novice
     'https://scoring.dance/enCA/events/321/results/5235.html', // ASSJ 2026 Novice
     'https://scoring.dance/enCA/events/337/results/5327.html', // West in Lyon 2026 Novice
     'https://scoring.dance/enCA/events/381/results/5360.html', // Westie Spring Thing 2026 Novice
