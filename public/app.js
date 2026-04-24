@@ -4,6 +4,11 @@
 
 // Quickstart URLs — curated scoresheets for first-time users
 const QUICKSTART_URLS = [
+    'https://scoring.dance/enCA/events/333/results/5656.html', // Asia Open 2026 Novice
+    'https://scoring.dance/enCA/events/333/results/5653.html', // Asia Open 2026 Newcomer
+    'https://scoring.dance/enCA/events/315/results/5689.html', // City of Angels 2026 Novice
+    'https://scoring.dance/enCA/events/327/results/5613.html', // Easter Swing 2026 Intermediate
+    'https://scoring.dance/enCA/events/327/results/5610.html', // Easter Swing 2026 Novice
     'https://scoring.dance/enCA/events/382/results/5396.html', // UKWCSC 2026 Sophisticated
     'https://scoring.dance/enCA/events/382/results/5384.html', // UKWCSC 2026 Novice
     'https://scoring.dance/enCA/events/321/results/5235.html', // ASSJ 2026 Novice
