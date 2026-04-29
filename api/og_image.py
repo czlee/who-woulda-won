@@ -245,5 +245,5 @@ def og_image():
     return Response(
         buf.read(),
         content_type="image/png",
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        headers={"Cache-Control": "public, max-age=86400"},
     )

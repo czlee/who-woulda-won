@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery — Who Woulda Won?</title>
+    <meta name="description" content="Browse scoresheets where voting systems disagree on Who Woulda Won?">
+    <meta property="og:title" content="Gallery — Who Woulda Won?">
+    <meta property="og:description" content="Browse scoresheets where voting systems disagree on Who Woulda Won?">
+    <meta property="og:image" content="https://www.whowouldawon.dance/gallery-og-image.png">
+    <meta property="og:url" content="https://www.whowouldawon.dance/gallery">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="gallery-body">
+    <header>
+        <h1><a href="/" class="home-link">Who Woulda Won?</a></h1>
+        <p class="subtitle">Compare voting systems on dance competition scoresheets</p>
+    </header>
+
+    <main class="gallery-main">
+        <h2>Gallery of interesting scoresheets</h2>
+        <p class="cherry-picked-notice">
+            <strong>Note:</strong> These scoresheets are hand-picked to illustrate cases where voting systems disagree.
+            They are not representative of typical competitions. Please interpret with caution.
+        </p>
+        <div class="gallery-grid"></div>
+    </main>
+
+    <footer>
+        <p>
+            created by Chuan-Zheng Lee | <a href="/about">about this app</a> | <a href="https://github.com/czlee/who-woulda-won" target="_blank">source on GitHub</a>
+        </p>
+    </footer>
+
+    <script src="gallery-data.js"></script>
+    <script>
+        const grid = document.querySelector('.gallery-grid');
+        for (const item of GALLERY_ITEMS) {
+            const title = `${item.event} \u2014 ${item.division}`;
+
+            const img = document.createElement('img');
+            img.src = `/api/og_image?url=${encodeURIComponent(item.url)}`;
+            img.alt = title;
+            img.loading = 'lazy';
+
+            const cardTitle = document.createElement('p');
+            cardTitle.className = 'gallery-card-title';
+            cardTitle.textContent = title;
+
+            const body = document.createElement('div');
+            body.className = 'gallery-card-body';
+            body.appendChild(cardTitle);
+
+            if (item.blurb) {
+                const blurb = document.createElement('p');
+                blurb.className = 'gallery-card-blurb';
+                blurb.textContent = item.blurb;
+                body.appendChild(blurb);
+            }
+
+            const card = document.createElement('a');
+            card.className = 'gallery-card';
+            card.href = `/?url=${encodeURIComponent(item.url)}`;
+            card.appendChild(img);
+            card.appendChild(body);
+
+            grid.appendChild(card);
+        }
+    </script>
+</body>
+</html>

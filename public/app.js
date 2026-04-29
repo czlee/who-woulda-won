@@ -2,42 +2,7 @@
  * Who Woulda Won? - Frontend JavaScript
  */
 
-// Quickstart URLs — curated scoresheets for first-time users
-const QUICKSTART_URLS = [
-    'https://scoring.dance/enCA/events/333/results/5656.html', // Asia Open 2026 Novice
-    'https://scoring.dance/enCA/events/333/results/5653.html', // Asia Open 2026 Newcomer
-    'https://scoring.dance/enCA/events/315/results/5689.html', // City of Angels 2026 Novice
-    'https://scoring.dance/enCA/events/327/results/5613.html', // Easter Swing 2026 Intermediate
-    'https://scoring.dance/enCA/events/327/results/5610.html', // Easter Swing 2026 Novice
-    'https://scoring.dance/enCA/events/382/results/5396.html', // UKWCSC 2026 Sophisticated
-    'https://scoring.dance/enCA/events/382/results/5384.html', // UKWCSC 2026 Novice
-    'https://scoring.dance/enCA/events/321/results/5235.html', // ASSJ 2026 Novice
-    'https://scoring.dance/enCA/events/337/results/5327.html', // West in Lyon 2026 Novice
-    'https://scoring.dance/enCA/events/381/results/5360.html', // Westie Spring Thing 2026 Novice
-    'https://scoring.dance/enCA/events/381/results/5357.html', // Westie Spring Thing 2026 Newcomer
-    'https://danceconvention.net/eventdirector/en/roundscores/301270140.pdf', // Swingvasion 2026 Novice
-    'https://danceconvention.net/eventdirector/en/roundscores/301251952.pdf', // Southern Lights 2026 Intermediate
-    'https://scoring.dance/enCA/events/297/results/5300.html', // Rose City 2026 Intermediate
-    'https://scoring.dance/enCA/events/366/results/5259.html', // Winter Coast 2026 Novice
-    'https://scoring.dance/enCA/events/335/results/5210.html', // Euro Dance 2026 Novice
-    'https://scoring.dance/enCA/events/362/results/5126.html', // Trinity 2026 Novice
-    'https://scoring.dance/enCA/events/349/results/5040.html', // SwingVester 2025-26 Novice
-    'https://scoring.dance/enCA/events/354/results/4996.html', // Budafest 2025 Novice
-    'https://scoring.dance/enCA/events/352/results/4943.html', // Westie Gala 2025-26 Advanced
-    'https://scoring.dance/enCA/events/272/results/4906.html', // Monterey 2026 All-Star
-    'https://scoring.dance/enCA/events/328/results/4866.html', // Santa Swing 2025 Newcomer
-    'https://scoring.dance/enCA/events/324/results/4734.html', // Warsaw Halloween 2025 Intermediate
-    'https://scoring.dance/enCA/events/312/results/4639.html', // SNOW 2025 Sophisticated
-    'https://scoring.dance/enCA/events/280/results/4208.html', // German Open 2025 All-Star
-    'https://scoring.dance/enCA/events/280/results/4201.html', // German Open 2025 Novice
-    'https://danceconvention.net/eventdirector/en/roundscores/301146763.pdf', // TAP 2025 Advanced
-    'https://danceconvention.net/eventdirector/en/roundscores/301006101.pdf', // NZO 2025 Novice
-    'https://danceconvention.net/eventdirector/en/roundscores/300946391.pdf', // BOTB 2025 Novice
-    'https://danceconvention.net/eventdirector/en/roundscores/300863133.pdf', // Shakedown 2025 Advanced
-    'https://danceconvention.net/eventdirector/en/roundscores/300732280.pdf', // Mania 2025 Intermediate
-    'https://danceconvention.net/eventdirector/en/roundscores/300732124.pdf', // Mania 2025 Novice
-    'https://danceconvention.net/eventdirector/en/roundscores/7260141.pdf', // NZO 2022 Intermediate
-];
+// GALLERY_ITEMS is defined in gallery-data.js, loaded before this script
 
 // Eepro URL detection regex
 const EEPRO_URL_PATTERN = /^https?:\/\/eepro\.com\/results\//;
@@ -98,8 +63,8 @@ document.querySelectorAll('.mode-toggle').forEach(link => {
 // Quickstart link handler
 document.getElementById('quickstart-link').addEventListener('click', (e) => {
     e.preventDefault();
-    if (QUICKSTART_URLS.length === 0) return;
-    const url = QUICKSTART_URLS[Math.floor(Math.random() * QUICKSTART_URLS.length)];
+    if (GALLERY_ITEMS.length === 0) return;
+    const url = GALLERY_ITEMS[Math.floor(Math.random() * GALLERY_ITEMS.length)].url;
     urlInput.value = url;
     quickstartUsed = true;
     quickstartContainer.classList.add('hidden');

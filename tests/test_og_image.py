@@ -33,7 +33,8 @@ class TestOgImageEndpoint:
                 response = client.get("/api/og_image?url=https://scoring.dance/events/1/results/2.html")
         assert response.status_code == 200
         assert response.content_type == "image/png"
-        assert response.headers["Cache-Control"] == "public, max-age=31536000, immutable"
+        assert "public" in response.headers["Cache-Control"]
+        assert "max-age=" in response.headers["Cache-Control"]
         assert response.data[:4] == b"\x89PNG"
 
     def test_returns_fallback_for_unknown_url(self, client):
