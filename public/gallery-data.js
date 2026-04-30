@@ -28,6 +28,7 @@ const GALLERY_ITEMS = [
     { url: 'https://scoring.dance/enCA/events/280/results/4208.html', event: 'German Open 2025', division: 'All-Star' },
     { url: 'https://scoring.dance/enCA/events/280/results/4201.html', event: 'German Open 2025', division: 'Novice' },
     { url: 'https://danceconvention.net/eventdirector/en/roundscores/301146763.pdf', event: 'TAP 2025', division: 'Advanced' },
+    { url: 'https://eepro.com/results/theopen2025/classic.html', event: 'The Open 2025', division: 'Classic', parserDivision: 'Finals' },
     { url: 'https://danceconvention.net/eventdirector/en/roundscores/301006101.pdf', event: 'NZO 2025', division: 'Novice' },
     { url: 'https://danceconvention.net/eventdirector/en/roundscores/300946391.pdf', event: 'BOTB 2025', division: 'Novice' },
     { url: 'https://danceconvention.net/eventdirector/en/roundscores/300863133.pdf', event: 'Shakedown 2025', division: 'Advanced' },

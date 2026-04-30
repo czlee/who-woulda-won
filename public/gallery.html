@@ -47,7 +47,9 @@
             const title = `${item.event} \u2014 ${item.division}`;
 
             const img = document.createElement('img');
-            img.src = `/api/og_image?url=${encodeURIComponent(item.url)}`;
+            const ogParams = new URLSearchParams({ url: item.url });
+            if (item.parserDivision) ogParams.set('division', item.parserDivision);
+            img.src = `/api/og_image?${ogParams}`;
             img.alt = title;
             img.loading = 'lazy';
 
@@ -68,7 +70,9 @@
 
             const card = document.createElement('a');
             card.className = 'gallery-card';
-            card.href = `/?url=${encodeURIComponent(item.url)}`;
+            const linkParams = new URLSearchParams({ url: item.url });
+            if (item.parserDivision) linkParams.set('division', item.parserDivision);
+            card.href = `/?${linkParams}`;
             card.appendChild(img);
             card.appendChild(body);
 

@@ -64,8 +64,12 @@ document.querySelectorAll('.mode-toggle').forEach(link => {
 document.getElementById('quickstart-link').addEventListener('click', (e) => {
     e.preventDefault();
     if (GALLERY_ITEMS.length === 0) return;
-    const url = GALLERY_ITEMS[Math.floor(Math.random() * GALLERY_ITEMS.length)].url;
-    urlInput.value = url;
+    const item = GALLERY_ITEMS[Math.floor(Math.random() * GALLERY_ITEMS.length)];
+    urlInput.value = item.url;
+    urlInput.dispatchEvent(new Event('input'));
+    if (item.parserDivision) {
+        urlDivisionInput.value = item.parserDivision;
+    }
     quickstartUsed = true;
     quickstartContainer.classList.add('hidden');
     urlForm.requestSubmit();
