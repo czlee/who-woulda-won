@@ -4,7 +4,7 @@ Run this after deploying a new set of gallery URLs to ensure OG images are
 pre-populated before users view the gallery.
 
 Usage:
-    poetry run python scripts/seed_kv.py [--base-url https://www.whowouldawon.dance]
+    poetry run python scripts/seed_kv.py [--base-url https://www.whowouldawon.dance] [--since YYYY-MM-DD]
 """
 
 import argparse
@@ -34,10 +34,12 @@ def load_gallery_entries():
         url = url_match.group(1)
         div_match = re.search(r"parserDivision:\s*'([^']+)'", item)
         division = div_match.group(1) if div_match else None
+        date_match = re.search(r"date:\s*'([^']+)'", item)
+        date = date_match.group(1) if date_match else None
         key = (url, division)
         if key not in seen:
             seen.add(key)
-            entries.append(key)
+            entries.append((date, url, division))
     if not entries:
         print(f"ERROR: No entries found in {GALLERY_DATA_JS}", file=sys.stderr)
         sys.exit(1)
@@ -50,15 +52,20 @@ def main():
                         help='Base URL of the deployed app (default: https://www.whowouldawon.dance)')
     parser.add_argument('--delay', type=float, default=3.38,
                         help='Seconds to wait between requests (default: 3.38)')
+    parser.add_argument('--since', metavar='DATE',
+                        help='Only seed entries with date >= DATE (format: YYYY-MM-DD)')
     args = parser.parse_args()
 
     gallery_entries = load_gallery_entries()
+    if args.since:
+        gallery_entries = [(date, url, div) for date, url, div in gallery_entries if date and date >= args.since]
+        print(f"Filtered to {len(gallery_entries)} entries with date >= {args.since}")
     endpoint = f"{args.base_url.rstrip('/')}/api/analyze"
     print(f"Seeding KV via {endpoint}")
     print(f"Processing {len(gallery_entries)} entries with {args.delay}s delay between requests\n")
 
     errors = []
-    for i, (url, division) in enumerate(gallery_entries, 1):
+    for i, (date, url, division) in enumerate(gallery_entries, 1):
         label = f"{url} [{division}]" if division else url
         print(f"[{i:2d}/{len(gallery_entries)}] {label} ... ", end='', flush=True)
         payload = {'url': url}
