@@ -3,6 +3,15 @@
 // date: Saturday of the event weekend (ISO format). For events not spanning a weekend, use the actual date of the final.
 // The date isn't currently used, it's only there to make it easy to keep this list sorted.
 const GALLERY_ITEMS = [
+    { date: '2026-05-02', url: 'https://scoring.dance/enCA/events/407/results/5831.html', event: 'Nordic 2026', division: 'Intermediate' },
+    { date: '2026-05-02', url: 'https://scoring.dance/enCA/events/407/results/5828.html', event: 'Nordic 2026', division: 'Novice' },
+    { date: '2026-05-02', url: 'https://scoring.dance/enCA/events/383/results/5775.html', event: 'Spring Time 2026', division: 'Advanced' },
+    { date: '2026-05-02', url: 'https://eepro.com/results/sis2026/jjfinals.html', event: 'SIS 2026', division: 'Sophisticated', parserDivision: 'Sophisticated' },
+    { date: '2026-05-02', url: 'https://eepro.com/results/sis2026/jjfinals.html', event: 'SIS 2026', division: 'Intermediate', parserDivision: 'Intermediate' },
+    { date: '2026-04-25', url: 'https://scoring.dance/enCA/events/404/results/5801.html', event: 'Slovenian Open 2026', division: 'Advanced' },
+    { date: '2026-04-25', url: 'https://scoring.dance/enCA/events/404/results/5799.html', event: 'Slovenian Open 2026', division: 'All-Star' },
+    { date: '2026-04-25', url: 'https://scoring.dance/enCA/events/356/results/5721.html', event: 'SwingIn 2026', division: 'Intermediate' },
+    { date: '2026-04-25', url: 'https://eepro.com/results/swingover2026/jjfinals.html', event: 'Swingover 2026', division: 'Newcomer', parserDivision: 'Newcomer' },
     { date: '2026-04-18', url: 'https://scoring.dance/enCA/events/333/results/5656.html', event: 'Asia Open 2026', division: 'Novice' },
     { date: '2026-04-18', url: 'https://scoring.dance/enCA/events/333/results/5653.html', event: 'Asia Open 2026', division: 'Newcomer' },
     { date: '2026-04-11', url: 'https://scoring.dance/enCA/events/315/results/5689.html', event: 'City of Angels 2026', division: 'Novice' },
