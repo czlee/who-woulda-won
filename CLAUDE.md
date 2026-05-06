@@ -34,17 +34,23 @@ If you're on the user's local machine, the development environment is not set up
 core/               # Backend business logic
   models.py         # Dataclasses: Scoresheet, Placement, VotingResult, AnalysisResult
   analyze.py        # Orchestrator: parse scoresheet → run all voting systems
+  summarize.py      # Generates controversy summary labels (Consistent / Close call / Shakeup / Drama)
+  kv.py             # Upstash Redis wrapper for storing competition metadata
   parsers/          # Scoresheet parsers (plugin architecture)
     base.py         # Abstract ScoresheetParser base class
   voting/           # Voting system implementations (plugin architecture)
     base.py         # Abstract VotingSystem base class
 
 api/analyze.py      # Flask serverless endpoint: POST /api/analyze
+api/page.py         # Flask serverless endpoint: serves main page with injected OG tags (handles /)
+api/og_image.py     # Flask serverless endpoint: generates OG social media preview images
 
 public/             # Frontend (vanilla HTML/CSS/JS, served statically)
-  index.html
   app.js
   styles.css
+  gallery.html      # Gallery of example results
+  about.html        # About page
+  gallery-data.js   # Data file for gallery entries
 
 tests/              # Mirrors source structure (test_voting/, test_parsers/)
   conftest.py       # Shared fixtures (make_scoresheet, ranking_names)
@@ -69,10 +75,17 @@ To add a new parser or voting system, implement the base class and apply the reg
 
 Sometimes, test cases for rare tiebreak situations can be difficult to construct. If it takes more than five attempts to generate a scoresheet that would trigger a planned test case, STOP, instead write notes of your thinking so far to a Markdown file, and inform the user. The user will take over constructing the test case from there.
 
-When adding parser tests that need HTML/PDF fixtures derived from example files, use the anonymize scripts in `scripts/` to generate anonymized fixtures. For eepro.com HTML:
+When adding parser tests that need HTML/PDF fixtures derived from example files, use the anonymize scripts in `scripts/` to generate anonymized fixtures:
 
 ```bash
+# eepro.com HTML
 poetry run python scripts/anonymize_eepro.py examples/<input>.html -o tests/test_parsers/fixtures/<output>.html
+
+# danceconvention.net HTML
+poetry run python scripts/anonymize_danceconvention.py examples/<input>.html -o tests/test_parsers/fixtures/<output>.html
+
+# scoring.dance PDF
+poetry run python scripts/anonymize_scoring_dance.py examples/<input>.pdf -o tests/test_parsers/fixtures/<output>.pdf
 ```
 
 Then add a fixture in `tests/test_parsers/conftest.py` loading the new file.
