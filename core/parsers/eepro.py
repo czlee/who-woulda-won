@@ -7,6 +7,33 @@ from core.models import Scoresheet
 from core.parsers import register_parser
 from core.parsers.base import PrelimsError, ScoresheetParser
 
+_ROUND_SUFFIX_RE = re.compile(
+    r'\s+(?:Finals|Prelims|Semis|Quarters|Final|Prelim|Semi|Quarter)\b.*$', re.IGNORECASE
+)
+
+
+def _common_word_prefix(names: list[str]) -> str:
+    """Return the longest common word-level prefix across all names."""
+    if not names:
+        return ""
+    word_lists = [name.split() for name in names]
+    prefix_words = []
+    for words in zip(*word_lists):
+        if len({w.lower() for w in words}) == 1:
+            prefix_words.append(words[0])
+        else:
+            break
+    return " ".join(prefix_words)
+
+
+def _get_division_core(name: str, prefix: str) -> str:
+    """Strip the common prefix and round suffix from a division name, returning the lowercased core."""
+    core = name
+    if prefix and core.lower().startswith(prefix.lower()):
+        core = core[len(prefix):].lstrip()
+    return _ROUND_SUFFIX_RE.sub("", core).lower()
+
+
 
 @register_parser
 class EeproParser(ScoresheetParser):
@@ -95,22 +122,42 @@ class EeproParser(ScoresheetParser):
 
         # Select the division
         if division is not None:
-            # Find the first division whose name contains the search string
             division_lower = division.lower()
-            match_index = None
+            prefix = _common_word_prefix(division_names)
+            # Tier 1: core == search term (exact core match)
+            # Tier 2: core starts with search term
+            # Tier 3: core contains search term
+            # Tier 4: full name contains search term (for searches that include the prefix)
+            # Within a tier, prefer the shortest full name.
+            best_tier = None
+            best_index = None
             for i, name in enumerate(division_names):
-                if division_lower in name.lower():
-                    match_index = i
-                    break
+                core = _get_division_core(name, prefix)
+                name_lower = name.lower()
+                if core == division_lower:
+                    tier = 1
+                elif core.startswith(division_lower):
+                    tier = 2
+                elif division_lower in core:
+                    tier = 3
+                elif division_lower in name_lower:
+                    tier = 4
+                else:
+                    continue
+                if (best_tier is None
+                        or tier < best_tier
+                        or (tier == best_tier and len(name) < len(division_names[best_index]))):
+                    best_tier = tier
+                    best_index = i
 
-            if match_index is None:
+            if best_index is None:
                 division_list = "\n".join(f"  - {name}" for name in division_names)
                 raise ValueError(
                     f"No division matching \"{division}\" was found. "
                     f"Available divisions:\n{division_list}"
                 )
 
-            selected_index = match_index
+            selected_index = best_index
         elif len(division_tables) == 1:
             selected_index = 0
         else:

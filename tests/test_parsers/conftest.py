@@ -1,5 +1,6 @@
 """Shared fixtures for parser tests."""
 
+import html as _html
 import json
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -9,6 +10,27 @@ import pytest
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 EXAMPLES_DIR = PROJECT_ROOT / "examples"
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+# --- HTML builders ---
+
+@pytest.fixture
+def make_eepro_html():
+    """Factory fixture: returns minimal eepro HTML bytes with one stub table per division name."""
+    def _make(division_names: list[str]) -> bytes:
+        tables = "".join(
+            f"<table border='1'><tr bgcolor='#ffae5e'><td colspan='5'>{_html.escape(name)}</td></tr>"
+            f"<tr><td>Place</td><td>Competitor</td><td>Judge A</td><td>BIB</td><td>Marks Sorted</td></tr>"
+            f"<tr><td>1</td><td>Alice</td><td>1</td><td>101</td><td>1</td></tr>"
+            f"<tr><td>2</td><td>Bob</td><td>2</td><td>102</td><td>2</td></tr>"
+            f"</table>"
+            for name in division_names
+        )
+        return (
+            f"<html><head><title>Event Express Pro</title></head>"
+            f"<body><h2>Test Event</h2>{tables}</body></html>"
+        ).encode()
+    return _make
 
 
 # --- HTML fixtures (anonymized) ---

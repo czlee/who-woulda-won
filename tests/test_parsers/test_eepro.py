@@ -77,11 +77,19 @@ class TestEeproParser:
         result = self.parser.parse(self.VALID_URL, eepro_html, division="Newcomer")
         assert "Newcomer" in result.competition_name
 
-    def test_parse_with_division_takes_first_match(self, eepro_html):
-        """When multiple divisions match, takes the first one."""
-        # "Jack" appears in all division names, so should match the first
-        result = self.parser.parse(self.VALID_URL, eepro_html, division="Jack")
-        assert "Advanced" in result.competition_name
+    def test_parse_division_prefers_exact_core_match(self, make_eepro_html):
+        """When 'Masters Novice' and 'Novice' both exist, searching 'Novice' returns Novice."""
+        html = make_eepro_html(["Jack & Jill Masters Novice Finals", "Jack & Jill Novice Finals"])
+        result = self.parser.parse("test.html", html, division="Novice")
+        assert "Jack & Jill Novice Finals" in result.competition_name
+        assert "Masters" not in result.competition_name
+
+    def test_parse_division_full_name_search(self, make_eepro_html):
+        """Searching with the prefix included (e.g. 'Jack & Jill Novice') still matches."""
+        html = make_eepro_html(["Jack & Jill Masters Novice Finals", "Jack & Jill Novice Finals"])
+        result = self.parser.parse("test.html", html, division="Jack & Jill Novice")
+        assert "Jack & Jill Novice Finals" in result.competition_name
+        assert "Masters" not in result.competition_name
 
     def test_parse_with_division_no_match(self, eepro_html):
         """Error with listing when no division matches."""
@@ -103,16 +111,9 @@ class TestEeproParser:
         with pytest.raises(ValueError, match="Available divisions:"):
             self.parser.parse(self.VALID_URL, eepro_html)
 
-    def test_parse_no_division_single_works(self):
+    def test_parse_no_division_single_works(self, make_eepro_html):
         """When there's only one division, no division arg is needed."""
-        # Build minimal HTML with a single division table
-        html = b"""<html><head><title>Event Express Pro</title></head>
-        <body><h2>Test Event</h2>
-        <table border="1"><tr bgcolor='#ffae5e'><td colspan='5'>Division: Solo Finals</td></tr>
-        <tr><td>Place</td><td>Competitor</td><td>Judge A</td><td>BIB</td><td>Marks Sorted</td></tr>
-        <tr><td>1</td><td>Alice</td><td>1</td><td>101</td><td>1</td></tr>
-        <tr><td>2</td><td>Bob</td><td>2</td><td>102</td><td>2</td></tr>
-        </table></body></html>"""
+        html = make_eepro_html(["Solo Finals"])
         result = self.parser.parse("test.html", html)
         assert "Solo Finals" in result.competition_name
 
