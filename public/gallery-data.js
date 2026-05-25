@@ -3,6 +3,8 @@
 // date: Saturday of the event weekend (ISO format). For events not spanning a weekend, use the actual date of the final.
 // The date isn't currently used, it's only there to make it easy to keep this list sorted.
 const GALLERY_ITEMS = [
+    { date: '2026-05-23', url: 'https://scoring.dance/enCA/events/415/results/5962.html', event: 'Hungarian Open 2026', division: 'All-Star' },
+    { date: '2026-05-23', url: 'https://scoring.dance/enCA/events/415/results/5958.html', event: 'Hungarian Open 2026', division: 'Intermediate' },
     { date: '2026-05-16', url: 'https://scoring.dance/enCA/events/391/results/5524.html', event: 'French Open 2026', division: 'Sophisticated' },
     { date: '2026-05-16', url: 'https://scoring.dance/enCA/events/391/results/5512.html', event: 'French Open 2026', division: 'Intermediate' },
     { date: '2026-05-16', url: 'https://eepro.com/results/gateway2026/jjfinals.html', event: 'Gateway 2026', division: 'Novice', parserDivision: 'Novice' },
