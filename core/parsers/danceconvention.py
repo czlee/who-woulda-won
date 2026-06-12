@@ -7,7 +7,7 @@ import pdfplumber
 
 from core.models import Scoresheet
 from core.parsers import register_parser
-from core.parsers.base import PrelimsError, ScoresheetParser
+from core.parsers.base import PrelimsError, ScoresheetParser, _common_word_prefix, _get_division_core
 
 
 @register_parser
@@ -166,43 +166,52 @@ class DanceConventionParser(ScoresheetParser):
     ) -> tuple[str, str, list]:
         """Select a competition section by fuzzy-matching the division string.
 
-        Three-tier match (case-insensitive), preferring the shortest name
-        within each tier:
-          1. Exact match
-          2. Name starts with search term
-          3. Name contains search term
+        Four-tier match against the core (common prefix and round suffix stripped),
+        case-insensitive:
+          1. Exact core match
+          2. Core starts with search term
+          3. Search term is substring of core
+          4. Search term is substring of full name (for queries that include the prefix)
+        If multiple sections match at the same tier, raises a ValueError.
         """
         division_lower = division.lower()
-        best_tier: int | None = None
-        best_index: int | None = None
+        names = [s[0] for s in sections]
+        prefix = _common_word_prefix(names)
+        candidates: list[tuple[int, int]] = []  # (tier, index)
 
         for i, (name, _, _) in enumerate(sections):
+            core = _get_division_core(name, prefix)
             name_lower = name.lower()
-            if name_lower == division_lower:
+            if core == division_lower:
                 tier = 1
-            elif name_lower.startswith(division_lower):
+            elif core.startswith(division_lower):
                 tier = 2
-            elif division_lower in name_lower:
+            elif division_lower in core:
                 tier = 3
+            elif division_lower in name_lower:
+                tier = 4
             else:
                 continue
+            candidates.append((tier, i))
 
-            if (
-                best_tier is None
-                or tier < best_tier
-                or (tier == best_tier and len(name) < len(sections[best_index][0]))
-            ):
-                best_tier = tier
-                best_index = i
-
-        if best_index is None:
+        if not candidates:
             division_list = "\n".join(f"  - {s[0]}" for s in sections)
             raise ValueError(
                 f"No competition matching \"{division}\" was found. "
                 f"Available competitions:\n{division_list}"
             )
 
-        return sections[best_index]
+        best_tier = min(t for t, _ in candidates)
+        best_candidates = [i for t, i in candidates if t == best_tier]
+
+        if len(best_candidates) > 1:
+            matched_list = "\n".join(f"  - {sections[i][0]}" for i in best_candidates)
+            raise ValueError(
+                f"Multiple competitions match \"{division}\". Please be more specific.\n\n"
+                f"Matching competitions:\n{matched_list}"
+            )
+
+        return sections[best_candidates[0]]
 
     def _extract_competition_name(self, text: str) -> str:
         """Extract competition name from PDF text."""

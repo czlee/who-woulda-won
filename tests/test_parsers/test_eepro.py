@@ -91,6 +91,21 @@ class TestEeproParser:
         assert "Jack & Jill Novice Finals" in result.competition_name
         assert "Masters" not in result.competition_name
 
+    def test_parse_division_ambiguous_raises(self, make_eepro_html):
+        """When search matches multiple divisions at the same tier, raise ValueError."""
+        html = make_eepro_html(["Jack & Jill Novice Finals", "Jack & Jill Masters Finals"])
+        with pytest.raises(ValueError, match='Multiple divisions match "jack"'):
+            self.parser.parse("test.html", html, division="jack")
+
+    def test_parse_division_ambiguous_lists_matches(self, make_eepro_html):
+        """Ambiguity error message lists the matching divisions."""
+        html = make_eepro_html(["Jack & Jill Novice Finals", "Jack & Jill Masters Finals"])
+        with pytest.raises(ValueError) as exc_info:
+            self.parser.parse("test.html", html, division="jack")
+        msg = str(exc_info.value)
+        assert "Jack & Jill Novice Finals" in msg
+        assert "Jack & Jill Masters Finals" in msg
+
     def test_parse_with_division_no_match(self, eepro_html):
         """Error with listing when no division matches."""
         with pytest.raises(ValueError, match='No division matching "Nonexistent"'):

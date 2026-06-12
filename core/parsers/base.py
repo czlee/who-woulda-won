@@ -1,8 +1,35 @@
 """Abstract base class for scoresheet parsers."""
 
+import re
 from abc import ABC, abstractmethod
 
 from core.models import Scoresheet
+
+_ROUND_SUFFIX_RE = re.compile(
+    r'\s+(?:Finals|Prelims|Semis|Quarters|Final|Prelim|Semi|Quarter)\b.*$', re.IGNORECASE
+)
+
+
+def _common_word_prefix(names: list[str]) -> str:
+    """Return the longest common word-level prefix across all names."""
+    if not names:
+        return ""
+    word_lists = [name.split() for name in names]
+    prefix_words = []
+    for words in zip(*word_lists):
+        if len({w.lower() for w in words}) == 1:
+            prefix_words.append(words[0])
+        else:
+            break
+    return " ".join(prefix_words)
+
+
+def _get_division_core(name: str, prefix: str) -> str:
+    """Strip the common prefix and round suffix from a division name, returning the lowercased core."""
+    core = name
+    if prefix and core.lower().startswith(prefix.lower()):
+        core = core[len(prefix):].lstrip()
+    return _ROUND_SUFFIX_RE.sub("", core).lower()
 
 
 class PrelimsError(ValueError):

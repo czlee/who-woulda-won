@@ -255,3 +255,44 @@ class TestDanceConventionParser:
         result = self.parser.parse(self.VALID_URL, b"%PDF", division="followers")
         assert "Grace Hill" in result.judges
         assert "Alice Baker" not in result.judges
+
+
+class TestSelectSection:
+    """Unit tests for _select_section method."""
+
+    parser = DanceConventionParser()
+
+    def _sections(self, *names):
+        return [(name, "", [[]]) for name in names]
+
+    def test_exact_core_match_novice(self):
+        """'novice' uniquely matches 'J&J Novice Finals', not 'J&J Masters Novice Finals'."""
+        sections = self._sections("J&J Novice Finals", "J&J Masters Finals", "J&J Masters Novice Finals")
+        result = self.parser._select_section(sections, "novice")
+        assert result[0] == "J&J Novice Finals"
+
+    def test_exact_core_match_masters(self):
+        """'masters' uniquely matches 'J&J Masters Finals', not 'J&J Masters Novice Finals'."""
+        sections = self._sections("J&J Masters Finals", "J&J Novice Finals", "J&J Masters Novice Finals")
+        result = self.parser._select_section(sections, "masters")
+        assert result[0] == "J&J Masters Finals"
+
+    def test_ambiguous_raises(self):
+        """Search term matching multiple sections at the same tier raises ValueError."""
+        sections = self._sections("J&J Novice Finals", "J&J Masters Finals")
+        with pytest.raises(ValueError, match='Multiple competitions match "j&j"'):
+            self.parser._select_section(sections, "j&j")
+
+    def test_ambiguous_lists_matches(self):
+        """Ambiguity error lists the competing names."""
+        sections = self._sections("J&J Novice Finals", "J&J Masters Finals")
+        with pytest.raises(ValueError) as exc_info:
+            self.parser._select_section(sections, "j&j")
+        msg = str(exc_info.value)
+        assert "J&J Novice Finals" in msg
+        assert "J&J Masters Finals" in msg
+
+    def test_no_match_raises(self):
+        sections = self._sections("J&J Novice Finals", "J&J Masters Finals")
+        with pytest.raises(ValueError, match='No competition matching "xyzzy"'):
+            self.parser._select_section(sections, "xyzzy")

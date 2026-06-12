@@ -5,33 +5,7 @@ from bs4 import BeautifulSoup
 
 from core.models import Scoresheet
 from core.parsers import register_parser
-from core.parsers.base import PrelimsError, ScoresheetParser
-
-_ROUND_SUFFIX_RE = re.compile(
-    r'\s+(?:Finals|Prelims|Semis|Quarters|Final|Prelim|Semi|Quarter)\b.*$', re.IGNORECASE
-)
-
-
-def _common_word_prefix(names: list[str]) -> str:
-    """Return the longest common word-level prefix across all names."""
-    if not names:
-        return ""
-    word_lists = [name.split() for name in names]
-    prefix_words = []
-    for words in zip(*word_lists):
-        if len({w.lower() for w in words}) == 1:
-            prefix_words.append(words[0])
-        else:
-            break
-    return " ".join(prefix_words)
-
-
-def _get_division_core(name: str, prefix: str) -> str:
-    """Strip the common prefix and round suffix from a division name, returning the lowercased core."""
-    core = name
-    if prefix and core.lower().startswith(prefix.lower()):
-        core = core[len(prefix):].lstrip()
-    return _ROUND_SUFFIX_RE.sub("", core).lower()
+from core.parsers.base import PrelimsError, ScoresheetParser, _common_word_prefix, _get_division_core
 
 
 
@@ -128,9 +102,7 @@ class EeproParser(ScoresheetParser):
             # Tier 2: core starts with search term
             # Tier 3: core contains search term
             # Tier 4: full name contains search term (for searches that include the prefix)
-            # Within a tier, prefer the shortest full name.
-            best_tier = None
-            best_index = None
+            candidates: list[tuple[int, int]] = []  # (tier, index)
             for i, name in enumerate(division_names):
                 core = _get_division_core(name, prefix)
                 name_lower = name.lower()
@@ -144,20 +116,26 @@ class EeproParser(ScoresheetParser):
                     tier = 4
                 else:
                     continue
-                if (best_tier is None
-                        or tier < best_tier
-                        or (tier == best_tier and len(name) < len(division_names[best_index]))):
-                    best_tier = tier
-                    best_index = i
+                candidates.append((tier, i))
 
-            if best_index is None:
+            if not candidates:
                 division_list = "\n".join(f"  - {name}" for name in division_names)
                 raise ValueError(
                     f"No division matching \"{division}\" was found. "
                     f"Available divisions:\n{division_list}"
                 )
 
-            selected_index = best_index
+            best_tier = min(t for t, _ in candidates)
+            best_candidates = [i for t, i in candidates if t == best_tier]
+
+            if len(best_candidates) > 1:
+                matched_list = "\n".join(f"  - {division_names[i]}" for i in best_candidates)
+                raise ValueError(
+                    f"Multiple divisions match \"{division}\". Please be more specific.\n\n"
+                    f"Matching divisions:\n{matched_list}"
+                )
+
+            selected_index = best_candidates[0]
         elif len(division_tables) == 1:
             selected_index = 0
         else:
