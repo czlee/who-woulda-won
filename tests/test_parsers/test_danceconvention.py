@@ -257,6 +257,44 @@ class TestDanceConventionParser:
         assert "Alice Baker" not in result.judges
 
 
+    # --- duplicate names ---
+
+    def test_parse_duplicate_names_competitor_count(self, mock_pdfplumber_duplicate_names):
+        """All competitors present even when two share the same name."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        assert result.num_competitors == 5
+
+    def test_parse_duplicate_names_unique(self, mock_pdfplumber_duplicate_names):
+        """Disambiguated competitors must all have unique identifiers."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        assert len(result.competitors) == len(set(result.competitors))
+
+    def test_parse_duplicate_names_rankings_complete(self, mock_pdfplumber_duplicate_names):
+        """All judges have a ranking for every competitor."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        for judge in result.judges:
+            assert len(result.rankings[judge]) == 5
+
+    def test_parse_duplicate_names_bib_suffix(self, mock_pdfplumber_duplicate_names):
+        """Duplicate names are disambiguated with a bib number suffix."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        assert "Redacted & Redacted [#3]" in result.competitors
+        assert "Redacted & Redacted [#5]" in result.competitors
+
+    def test_parse_duplicate_names_unique_names_unchanged(self, mock_pdfplumber_duplicate_names):
+        """Competitors with unique names are not modified."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        assert "Alpha & Beta" in result.competitors
+        assert "Gamma & Delta" in result.competitors
+        assert "Epsilon & Zeta" in result.competitors
+
+    def test_parse_duplicate_names_spot_check_ranking(self, mock_pdfplumber_duplicate_names):
+        """Rankings for disambiguated competitors are correct and independent."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF")
+        assert result.rankings["Alice Baker"]["Redacted & Redacted [#3]"] == 3
+        assert result.rankings["Alice Baker"]["Redacted & Redacted [#5]"] == 5
+
+
 class TestSelectSection:
     """Unit tests for _select_section method."""
 

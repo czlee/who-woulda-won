@@ -364,7 +364,8 @@ class DanceConventionParser(ScoresheetParser):
         judges = [judge_key.get(init, init) for init in judge_initials]
 
         # Collect data rows from all finals tables
-        parsed_rows = []  # (competitor_name, [(col_idx, initials, value_str)])
+        number_idx = col_indices["number"]
+        parsed_rows = []  # (bib_number, competitor_name, [(col_idx, initials, value_str)])
 
         for results_table in results_tables:
             for row in results_table[1:]:
@@ -379,6 +380,9 @@ class DanceConventionParser(ScoresheetParser):
                 if not competitor:
                     continue
 
+                number_cell = row[number_idx] if number_idx < len(row) else None
+                bib = str(number_cell).strip() if number_cell else ""
+
                 row_judge_values = []
                 for i, initials in enumerate(judge_initials):
                     col_idx = judge_start + i
@@ -386,13 +390,23 @@ class DanceConventionParser(ScoresheetParser):
                         value_str = str(row[col_idx]).strip()
                         row_judge_values.append((col_idx, initials, value_str))
 
-                parsed_rows.append((competitor, row_judge_values))
+                parsed_rows.append((bib, competitor, row_judge_values))
+
+        # Disambiguate duplicate names by appending bib number
+        name_counts: dict[str, int] = {}
+        for _, comp, _ in parsed_rows:
+            name_counts[comp] = name_counts.get(comp, 0) + 1
+        if any(v > 1 for v in name_counts.values()):
+            parsed_rows = [
+                (n, f"{c} [#{n}]" if name_counts[c] > 1 else c, jv)
+                for n, c, jv in parsed_rows
+            ]
 
         # Build competitors list and rankings dict
         competitors = []
         rankings = {judge: {} for judge in judges}
 
-        for competitor, row_judge_values in parsed_rows:
+        for _bib, competitor, row_judge_values in parsed_rows:
             competitors.append(competitor)
             for _col_idx, initials, value_str in row_judge_values:
                 try:

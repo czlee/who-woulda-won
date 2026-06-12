@@ -221,6 +221,39 @@ def mock_pdfplumber_multi(monkeypatch):
     return mock_pdf
 
 
+def _make_duplicate_names_page_data():
+    """Create a finals PDF where two competitors share the same cleaned name."""
+    judges = ["AB", "CD", "EF"]
+    text = (
+        "Some Event 2026\nNovice J&J Finals\n"
+        "AB Alice Baker\nCD Carol Davis\nEF Eve Foster\n"
+    )
+    # bibs 3 and 5 will have the same name after _clean_competitor_name
+    competitor_rows = [
+        ("1", "Alpha\nBeta",         [1, 2, 1]),
+        ("2", "Gamma\nDelta",        [2, 1, 2]),
+        ("3", "Redacted\nRedacted",  [3, 4, 3]),
+        ("4", "Epsilon\nZeta",       [4, 3, 4]),
+        ("5", "Redacted\nRedacted",  [5, 5, 5]),
+    ]
+    cumulative = [f"1-{i}" for i in range(1, len(competitor_rows) + 1)]
+    header = ["#", "Name"] + judges + cumulative + ["Result"]
+    rows = [
+        [bib, name] + [str(r) for r in ranks] + [""] * (len(cumulative) + 1)
+        for bib, name, ranks in competitor_rows
+    ]
+    return [{"text": text, "tables": [[header] + rows]}]
+
+
+@pytest.fixture
+def mock_pdfplumber_duplicate_names(monkeypatch):
+    """Monkeypatch pdfplumber.open to return finals data with duplicate competitor names."""
+    import pdfplumber
+    mock_pdf = _make_mock_pdf(_make_duplicate_names_page_data())
+    monkeypatch.setattr(pdfplumber, "open", lambda *args, **kwargs: mock_pdf)
+    return mock_pdf
+
+
 def _make_prelims_page_data(use_alternates=False):
     """Create synthetic prelims PDF page data with callback scores."""
     judges = ["AB", "CD", "EF"]
