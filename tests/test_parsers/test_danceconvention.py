@@ -207,3 +207,51 @@ class TestDanceConventionParser:
         result = self.parser.parse(self.VALID_URL, b"%PDF")
         for judge in result.judges:
             assert len(result.rankings[judge]) == 5
+
+    # --- multi-competition PDF ---
+
+    def test_parse_multi_no_division_raises(self, mock_pdfplumber_multi):
+        """PDF with two competitions and no division arg should raise ValueError."""
+        with pytest.raises(ValueError, match="2 competitions"):
+            self.parser.parse(self.VALID_URL, b"%PDF")
+
+    def test_parse_multi_no_division_lists_competitions(self, mock_pdfplumber_multi):
+        """The ValueError should list both competition names."""
+        with pytest.raises(ValueError) as exc_info:
+            self.parser.parse(self.VALID_URL, b"%PDF")
+        msg = str(exc_info.value)
+        assert "Leaders" in msg
+        assert "Followers" in msg
+
+    def test_parse_multi_division_leaders(self, mock_pdfplumber_multi):
+        """division='leaders' should return the leaders scoresheet."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF", division="leaders")
+        assert "Leaders" in result.competition_name
+        assert "Followers" not in result.competition_name
+        assert result.num_judges == 3
+        assert result.num_competitors == 5
+
+    def test_parse_multi_division_followers(self, mock_pdfplumber_multi):
+        """division='followers' should return the followers scoresheet."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF", division="followers")
+        assert "Followers" in result.competition_name
+        assert "Leaders" not in result.competition_name
+        assert result.num_judges == 3
+        assert result.num_competitors == 5
+
+    def test_parse_multi_division_wrong_raises(self, mock_pdfplumber_multi):
+        """An unrecognised division string should raise ValueError with list."""
+        with pytest.raises(ValueError, match="xyzzy"):
+            self.parser.parse(self.VALID_URL, b"%PDF", division="xyzzy")
+
+    def test_parse_multi_leaders_judges(self, mock_pdfplumber_multi):
+        """Leaders competition should have the leaders judges."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF", division="leaders")
+        assert "Alice Baker" in result.judges
+        assert "Grace Hill" not in result.judges
+
+    def test_parse_multi_followers_judges(self, mock_pdfplumber_multi):
+        """Followers competition should have the followers judges."""
+        result = self.parser.parse(self.VALID_URL, b"%PDF", division="followers")
+        assert "Grace Hill" in result.judges
+        assert "Alice Baker" not in result.judges

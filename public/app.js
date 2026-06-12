@@ -162,7 +162,17 @@ async function analyzeScoresheet(data) {
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(result.error || `HTTP ${response.status}`);
+            const errMsg = result.error || `HTTP ${response.status}`;
+            // If the error lists available competitions/divisions, reveal the
+            // division input field so the user can resubmit without starting over.
+            if (errMsg.includes('\n  - ')) {
+                if (data instanceof FormData) {
+                    fileDivisionField.classList.remove('hidden');
+                } else {
+                    urlDivisionField.classList.remove('hidden');
+                }
+            }
+            throw new Error(errMsg);
         }
 
         displayResults(result);

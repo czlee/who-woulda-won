@@ -148,6 +148,79 @@ def mock_pdfplumber_full_tie(danceconvention_full_tie_json, monkeypatch):
     return mock_pdf
 
 
+def _make_multi_competition_page_data():
+    """Four-page PDF with two competitions (leaders + followers), each spanning two pages."""
+    def _make_finals_table(judges, competitors):
+        cumulative = [f"1-{i}" for i in range(1, len(competitors) + 1)]
+        header = ["#", "Name"] + judges + cumulative + ["Result"]
+        rows = []
+        for bib, (name, ranks) in enumerate(competitors, start=1):
+            rows.append([str(bib), name] + [str(r) for r in ranks] + [""] * (len(cumulative) + 1))
+        return [header] + rows
+
+    leaders_judges = ["AB", "CD", "EF"]
+    leaders_text_p1 = (
+        "Great Event 2025\nPro-Am Novice Leaders Finals\n"
+        "AB Alice Baker\nCD Carol Davis\nEF Eve Foster\n"
+    )
+    leaders_table_p1 = _make_finals_table(
+        leaders_judges,
+        [
+            ("Leader One\nFollower One", [1, 2, 1]),
+            ("Leader Two\nFollower Two", [2, 1, 3]),
+            ("Leader Three\nFollower Three", [3, 3, 2]),
+        ],
+    )
+    # Continuation page: text starts with "#" (table column header row)
+    leaders_text_p2 = "# Name AB CD EF 1-1 1-2 1-3 Result\n"
+    leaders_table_p2 = _make_finals_table(
+        leaders_judges,
+        [
+            ("Leader Four\nFollower Four", [4, 4, 4]),
+            ("Leader Five\nFollower Five", [5, 5, 5]),
+        ],
+    )
+
+    followers_judges = ["GH", "IJ", "KL"]
+    followers_text_p1 = (
+        "Great Event 2025\nPro-Am Novice Followers Finals\n"
+        "GH Grace Hill\nIJ Iris Jones\nKL Karen Lee\n"
+    )
+    followers_table_p1 = _make_finals_table(
+        followers_judges,
+        [
+            ("Leader A\nFollower A", [1, 1, 2]),
+            ("Leader B\nFollower B", [2, 2, 1]),
+            ("Leader C\nFollower C", [3, 3, 3]),
+        ],
+    )
+    followers_text_p2 = "# Name GH IJ KL 1-1 1-2 1-3 Result\n"
+    followers_table_p2 = _make_finals_table(
+        followers_judges,
+        [
+            ("Leader D\nFollower D", [4, 4, 4]),
+            ("Leader E\nFollower E", [5, 5, 5]),
+        ],
+    )
+
+    return [
+        {"text": leaders_text_p1, "tables": [leaders_table_p1]},
+        {"text": leaders_text_p2, "tables": [leaders_table_p2]},
+        {"text": followers_text_p1, "tables": [followers_table_p1]},
+        {"text": followers_text_p2, "tables": [followers_table_p2]},
+    ]
+
+
+@pytest.fixture
+def mock_pdfplumber_multi(monkeypatch):
+    """Monkeypatch pdfplumber.open to return a two-competition PDF."""
+    import pdfplumber
+
+    mock_pdf = _make_mock_pdf(_make_multi_competition_page_data())
+    monkeypatch.setattr(pdfplumber, "open", lambda *args, **kwargs: mock_pdf)
+    return mock_pdf
+
+
 def _make_prelims_page_data(use_alternates=False):
     """Create synthetic prelims PDF page data with callback scores."""
     judges = ["AB", "CD", "EF"]

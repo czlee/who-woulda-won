@@ -76,28 +76,133 @@ class DanceConventionParser(ScoresheetParser):
             if not pdf.pages:
                 raise ValueError("PDF has no pages")
 
-            # Extract text and tables from all pages
-            all_text = ""
-            all_tables = []
+            sections, nonfinals_tables = self._split_into_sections(pdf.pages)
 
-            for page in pdf.pages:
-                text = page.extract_text() or ""
-                all_text += text + "\n"
-
-                tables = page.extract_tables()
-                all_tables.extend(tables)
-
-        if not all_tables:
+        if not sections:
+            if nonfinals_tables:
+                self._check_if_prelims(nonfinals_tables)  # raises PrelimsError if appropriate
             raise ValueError("No tables found in PDF")
 
-        # Parse competition info from text
-        competition_name = self._extract_competition_name(all_text)
+        if len(sections) == 1:
+            competition_name, all_text, all_tables = sections[0]
+        elif division is None:
+            division_list = "\n".join(f"  - {s[0]}" for s in sections)
+            raise ValueError(
+                f"This PDF contains {len(sections)} competitions. "
+                f"Please specify which competition to analyse.\n\n"
+                f"Available competitions:\n{division_list}"
+            )
+        else:
+            competition_name, all_text, all_tables = self._select_section(sections, division)
 
-        # Parse judge key from text
         judge_key = self._extract_judge_key(all_text)
-
-        # Find and parse the main results table
         return self._parse_results_table(all_tables, competition_name, judge_key)
+
+    def _get_page_section_name(self, text: str) -> str | None:
+        """Detect whether a page starts a new competition section.
+
+        Continuation pages begin their extracted text with the table column
+        header row ("# Name ...") or a data row (leading digit). All other
+        pages are treated as the start of a new competition section.
+        Returns the competition name, or None for continuation pages.
+        """
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        if not lines or lines[0].startswith("#") or lines[0][:1].isdigit():
+            return None
+        return self._extract_competition_name(text)
+
+    def _split_into_sections(
+        self, pages
+    ) -> tuple[list[tuple[str, str, list]], list]:
+        """Split PDF pages into competition sections.
+
+        Returns:
+          - sections: list of (competition_name, all_text, finals_tables),
+            one per competition found (only sections that have finals tables)
+          - nonfinals_results_tables: all results tables lacking cumulative
+            columns, for use in prelims detection when no finals are found
+        """
+        sections: list[list] = []  # each entry: [name, text, finals_tables]
+        current: list | None = None
+        nonfinals_results_tables: list = []
+
+        for page in pages:
+            text = page.extract_text() or ""
+            page_tables = page.extract_tables() or []
+
+            results_tables = [
+                t for t in page_tables
+                if t and len(t) >= 2 and self._is_results_header(t[0])
+            ]
+            finals_tables = [
+                t for t in results_tables if self._has_cumulative_columns(t[0])
+            ]
+            nonfinals_results_tables.extend(
+                t for t in results_tables if not self._has_cumulative_columns(t[0])
+            )
+
+            section_name = self._get_page_section_name(text)
+
+            if section_name is not None and (
+                current is None or section_name != current[0]
+            ):
+                current = [section_name, text, []]
+                sections.append(current)
+            elif current is not None:
+                current[1] += "\n" + text
+            else:
+                # First page has no recognisable header — still start a section
+                name = self._extract_competition_name(text)
+                current = [name, text, []]
+                sections.append(current)
+
+            current[2].extend(finals_tables)
+
+        sections_with_finals = [(s[0], s[1], s[2]) for s in sections if s[2]]
+        return sections_with_finals, nonfinals_results_tables
+
+    def _select_section(
+        self, sections: list[tuple[str, str, list]], division: str
+    ) -> tuple[str, str, list]:
+        """Select a competition section by fuzzy-matching the division string.
+
+        Three-tier match (case-insensitive), preferring the shortest name
+        within each tier:
+          1. Exact match
+          2. Name starts with search term
+          3. Name contains search term
+        """
+        division_lower = division.lower()
+        best_tier: int | None = None
+        best_index: int | None = None
+
+        for i, (name, _, _) in enumerate(sections):
+            name_lower = name.lower()
+            if name_lower == division_lower:
+                tier = 1
+            elif name_lower.startswith(division_lower):
+                tier = 2
+            elif division_lower in name_lower:
+                tier = 3
+            else:
+                continue
+
+            if (
+                best_tier is None
+                or tier < best_tier
+                or (tier == best_tier and len(name) < len(sections[best_index][0]))
+            ):
+                best_tier = tier
+                best_index = i
+
+        if best_index is None:
+            division_list = "\n".join(f"  - {s[0]}" for s in sections)
+            raise ValueError(
+                f"No competition matching \"{division}\" was found. "
+                f"Available competitions:\n{division_list}"
+            )
+
+        return sections[best_index]
 
     def _extract_competition_name(self, text: str) -> str:
         """Extract competition name from PDF text."""

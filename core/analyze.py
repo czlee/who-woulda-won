@@ -77,6 +77,8 @@ def analyze_scoresheet(source: str, content: bytes, division: str | None = None)
             "This tool only works with finals scoresheets, where judges "
             "give each competitor a ranking."
         )
+    except ValueError as e:
+        raise AnalysisError(str(e))
     except Exception as e:
         raise AnalysisError(f"Failed to parse scoresheet: {e}") from e
 
