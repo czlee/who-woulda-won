@@ -3,8 +3,9 @@
 // date: Saturday of the event weekend (ISO format). For events not spanning a weekend, use the actual date of the final.
 // The date isn't currently used, it's only there to make it easy to keep this list sorted.
 const GALLERY_ITEMS = [
-    { date: '2026-05-30', url: 'https://scoring.dance/enCA/events/405/results/5939.html', event: 'Nanaimo Dance Fusion 2026', division: 'Intermediate' },
-    { date: '2026-05-30', url: 'https://scoring.dance/enCA/events/405/results/5947.html', event: 'Nanaimo Dance Fusion 2026', division: 'Nov/Int Strictly' },
+    { date: '2026-06-06', url: 'https://eepro.com/results/jjorama2026/wsdcjjfinals.html', event: 'J&J O’Rama 2026', division: 'Champions', parserDivision: 'Champions' },
+    { date: '2026-05-30', url: 'https://scoring.dance/enCA/events/405/results/5939.html', event: 'Nanaimo 2026', division: 'Intermediate' },
+    { date: '2026-05-30', url: 'https://scoring.dance/enCA/events/405/results/5947.html', event: 'Nanaimo 2026', division: 'Nov/Int Strictly' },
     { date: '2026-05-30', url: 'https://eepro.com/results/michiganclassic2026/jjfinals.html', event: 'Michigan Classic - 2026', division: 'Novice', parserDivision: 'Novice' },
     { date: '2026-05-23', url: 'https://scoring.dance/enCA/events/415/results/5962.html', event: 'Hungarian Open 2026', division: 'All-Star' },
     { date: '2026-05-23', url: 'https://scoring.dance/enCA/events/415/results/5958.html', event: 'Hungarian Open 2026', division: 'Intermediate' },
