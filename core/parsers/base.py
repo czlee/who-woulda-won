@@ -32,6 +32,20 @@ def _get_division_core(name: str, prefix: str) -> str:
     return _ROUND_SUFFIX_RE.sub("", core).lower()
 
 
+def shorten_division_name(name: str, all_names: list[str]) -> str:
+    """Return a display-friendly short form of a division name.
+
+    Strips the longest common word prefix shared by all names in the list,
+    and strips the round-type suffix (Finals, Prelims, etc.) and anything
+    following it. Preserves original capitalisation.
+    """
+    prefix = _common_word_prefix(all_names)
+    core = name
+    if prefix and core.lower().startswith(prefix.lower()):
+        core = core[len(prefix):].lstrip()
+    return _ROUND_SUFFIX_RE.sub("", core).strip()
+
+
 class PrelimsError(ValueError):
     """Raised when a scoresheet is detected as a prelims/callback round.
 
