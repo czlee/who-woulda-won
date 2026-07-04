@@ -73,6 +73,60 @@ ROUND_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
+# Matches "Jack & Jill" / "Jack&Jill" / "Jack and Jill" / "Jack-N-Jill" /
+# "Jack'n'Jill" / "J&J" / "JnJ" in any of their common spacing/punctuation forms.
+JACK_AND_JILL_RE = re.compile(
+    r"\bjack\s*(?:&|\+|and|-?n-?|['’]n['’])\s*jill\b"
+    r"|\bj\s*&\s*j\b"
+    r"|\bjnj\b",
+    re.IGNORECASE,
+)
+
+# Level names that can appear in a joint-level division (e.g. "Novice/Intermediate"),
+# mapped to their abbreviated display form. Keys are normalized (lowercased, spaces
+# and hyphens stripped) so both full names and existing abbreviations match.
+LEVEL_ABBREV = {
+    "newcomer": "New", "new": "New",
+    "novice": "Nov", "nov": "Nov",
+    "intermediate": "Int", "int": "Int",
+    "advanced": "Adv", "adv": "Adv",
+    "allstar": "All★", "all": "All★",
+    "sophisticated": "Soph", "soph": "Soph",
+    "champions": "Champ", "champ": "Champ",
+    "masters": "Mstr", "mstr": "Mstr",
+}
+
+
+def _level_key(s: str) -> str:
+    return re.sub(r"[\s-]", "", s).lower()
+
+
+def abbreviate_joint_level(name: str) -> str:
+    """Abbreviate a two-level joint division (e.g. "Novice/Intermediate" or
+    "Advanced-All Star") to "Nov/Int" / "Adv/All★" style. Leaves the name
+    unchanged if it isn't a recognized two-level combination."""
+    for sep in ("/", "-"):
+        if sep not in name:
+            continue
+        parts = [p.strip() for p in name.split(sep)]
+        if len(parts) != 2:
+            continue
+        keys = [_level_key(p) for p in parts]
+        if all(k in LEVEL_ABBREV for k in keys):
+            return "/".join(LEVEL_ABBREV[k] for k in keys)
+    return name
+
+
+def normalize_division_name(name: str) -> str:
+    """Strip "Jack & Jill" (and variants) from a division name — it's the
+    unstated default format, so it shouldn't clutter the display — and
+    abbreviate joint-level divisions (e.g. "Novice/Intermediate" -> "Nov/Int")."""
+    stripped = JACK_AND_JILL_RE.sub(" ", name)
+    stripped = re.sub(r"\s{2,}", " ", stripped)
+    stripped = re.sub(r"^[\s\-–—,:|/]+|[\s\-–—,:|/]+$", "", stripped)
+    stripped = stripped.strip()
+    return abbreviate_joint_level(stripped) if stripped else name
+
 
 @dataclass
 class DiscoveredFinal:
@@ -209,6 +263,7 @@ def discover_scoring_dance(
             href = a.get("href", "")
             url = f"https://scoring.dance{href}" if href.startswith("/") else href
             division = re.sub(r"\s+finals?$", "", name, flags=re.IGNORECASE).strip()
+            division = normalize_division_name(division)
             finals.append(DiscoveredFinal(
                 site="scoring.dance",
                 event_name=event_name,
@@ -453,7 +508,7 @@ def discover_danceconvention(
                     event_name=event_name,
                     event_date=ev_start,
                     event_end_date=ev_end,
-                    division=division_name,
+                    division=normalize_division_name(division_name),
                     url=f"https://danceconvention.net/eventdirector/en/roundscores/{pdf_id}.pdf",
                 ))
                 count += 1
