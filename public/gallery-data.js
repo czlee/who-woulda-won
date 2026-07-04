@@ -3,6 +3,13 @@
 // date: Saturday of the event weekend (ISO format). For events not spanning a weekend, use the actual date of the final.
 // The date isn't currently used, it's only there to make it easy to keep this list sorted.
 const GALLERY_ITEMS = [
+    { date: '2026-06-27', url: 'https://scoring.dance/enCA/events/364/results/6201.html', event: 'Neverland Swing 2026', division: 'Sophisticated' },
+    { date: '2026-06-20', url: 'https://scoring.dance/enCA/events/365/results/6152.html', event: 'Milan Swing Vibes 2026', division: 'Newcomer' },
+    { date: '2026-06-20', url: 'https://scoring.dance/enCA/events/365/results/6150.html', event: 'Milan Swing Vibes 2026', division: 'All-European' },
+    { date: '2026-06-20', url: 'https://scoring.dance/enCA/events/378/results/6068.html', event: 'D-Town Swing 2026', division: 'Novice' },
+    { date: '2026-06-13', url: 'https://scoring.dance/enCA/events/412/results/6046.html', event: 'Baltic Swing 2026', division: 'Novice' },
+    { date: '2026-06-13', url: 'https://scoring.dance/enCA/events/412/results/6049.html', event: 'Baltic Swing 2026', division: 'Intermediate' },
+    { date: '2026-06-13', url: 'https://scoring.dance/enCA/events/412/results/6103.html', event: 'Baltic Swing 2026', division: 'Advanced' },
     { date: '2026-06-06', url: 'https://eepro.com/results/jjorama2026/wsdcjjfinals.html', event: 'J&J O’Rama 2026', division: 'Champions', parserDivision: 'Champions' },
     { date: '2026-05-30', url: 'https://scoring.dance/enCA/events/405/results/5939.html', event: 'Nanaimo 2026', division: 'Intermediate' },
     { date: '2026-05-30', url: 'https://scoring.dance/enCA/events/405/results/5947.html', event: 'Nanaimo 2026', division: 'Nov/Int Strictly' },
