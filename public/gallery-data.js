@@ -3,6 +3,8 @@
 // date: Saturday of the event weekend (ISO format). For events not spanning a weekend, use the actual date of the final.
 // The date isn't currently used, it's only there to make it easy to keep this list sorted.
 const GALLERY_ITEMS = [
+    { date: '2026-07-04', url: 'https://scoring.dance/enCA/events/387/results/5449.html', event: 'French Connection 2026', division: 'Newcomer' },
+    { date: '2026-07-04', url: 'https://eepro.com/results/phoenix2026/strictlyfinals.html', event: 'Phoenix 4th of July 2026', division: 'Advanced Strictly', parserDivision: 'Strictly Swing Advanced' },
     { date: '2026-06-27', url: 'https://scoring.dance/enCA/events/364/results/6201.html', event: 'Neverland Swing 2026', division: 'Sophisticated' },
     { date: '2026-06-20', url: 'https://scoring.dance/enCA/events/365/results/6152.html', event: 'Milan Swing Vibes 2026', division: 'Newcomer' },
     { date: '2026-06-20', url: 'https://scoring.dance/enCA/events/365/results/6150.html', event: 'Milan Swing Vibes 2026', division: 'All-European' },
