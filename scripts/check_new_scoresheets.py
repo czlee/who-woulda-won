@@ -73,6 +73,13 @@ ROUND_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
+# Matches a parenthesized "( WSDC )" registry tag, e.g. "Novice ( WSDC )".
+WSDC_TAG_RE = re.compile(r"\(\s*WSDC\s*\)", re.IGNORECASE)
+
+# Matches a leading "Strictly" / "Strictly Swing" so the level can be moved in
+# front (gallery convention: "Strictly Swing Advanced" -> "Advanced Strictly").
+STRICTLY_PREFIX_RE = re.compile(r"^strictly(?:\s+swing)?\s+(.+)$", re.IGNORECASE)
+
 # Matches "Jack & Jill" / "Jack&Jill" / "Jack and Jill" / "Jack-N-Jill" /
 # "Jack'n'Jill" / "J&J" / "JnJ" in any of their common spacing/punctuation forms.
 JACK_AND_JILL_RE = re.compile(
@@ -118,14 +125,22 @@ def abbreviate_joint_level(name: str) -> str:
 
 
 def normalize_division_name(name: str) -> str:
-    """Strip "Jack & Jill" (and variants) from a division name — it's the
-    unstated default format, so it shouldn't clutter the display — and
-    abbreviate joint-level divisions (e.g. "Novice/Intermediate" -> "Nov/Int")."""
+    """Strip "Jack & Jill" (and variants) and "( WSDC )" tags from a division
+    name — J&J is the unstated default format, so neither should clutter the
+    display — abbreviate joint-level divisions (e.g. "Novice/Intermediate" -> "Nov/Int"),
+    and move a leading "Strictly [Swing]" after the level (gallery convention:
+    "Strictly Swing Advanced" -> "Advanced Strictly")."""
     stripped = JACK_AND_JILL_RE.sub(" ", name)
+    stripped = WSDC_TAG_RE.sub(" ", stripped)
     stripped = re.sub(r"\s{2,}", " ", stripped)
     stripped = re.sub(r"^[\s\-–—,:|/]+|[\s\-–—,:|/]+$", "", stripped)
     stripped = stripped.strip()
-    return abbreviate_joint_level(stripped) if stripped else name
+    if not stripped:
+        return name
+    strictly_m = STRICTLY_PREFIX_RE.match(stripped)
+    if strictly_m:
+        return f"{abbreviate_joint_level(strictly_m.group(1))} Strictly"
+    return abbreviate_joint_level(stripped)
 
 
 @dataclass
@@ -389,7 +404,7 @@ def discover_eepro(
                             event_name=event_name,
                             event_date=ev_start,
                             event_end_date=ev_end,
-                            division=short_name,
+                            division=normalize_division_name(short_name),
                             url=result_url,
                             parser_division=short_name,
                         ))
