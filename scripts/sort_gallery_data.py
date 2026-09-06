@@ -7,6 +7,8 @@ Sort order:
 3. Non-Strictly divisions before Strictly divisions.
 4. Level, in descending order: Champions, All-Star, Advanced, Intermediate,
    Novice, Newcomer, then any other level (e.g. All-American) alphabetically.
+   A joint division (e.g. "Nov/Int") ranks just below its highest
+   constituent level.
 """
 
 import re
@@ -18,14 +20,38 @@ GALLERY_DATA_PATH = Path(__file__).parent.parent / "public" / "gallery-data.js"
 
 LEVEL_ORDER = ["champion", "allstar", "advanced", "intermediate", "novice", "newcomer"]
 
+# Tokens (after splitting a division on non-letters and singularizing) that
+# identify a level, including the abbreviations used in joint-level names
+# (e.g. "Nov/Int", "Adv/AllStar" — see ALL_STAR_PHRASE_RE below for how
+# "All-Star"/"All Stars" get folded into a single "AllStar" token first).
+TOKEN_RANK = {level: rank for rank, level in enumerate(LEVEL_ORDER)}
+TOKEN_RANK.update(champ=0, adv=2, int=3, nov=4, new=5)
+
+# Matches "All-Star"/"All Stars"/"All Star" so it becomes a single "AllStar"
+# token instead of splitting into a bare, ambiguous "All" (which would
+# otherwise wrongly match unrelated divisions like "All-European").
+ALL_STAR_PHRASE_RE = re.compile(r"all[\s-]?stars?", re.IGNORECASE)
+
 ENTRY_RE = re.compile(
     r"date:\s*'(?P<date>[^']*)'.*?event:\s*'(?P<event>[^']*)'.*?division:\s*'(?P<division>[^']*)'"
 )
 
 
-def normalize(text: str) -> str:
-    letters_only = re.sub(r"[^a-z]", "", text.lower())
-    return letters_only.rstrip("s")
+def singularize(token: str) -> str:
+    return token.lower().rstrip("s")
+
+
+def level_rank(division: str):
+    """Rank a division by skill level, lower is higher (Champions=0, All-Star=1,
+    ..., Newcomer=5). A joint division (e.g. "Nov/Int") ranks just below its
+    highest constituent level, so it sits between that level and the next.
+    Returns None if no recognized level token is found."""
+    text = ALL_STAR_PHRASE_RE.sub("AllStar", division)
+    tokens = re.split(r"[^A-Za-z]+", text)
+    ranks = {TOKEN_RANK[singularize(t)] for t in tokens if singularize(t) in TOKEN_RANK}
+    if not ranks:
+        return None
+    return min(ranks) if len(ranks) == 1 else min(ranks) + 0.5
 
 
 def sort_key(line: str):
@@ -39,17 +65,16 @@ def sort_key(line: str):
 
     is_strictly = "strictly" in division.lower()
     base_division = re.sub(r"strictly", "", division, flags=re.IGNORECASE).strip()
-    normalized_base = normalize(base_division)
+    rank = level_rank(base_division)
 
-    if normalized_base in LEVEL_ORDER:
-        level_rank = LEVEL_ORDER.index(normalized_base)
+    if rank is not None:
         other_text = ""
     else:
-        level_rank = len(LEVEL_ORDER)
+        rank = len(LEVEL_ORDER)
         other_text = division.lower()
 
     reverse_date = -date_cls.fromisoformat(date_str).toordinal()
-    return (reverse_date, event, is_strictly, level_rank, other_text)
+    return (reverse_date, event, is_strictly, rank, other_text)
 
 
 def main():
