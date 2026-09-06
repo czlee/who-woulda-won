@@ -80,6 +80,10 @@ WSDC_TAG_RE = re.compile(r"\(\s*WSDC\s*\)", re.IGNORECASE)
 # front (gallery convention: "Strictly Swing Advanced" -> "Advanced Strictly").
 STRICTLY_PREFIX_RE = re.compile(r"^strictly(?:\s+swing)?\s+(.+)$", re.IGNORECASE)
 
+# Matches "All-Stars" / "All Stars" so it can be singularized to the gallery's
+# "All-Star" convention.
+ALL_STARS_RE = re.compile(r"\ball[\s-]?stars\b", re.IGNORECASE)
+
 # Matches "Jack & Jill" / "Jack&Jill" / "Jack and Jill" / "Jack-N-Jill" /
 # "Jack'n'Jill" / "J&J" / "JnJ" in any of their common spacing/punctuation forms.
 JACK_AND_JILL_RE = re.compile(
@@ -108,6 +112,35 @@ def _level_key(s: str) -> str:
     return re.sub(r"[\s-]", "", s).lower()
 
 
+# Division skill levels ranked highest-first for display ordering. Keys are
+# normalized by _level_key, and cover both full names and abbreviations.
+DIVISION_LEVEL_RANK = {
+    "champions": 100, "champ": 100,
+    "allstar": 90, "all": 90,
+    "advanced": 80, "adv": 80,
+    "intermediate": 70, "int": 70,
+    "novice": 60, "nov": 60,
+    "newcomer": 50, "new": 50,
+    "masters": 40, "mstr": 40,
+    "sophisticated": 30, "soph": 30,
+}
+
+
+def division_level_rank(division: str) -> int:
+    """Rank a division by skill level, highest first (Champions > All Star >
+    Advanced > Intermediate > Novice > Newcomer, then Masters/Sophisticated).
+    A joint division ranks just below its highest level, so "Nov/Int" sits
+    between Intermediate and Novice. Unrecognized divisions rank last."""
+    ranks = []
+    for token in re.split(r"[^A-Za-z★]+", division):
+        key = _level_key(token.replace("★", ""))
+        if key in DIVISION_LEVEL_RANK:
+            ranks.append(DIVISION_LEVEL_RANK[key])
+    if not ranks:
+        return 0
+    return max(ranks) - 5 if len(ranks) > 1 else max(ranks)
+
+
 def abbreviate_joint_level(name: str) -> str:
     """Abbreviate a two-level joint division (e.g. "Novice/Intermediate" or
     "Advanced-All Star") to "Nov/Int" / "Adv/All★" style. Leaves the name
@@ -127,11 +160,13 @@ def abbreviate_joint_level(name: str) -> str:
 def normalize_division_name(name: str) -> str:
     """Strip "Jack & Jill" (and variants) and "( WSDC )" tags from a division
     name — J&J is the unstated default format, so neither should clutter the
-    display — abbreviate joint-level divisions (e.g. "Novice/Intermediate" -> "Nov/Int"),
-    and move a leading "Strictly [Swing]" after the level (gallery convention:
+    display — singularize "All-Stars"/"All Stars" to "All-Star", abbreviate
+    joint-level divisions (e.g. "Novice/Intermediate" -> "Nov/Int"), and move
+    a leading "Strictly [Swing]" after the level (gallery convention:
     "Strictly Swing Advanced" -> "Advanced Strictly")."""
     stripped = JACK_AND_JILL_RE.sub(" ", name)
     stripped = WSDC_TAG_RE.sub(" ", stripped)
+    stripped = ALL_STARS_RE.sub("All-Star", stripped)
     stripped = re.sub(r"\s{2,}", " ", stripped)
     stripped = re.sub(r"^[\s\-–—,:|/]+|[\s\-–—,:|/]+$", "", stripped)
     stripped = stripped.strip()
@@ -576,13 +611,41 @@ def _gallery_date(ev_start: date, ev_end: date) -> date:
     return ev_end
 
 
+def _event_sort_key(a: "AnalyzedFinal") -> tuple:
+    """Sort key placing the most recent events first, regardless of site."""
+    f = a.final
+    return (-f.event_end_date.toordinal(), -f.event_date.toordinal(), f.event_name, f.site,
+            -division_level_rank(f.division), f.division)
+
+
+def _event_key(a: "AnalyzedFinal") -> tuple:
+    """Identity of the event an entry belongs to."""
+    return (a.final.site, a.final.event_name, a.final.event_date, a.final.event_end_date)
+
+
+def group_by_event(entries: list["AnalyzedFinal"]) -> list[list["AnalyzedFinal"]]:
+    """Group entries by event, events in reverse chronological order and the
+    entries within each event most-dramatic first, then by descending division
+    level — so the shortlist for a two-per-event pick reads top-down."""
+    groups: dict[tuple, list[AnalyzedFinal]] = {}
+    for a in sorted(entries, key=_event_sort_key):
+        groups.setdefault(_event_key(a), []).append(a)
+    for group in groups.values():
+        group.sort(key=lambda a: (
+            LEVEL_ORDER.index(a.level) if a.level in LEVEL_ORDER else len(LEVEL_ORDER),
+            -division_level_rank(a.final.division),
+            a.final.division,
+        ))
+    return list(groups.values())
+
+
 def print_report(analyzed: list[AnalyzedFinal]) -> None:
     by_level: dict[str, list[AnalyzedFinal]] = {lvl: [] for lvl in LEVEL_ORDER}
     for a in analyzed:
         by_level.get(a.level, by_level["consistent"]).append(a)
 
     for level in LEVEL_ORDER:
-        entries = by_level[level]
+        entries = sorted(by_level[level], key=_event_sort_key)
         if not entries:
             continue
         heading(bold(colorize(entries[0].label, level)))
@@ -668,25 +731,40 @@ def prompt_and_output_gallery(analyzed: list[AnalyzedFinal]) -> None:
     confirmed = []
     heading(bold("GALLERY REVIEW — Close Call, Shakeup & Drama"))
 
-    for a in candidates:
-        div = a.final.division or "(single division)"
-        ww_url = f"https://www.whowouldawon.dance/?url={quote(a.final.url, safe='')}"
-        if a.final.parser_division:
-            ww_url += f"&division={quote(a.final.parser_division, safe='')}"
-        print(f"\n  {bold(colorize(f'{a.label}  —  {a.final.event_name} — {div}', a.level))}")
-        print(f"  {a.sentence}")
-        print(f"  {ww_url}")
-        print()
-        print_comparison_table(a.analysis)
-        try:
-            ans = input("  Add to gallery? (y/n/q): ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
+    quit_review = False
+    for group in group_by_event(candidates):
+        f0 = group[0].final
+        if len(group) > 1:
+            dates = f"{f0.event_date} – {f0.event_end_date}"
+            print(f"\n  {bold(f0.event_name)}  [{f0.site}, {dates}] — "
+                  f"{len(group)} results up for review:")
+            for a in group:
+                div = a.final.division or "(single division)"
+                print(f"    {colorize(f'{a.label:<12} {div}', a.level)}")
+
+        for a in group:
+            div = a.final.division or "(single division)"
+            ww_url = f"https://www.whowouldawon.dance/?url={quote(a.final.url, safe='')}"
+            if a.final.parser_division:
+                ww_url += f"&division={quote(a.final.parser_division, safe='')}"
+            print(f"\n  {bold(colorize(f'{a.label}  —  {a.final.event_name} — {div}', a.level))}")
+            print(f"  {a.sentence}")
+            print(f"  {ww_url}")
             print()
+            print_comparison_table(a.analysis)
+            try:
+                ans = input("  Add to gallery? (y/n/q): ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                quit_review = True
+                break
+            if ans == "q":
+                quit_review = True
+                break
+            if ans == "y":
+                confirmed.append(a)
+        if quit_review:
             break
-        if ans == "q":
-            break
-        if ans == "y":
-            confirmed.append(a)
 
     if not confirmed:
         print("\nNothing confirmed.")
