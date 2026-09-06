@@ -80,6 +80,10 @@ WSDC_TAG_RE = re.compile(r"\(\s*WSDC\s*\)", re.IGNORECASE)
 # front (gallery convention: "Strictly Swing Advanced" -> "Advanced Strictly").
 STRICTLY_PREFIX_RE = re.compile(r"^strictly(?:\s+swing)?\s+(.+)$", re.IGNORECASE)
 
+# Matches "All-Stars" / "All Stars" so it can be singularized to the gallery's
+# "All-Star" convention.
+ALL_STARS_RE = re.compile(r"\ball[\s-]?stars\b", re.IGNORECASE)
+
 # Matches "Jack & Jill" / "Jack&Jill" / "Jack and Jill" / "Jack-N-Jill" /
 # "Jack'n'Jill" / "J&J" / "JnJ" in any of their common spacing/punctuation forms.
 JACK_AND_JILL_RE = re.compile(
@@ -127,11 +131,13 @@ def abbreviate_joint_level(name: str) -> str:
 def normalize_division_name(name: str) -> str:
     """Strip "Jack & Jill" (and variants) and "( WSDC )" tags from a division
     name — J&J is the unstated default format, so neither should clutter the
-    display — abbreviate joint-level divisions (e.g. "Novice/Intermediate" -> "Nov/Int"),
-    and move a leading "Strictly [Swing]" after the level (gallery convention:
+    display — singularize "All-Stars"/"All Stars" to "All-Star", abbreviate
+    joint-level divisions (e.g. "Novice/Intermediate" -> "Nov/Int"), and move
+    a leading "Strictly [Swing]" after the level (gallery convention:
     "Strictly Swing Advanced" -> "Advanced Strictly")."""
     stripped = JACK_AND_JILL_RE.sub(" ", name)
     stripped = WSDC_TAG_RE.sub(" ", stripped)
+    stripped = ALL_STARS_RE.sub("All-Star", stripped)
     stripped = re.sub(r"\s{2,}", " ", stripped)
     stripped = re.sub(r"^[\s\-–—,:|/]+|[\s\-–—,:|/]+$", "", stripped)
     stripped = stripped.strip()
