@@ -3,6 +3,19 @@
 // date: Saturday of the event weekend (ISO format). For events not spanning a weekend, use the actual date of the final.
 // The date isn't currently used, it's only there to make it easy to keep this list sorted.
 const GALLERY_ITEMS = [
+    { date: '2026-09-19', url: 'https://scoring.dance/enCA/events/445/results/6632.html', event: 'Finnfest 2026', division: 'Intermediate Strictly' },
+    { date: '2026-09-19', url: 'https://scoring.dance/enCA/events/445/results/6630.html', event: 'Finnfest 2026', division: 'Novice Strictly' },
+    { date: '2026-09-19', url: 'https://scoring.dance/enCA/events/445/results/6625.html', event: 'Finnfest 2026', division: 'All-Star' },
+    { date: '2026-09-19', url: 'https://scoring.dance/enCA/events/445/results/6615.html', event: 'Finnfest 2026', division: 'Newcomer' },
+    { date: '2026-09-19', url: 'https://scoring.dance/enCA/events/428/results/6568.html', event: 'GGP 2026', division: 'Intermediate Strictly' },
+    { date: '2026-09-19', url: 'https://eepro.com/results/retaliation2026/jjfinals.html', event: 'Retaliation Swing 2026', division: 'Sophisticated', parserDivision: 'Sophisticated' },
+    { date: '2026-09-19', url: 'https://scoring.dance/enCA/events/441/results/6602.html', event: 'WCSParty 2026', division: 'Intermediate' },
+    { date: '2026-09-19', url: 'https://scoring.dance/enCA/events/441/results/6599.html', event: 'WCSParty 2026', division: 'Novice' },
+    { date: '2026-09-18', url: 'https://danceconvention.net/eventdirector/en/roundscores/30190099.pdf', event: 'ATX ROX 2026', division: 'All-Star' },
+    { date: '2026-09-18', url: 'https://danceconvention.net/eventdirector/en/roundscores/30190144.pdf', event: 'ATX ROX 2026', division: 'Novice' },
+    { date: '2026-09-18', url: 'https://danceconvention.net/eventdirector/en/roundscores/30190433.pdf', event: 'ATX ROX 2026', division: 'Als/Chp Strictly' },
+    { date: '2026-09-12', url: 'https://scoring.dance/enCA/events/438/results/6428.html', event: 'Bavarian Open 2026', division: 'Novice' },
+    { date: '2026-09-12', url: 'https://eepro.com/results/swingtime2026/strictlyfinals.html', event: 'SwingTime Denver 2026', division: 'Champions Strictly', parserDivision: 'Champions Strictly' },
     { date: '2026-08-29', url: 'https://scoring.dance/enCA/events/392/results/6508.html', event: 'Rolling Swing 2026', division: 'Advanced' },
     { date: '2026-08-29', url: 'https://scoring.dance/enCA/events/392/results/6527.html', event: 'Rolling Swing 2026', division: 'Nov/Int Strictly' },
     { date: '2026-08-22', url: 'https://scoring.dance/enCA/events/384/results/6112.html', event: 'Bend Connection 2026', division: 'Intermediate' },
